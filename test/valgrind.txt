@@ -1,0 +1,41 @@
+==42390== 16 bytes in 1 blocks are definitely lost in loss record 1 of 4
+==42390==    at 0x4846003: operator new(unsigned long) (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==42390==    by 0x10D86E: Index<long>::Index() (index.hpp:187)
+==42390==    by 0x10CF41: Engine::Engine() (engine.hpp:17)
+==42390==    by 0x10C2C0: engine_init (interface.cpp:10)
+==42390==    by 0x10B5D3: test_engine_read() (test_engine.cpp:42)
+==42390==    by 0x10BA52: main (test_engine.cpp:78)
+==42390== 
+==42390== 16 bytes in 1 blocks are definitely lost in loss record 2 of 4
+==42390==    at 0x4846003: operator new(unsigned long) (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==42390==    by 0x10D8A0: Index<UserString>::Index() (index.hpp:187)
+==42390==    by 0x10CF64: Engine::Engine() (engine.hpp:18)
+==42390==    by 0x10C2C0: engine_init (interface.cpp:10)
+==42390==    by 0x10B5D3: test_engine_read() (test_engine.cpp:42)
+==42390==    by 0x10BA52: main (test_engine.cpp:78)
+==42390== 
+==42390== 16 bytes in 1 blocks are definitely lost in loss record 3 of 4
+==42390==    at 0x4846003: operator new(unsigned long) (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==42390==    by 0x10D86E: Index<long>::Index() (index.hpp:187)
+==42390==    by 0x10CF87: Engine::Engine() (engine.hpp:19)
+==42390==    by 0x10C2C0: engine_init (interface.cpp:10)
+==42390==    by 0x10B5D3: test_engine_read() (test_engine.cpp:42)
+==42390==    by 0x10BA52: main (test_engine.cpp:78)
+==42390== 
+==42390== 16 bytes in 1 blocks are definitely lost in loss record 4 of 4
+==42390==    at 0x4846003: operator new(unsigned long) (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==42390==    by 0x10D8A0: Index<UserString>::Index() (index.hpp:187)
+==42390==    by 0x10CFAA: Engine::Engine() (engine.hpp:20)
+==42390==    by 0x10C2C0: engine_init (interface.cpp:10)
+==42390==    by 0x10B5D3: test_engine_read() (test_engine.cpp:42)
+==42390==    by 0x10BA52: main (test_engine.cpp:78)
+==42390== 
+==42390== LEAK SUMMARY:
+==42390==    definitely lost: 64 bytes in 4 blocks
+==42390==    indirectly lost: 0 bytes in 0 blocks
+==42390==      possibly lost: 0 bytes in 0 blocks
+==42390==    still reachable: 0 bytes in 0 blocks
+==42390==         suppressed: 0 bytes in 0 blocks
+==42390== 
+==42390== ERROR SUMMARY: 4 errors from 4 contexts (suppressed: 0 from 0)
+
