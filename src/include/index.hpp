@@ -1,8 +1,8 @@
 #pragma once
 #include "data.hpp"
-#include <cassert>
 #include <cstdint>
 #include <cstddef>
+#include <cstdio>
 #include <cstdlib>
 #include <unistd.h>
 #include <unordered_map>
@@ -48,7 +48,7 @@ static bool compare(const void *key, const User *user, int column) {
   case Salary:
     return *(int64_t *)key == user->salary;
   default:
-    assert(0);
+    DEBUG_PRINTF(0, "column error");
   }
   return 0;
 }
@@ -72,7 +72,7 @@ static void * res_copy(const User *user, void *res, int32_t select_column) {
     memcpy(res, &user->salary, 8); 
     res = (char *)res + 8; 
     break;
-  default: assert(0); // wrong
+  default: DEBUG_PRINTF(0, "column error"); // wrong
   }
   return res;
 }
@@ -99,7 +99,7 @@ static inline uint64_t get_bucket_index(const void *key, int column) {
     bucket_location = calc_index(*(int64_t *)key);
     break;
   default:
-    assert(0);
+    DEBUG_PRINTF(0, "column error");
   }
   return bucket_location;
 }
@@ -117,18 +117,23 @@ public:
   }
 
 
-  void map_file(const std::string &filename) {
+  void Open(const std::string &filename) {
     bool hash_create = false;
     if (access(filename.c_str(), F_OK)) {
       hash_create = true;
     }
 
     int fd = open(filename.c_str(), O_CREAT | O_RDWR, 0666);
-    assert(fd);
-    ftruncate(fd, BUCKET_NUM * sizeof(Bucket));
+    DEBUG_PRINTF(fd, (filename + "open failed").c_str());
+
     ptr = reinterpret_cast<char*>(mmap(0, BUCKET_NUM * sizeof(Bucket), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
-    if (hash_create)
+    if (hash_create) {
+      int ret = ftruncate(fd, BUCKET_NUM * sizeof(Bucket));
+      DEBUG_PRINTF(ret >= 0, (filename + "ftruncate error").c_str());
       memset(ptr, 0, BUCKET_NUM * sizeof(Bucket));
+    }
+
+    DEBUG_PRINTF(ptr, (filename + "mmaped error").c_str());
     next_location = reinterpret_cast<std::atomic<size_t> *>(ptr);
     *next_location = 8;
   }
@@ -210,14 +215,22 @@ public:
     }
 
     int hash_fd = open(hash_file.c_str(), O_CREAT | O_RDWR, 0666);
-    assert(hash_fd);
-    ftruncate(hash_fd, BUCKET_NUM * sizeof(Bucket));
+    if (hash_fd <= 0) {
+      fprintf(stderr, "open %s error\n", hash_file.c_str());
+      exit(-1);
+    }
+
     hash_ptr = reinterpret_cast<char*>(mmap(0, BUCKET_NUM * sizeof(Bucket), PROT_READ | PROT_WRITE, MAP_SHARED, hash_fd, 0));
-    if (hash_create)
+    DEBUG_PRINTF(hash_ptr, (hash_file + "mmaped failed").c_str());
+    if (hash_create) 
+    {
+      int ret = ftruncate(hash_fd, BUCKET_NUM * sizeof(Bucket));
+      DEBUG_PRINTF(ret >= 0, (hash_file + "ftruncate errored").c_str());
       memset(hash_ptr, 0, BUCKET_NUM * sizeof(Bucket));
+    }
 
     overflowindex = new OverflowIndex();
-    overflowindex->map_file(over_file);
+    overflowindex->Open(over_file);
   }
 
 
