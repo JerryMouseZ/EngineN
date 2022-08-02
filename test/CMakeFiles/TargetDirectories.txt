@@ -1,3 +1,0 @@
-/home/jz/engineN/test/CMakeFiles/test_data.dir
-/home/jz/engineN/test/CMakeFiles/edit_cache.dir
-/home/jz/engineN/test/CMakeFiles/rebuild_cache.dir
