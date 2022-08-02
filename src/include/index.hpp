@@ -114,6 +114,7 @@ public:
     if (ptr) {
       munmap(ptr, BUCKET_NUM * sizeof(Bucket));
     }
+    close(fd_);
   }
 
 
@@ -123,17 +124,16 @@ public:
       hash_create = true;
     }
 
-    int fd = open(filename.c_str(), O_CREAT | O_RDWR, 0666);
-    DEBUG_PRINTF(fd, "%s open error", filename.c_str());
+    fd_ = open(filename.c_str(), O_CREAT | O_RDWR, 0777);
+    DEBUG_PRINTF(fd_, "%s open error", filename.c_str());
 
-    ptr = reinterpret_cast<char*>(mmap(0, BUCKET_NUM * sizeof(Bucket), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
+    ptr = reinterpret_cast<char*>(mmap(0, BUCKET_NUM * sizeof(Bucket), PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0));
+    DEBUG_PRINTF(ptr, "%s mmaped error\n", filename.c_str());
     if (hash_create) {
-      int ret = ftruncate(fd, BUCKET_NUM * sizeof(Bucket));
+      int ret = ftruncate(fd_, BUCKET_NUM * sizeof(Bucket));
       DEBUG_PRINTF(ret >= 0, "%s ftruncate\n",  filename.c_str());
       memset(ptr, 0, BUCKET_NUM * sizeof(Bucket));
     }
-
-    DEBUG_PRINTF(ptr, "%s mmaped error\n", filename.c_str());
     next_location = reinterpret_cast<std::atomic<size_t> *>(ptr);
     *next_location = 8;
   }
@@ -180,6 +180,7 @@ public:
 
   char *ptr;
   std::atomic<size_t> *next_location;
+  int fd_;
 };
 
 
@@ -197,6 +198,7 @@ public:
       munmap(hash_ptr, sizeof(Bucket) * BUCKET_NUM);
     if (overflowindex)
       delete overflowindex;
+    close(fd_);
   }
 
 
@@ -214,17 +216,14 @@ public:
       hash_create = true;
     }
 
-    int hash_fd = open(hash_file.c_str(), O_CREAT | O_RDWR, 0666);
-    if (hash_fd <= 0) {
-      fprintf(stderr, "open %s error\n", hash_file.c_str());
-      exit(-1);
-    }
+    fd_ = open(hash_file.c_str(), O_CREAT | O_RDWR, 0777);
+    DEBUG_PRINTF(fd_ > 0, "open %s error\n", hash_file.c_str());
 
-    hash_ptr = reinterpret_cast<char*>(mmap(0, BUCKET_NUM * sizeof(Bucket), PROT_READ | PROT_WRITE, MAP_SHARED, hash_fd, 0));
+    hash_ptr = reinterpret_cast<char*>(mmap(0, BUCKET_NUM * sizeof(Bucket), PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0));
     DEBUG_PRINTF(hash_ptr, "%s mmaped failed", hash_file.c_str());
     if (hash_create) 
     {
-      int ret = ftruncate(hash_fd, BUCKET_NUM * sizeof(Bucket));
+      int ret = ftruncate(fd_, BUCKET_NUM * sizeof(Bucket));
       DEBUG_PRINTF(ret >= 0, "%s ftruncate errored", hash_file.c_str());
       memset(hash_ptr, 0, BUCKET_NUM * sizeof(Bucket));
     }
@@ -283,4 +282,5 @@ public:
 private:
   char *hash_ptr;
   OverflowIndex *overflowindex;
+  int fd_;
 };
