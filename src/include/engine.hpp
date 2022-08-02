@@ -56,6 +56,26 @@ public:
     data->put_flag(offset);
   }
 
+  std::string column_str(int column)
+  {
+  switch(column) {
+      case Id:
+        return "ID";
+        break;
+      case Userid:
+        return "UID";
+        break;
+      case Name:
+        return "Name";
+        break;
+      case Salary:
+        return "Salary";
+        break;
+      default:
+        assert(0);
+    }
+   
+  }
 
   size_t read(int32_t select_column,
             int32_t where_column, const void *column_key, size_t column_key_len, void *res) {
@@ -63,18 +83,21 @@ public:
     switch(where_column) {
       case Id:
         result = id_r->get(column_key, data, where_column, select_column, res, false);
+        fprintf(stderr, "select %s where ID = %ld, res = %ld", column_str(select_column).c_str(), *(int64_t *) column_key, result);
         break;
       case Userid:
         result = uid_r->get(column_key, data, where_column, select_column, res, false);
+        fprintf(stderr, "select %s where UID = %s, res = %ld", column_str(select_column).c_str(), (char *) column_key, result);
         break;
       case Name:
         result = name_r->get(column_key, data, where_column, select_column, res, false);
+        fprintf(stderr, "select %s where Name = %s, res = %ld", column_str(select_column).c_str(), (char *) column_key, result);
         break;
       case Salary:
         result = sala_r->get(column_key, data, where_column, select_column, res, true);
+        fprintf(stderr, "select %s where salary = %ld, res = %ld", column_str(select_column).c_str(), *(int64_t *) column_key, result);
         break;
       default:
-        fprintf(stderr, "unimplemented\n");
         assert(0);
     }
     return result;
