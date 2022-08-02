@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cstddef>
+#include <cstdlib>
 #include <unistd.h>
 #include <unordered_map>
 #include <pthread.h>
@@ -24,7 +25,9 @@
  * Bucket buckets[max_num];
  */
 
+const int BUCKET_NUM = 2560000;
 static const int ENTRY_NUM = 30;
+
 // 溢出链只是保证正确性的东西，没指望他省多少内存
 struct Bucket
 {
@@ -75,8 +78,33 @@ static void * res_copy(const User *user, void *res, int32_t select_column) {
 }
 
 
+template<class K>
+static size_t calc_index(const K &key) {
+  return std::hash<K>()(key) % BUCKET_NUM;
+}
 
-const int BUCKET_NUM = 2560000;
+static inline uint64_t get_bucket_index(const void *key, int column) {
+  int64_t bucket_location = calc_index(key);
+  switch(column) {
+  case Id:
+    bucket_location = calc_index(*(int64_t *)key);
+    break;
+  case Userid:
+    bucket_location = calc_index(*(UserString *)key);
+    break;
+  case Name:
+    bucket_location = calc_index(*(UserString *)key);
+    break;
+  case Salary:
+    bucket_location = calc_index(*(int64_t *)key);
+    break;
+  default:
+    assert(0);
+  }
+  return bucket_location;
+}
+
+
 class OverflowIndex {
 public:
   OverflowIndex() : ptr(nullptr) {}
@@ -128,7 +156,7 @@ public:
     for (int i = 0; i < ENTRY_NUM; ++i) {
       uint64_t offset = bucket->entries[i];
       if (offset == 0) {
-        return 0;
+        return count;
       } else {
         const User *tmp = data->data_read(offset);
         if (compare(key, tmp, column)) {
@@ -150,10 +178,7 @@ public:
 };
 
 
-template<class K>
-static size_t calc_index(const K &key) {
-  return std::hash<K>()(key) % BUCKET_NUM;
-}
+
 
 template<class K>
 class Index{
@@ -199,7 +224,7 @@ public:
   void put(const K &key, uint64_t data_offset) {
     Bucket *bucket = reinterpret_cast<Bucket*>(hash_ptr);
     int64_t bucket_location = calc_index(key);
-    size_t bucket_next = bucket->next_location.fetch_add(1);
+    size_t bucket_next = bucket[bucket_location].next_location.fetch_add(1);
     if (bucket_next < ENTRY_NUM) {
       bucket[bucket_location].entries[bucket_next] = data_offset;
       return;
@@ -218,12 +243,12 @@ public:
 
   int get(const void *key, Data *data, int column, int select, void *res, bool multi_value) {
     int count = 0;
-    int64_t bucket_location = calc_index(key);
+    int64_t bucket_location = get_bucket_index(key, column);
     Bucket *bucket = reinterpret_cast<Bucket*>(hash_ptr);
     for (int i = 0; i < ENTRY_NUM; ++i) {
       uint64_t offset = bucket[bucket_location].entries[i];
       if (offset == 0) {
-        return 0;
+        return count;
       } else {
         const User *tmp = data->data_read(offset);
         if (tmp && compare(key, tmp, column)) {
