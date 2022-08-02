@@ -16,7 +16,7 @@ enum UserColumn{Id=0, Userid, Name, Salary};
   do { \
     if(!(condition)) \
     { \
-      fprintf(stderr,"\nIn %s - function %s at line %d: ", __FILE__, __func__, __LINE__); \
+      /* fprintf(stderr,"\nIn %s - function %s at line %d: ", __FILE__, __func__, __LINE__); \ */ \
       fprintf(stderr,__VA_ARGS__); \
     } \
   } while(0)
