@@ -2,13 +2,27 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <string>
-#include <cassert>
 #include <libpmem.h>
 #include <unistd.h>
 
 enum UserColumn{Id=0, Userid, Name, Salary};
+#define DEBUG
+
+#ifdef DEBUG
+#define DEBUG_PRINTF(condition, ...) \
+  do { \
+    if(!(condition)) \
+    { \
+      fprintf(stderr,"\nIn %s - function %s at line %d: ", __FILE__, __func__, __LINE__); \
+      fprintf(stderr,__VA_ARGS__); \
+    } \
+  } while(0)
+#else
+#define DEBUG_PRINTF(...) (void)0
+#endif
 
 
 class UserString {
@@ -67,7 +81,7 @@ public:
     }
 
     ptr = reinterpret_cast<char *>(pmem_map_file(filename.c_str(), DATA_LEN, PMEM_FILE_CREATE, 0666, &map_len, &is_pmem));
-    assert(ptr);
+    DEBUG_PRINTF(ptr, (filename + "open mmaped failed").c_str());
 
     if (new_create) {
       pmem_memset_nodrain(ptr, 0, DATA_LEN);
