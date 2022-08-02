@@ -1,4 +1,4 @@
 file ./test_engine
-set args w
-b engine_write
+set args r
+b engine_read
 r
