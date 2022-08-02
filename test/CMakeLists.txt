@@ -10,7 +10,7 @@ add_executable(test_data test_data.cpp ../src/interface.cpp)
 target_link_libraries(test_data pmem)
 
 add_executable(test_engine test_engine.cpp ../src/interface.cpp)
-target_link_libraries(test_engine pmem pthread)
+target_link_libraries(test_engine pmem pthread OpenMP::OpenMP_CXX)
 
 # add_executable(test_engine_read test/test_engine_read.cpp)
 # target_link_libraries(test_engine_read pmem pmemobj pthread OpenMP::OpenMP_CXX)
