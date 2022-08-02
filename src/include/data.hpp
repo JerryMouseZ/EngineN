@@ -38,14 +38,8 @@ struct User{
 };
 
 
-struct Entry{
-  User user;
-  int flag;
-};
-
-
 using location_type = std::atomic<uint64_t>;
-const uint64_t ENTRY_LEN = sizeof(Entry);
+const uint64_t ENTRY_LEN = sizeof(User) + 4;
 
 /*
  * Data file

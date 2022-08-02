@@ -22,11 +22,12 @@ public:
 
 
   ~Engine() {
+    fprintf(stderr, "exiting\n");
     delete data;
     delete id_r;
     delete uid_r;
-    delete name_r;
     delete sala_r;
+    delete name_r;
   }
 
 
@@ -44,6 +45,7 @@ public:
 
 
   void write(const User *user) {
+    fprintf(stderr, "write %ld %s %s %ld\n", user->id, user->name, user->user_id, user->salary);
     uint64_t offset = data->data_write(*user);
     id_r->put(user->id, offset);
     uid_r->put(*(UserString *)(user->user_id), offset);
