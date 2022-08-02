@@ -9,7 +9,7 @@
 #include <unistd.h>
 
 enum UserColumn{Id=0, Userid, Name, Salary};
-#define DEBUG
+/* #define DEBUG */
 
 #ifdef DEBUG
 #define DEBUG_PRINTF(condition, ...) \
