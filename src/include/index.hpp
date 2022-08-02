@@ -9,6 +9,7 @@
 #include <string.h>
 #include <string>
 #include <fcntl.h>
+#include <stdlib.h>
 #include <sys/mman.h>
 #include <atomic>
 
@@ -32,6 +33,47 @@ struct Bucket
   uint64_t entries[ENTRY_NUM];
   std::atomic<uint64_t> next;
 };
+
+static bool compare(const void *key, const User *user, int column) {
+  switch(column) {
+  case Id:
+    return *(int64_t *)key == user->id;
+  case Userid:
+    return *(UserString *)key == *reinterpret_cast<const UserString*>(user->user_id);
+  case Name:
+    return *(UserString *)key == *reinterpret_cast<const UserString*>(user->name);
+  case Salary:
+    return *(int64_t *)key == user->salary;
+  default:
+    assert(0);
+  }
+  return 0;
+}
+
+
+static void * res_copy(const User *user, void *res, int32_t select_column) {
+  switch(select_column) {
+  case Id: 
+    memcpy(res, &user->id, 8); 
+    res = (char *)res + 8; 
+    break;
+  case Userid: 
+    memcpy(res, user->user_id, 128); 
+    res = (char *)res + 128; 
+    break;
+  case Name: 
+    memcpy(res, user->name, 128); 
+    res = (char *)res + 128; 
+    break; 
+  case Salary: 
+    memcpy(res, &user->salary, 8); 
+    res = (char *)res + 8; 
+    break;
+  default: assert(0); // wrong
+  }
+  return res;
+}
+
 
 
 const int BUCKET_NUM = 2560000;
@@ -62,7 +104,7 @@ public:
     next_location = reinterpret_cast<std::atomic<size_t> *>(ptr);
     *next_location = 8;
   }
-  
+
   void put(uint64_t over_offset, uint64_t data_offset) {
     Bucket *bucket = reinterpret_cast<Bucket *>(ptr + over_offset);
     size_t bucket_next = bucket->next_location.fetch_add(1);
@@ -80,6 +122,25 @@ public:
     put(bucket->next, data_offset);
   }
 
+  int get(uint64_t over_offset, const void *key, Data *data, int column, int select, void *res) {
+    Bucket *bucket = reinterpret_cast<Bucket *>(ptr + over_offset);
+    for (int i = 0; i < ENTRY_NUM; ++i) {
+      uint64_t offset = bucket->entries[i];
+      if (offset == 0) {
+        return 0;
+      } else {
+        const User *tmp = data->data_read(offset);
+        if (compare(key, tmp, column)) {
+          res_copy(tmp, res, select);
+        }
+        return 1;
+      }
+    }
+    if (bucket->next == 0)
+      return 0;
+    return get(over_offset, key, data, column, select, res);
+  }
+
   char *ptr;
   std::atomic<size_t> *next_location;
 };
@@ -87,7 +148,7 @@ public:
 
 template<class K>
 static size_t calc_index(const K &key) {
-  return std::hash<K>(key);
+  return std::hash<K>()(key);
 }
 
 template<class K>
@@ -105,7 +166,7 @@ public:
   }
 
 
-  void open(const std::string &path, const std::string &prefix) {
+  void Open(const std::string &path, const std::string &prefix) {
     std::string base_dir = path;
     if (path[path.size() - 1] != '/')
       base_dir.push_back('/');
@@ -151,48 +212,7 @@ public:
   }
 
 
-  static bool compare(const K &key, User *user, int column) {
-    switch(column) {
-      case Id:
-        return key == user->id;
-      case Userid:
-        return key == *reinterpret_cast<UserString*>(user->user_id);
-      case Name:
-        return key == *reinterpret_cast<UserString*>(user->name);
-      case Salary:
-        return key == user->salary;
-      default:
-        assert(0);
-    }
-    return 0;
-  }
-
-
-  static void * res_copy(const User *user, void *res, int32_t select_column) {
-    switch(select_column) {
-    case Id: 
-      memcpy(res, &user->id, 8); 
-      res = (char *)res + 8; 
-      break;
-    case Userid: 
-      memcpy(res, user->user_id, 128); 
-      res = (char *)res + 128; 
-      break;
-    case Name: 
-      memcpy(res, user->name, 128); 
-      res = (char *)res + 128; 
-      break; 
-    case Salary: 
-      memcpy(res, &user->salary, 8); 
-      res = (char *)res + 8; 
-      break;
-    default: assert(0); // wrong
-    }
-    return res;
-  }
-
-
-  int get(const K &key, Data *data, int column, int select, void *res) {
+  int get(const void *key, Data *data, int column, int select, void *res) {
     int64_t bucket_location = calc_index(key);
     Bucket *bucket = reinterpret_cast<Bucket*>(hash_ptr);
     for (int i = 0; i < ENTRY_NUM; ++i) {
@@ -207,6 +227,11 @@ public:
         return 1;
       }
     }
+
+    // overflow
+    if (bucket[bucket_location].next == 0)
+      return 0;
+    return overflowindex->get(bucket[bucket_location].next, key, data, column, select, res);
   }
 
 private:

@@ -8,11 +8,7 @@
 void* engine_init(const char* host_info, const char* const* peer_host_info, size_t peer_host_info_num,
                   const char* aep_dir, const char* disk_dir) {
   Engine *engine = new Engine();
-  int rt = engine->open(aep_dir);
-  if (rt) {
-    delete engine;
-    return nullptr;
-  }
+  engine->open(aep_dir, disk_dir);
   return engine;
 }
 
@@ -23,7 +19,7 @@ void engine_deinit(void *ctx) {
 
 void engine_write(void *ctx, const void *data, size_t len) {
   Engine *engine = (Engine *)ctx; 
-  engine->write(data, len);
+  engine->write((const User *)data);
 }
 
 
