@@ -29,10 +29,11 @@ class UserString {
 public:
   char ptr[128];
   bool operator==(const UserString &other) {
-    return strncmp(ptr, other.ptr, 128) == 0;
+    return std::string(ptr, 128) == std::string(other.ptr, 128);
   }
 };
 
+bool operator==(const UserString &l, const UserString &r);
 
 template <>
 struct std::hash<UserString>
