@@ -23,7 +23,7 @@ public:
 template <>
 struct std::hash<UserString>
 {
-  std::size_t operator()(const UserString& k) const
+  uint64_t operator()(const UserString& k) const
   {
     return (hash<string>()(string(k.ptr, 128)));
   }
@@ -37,8 +37,15 @@ struct User{
   int64_t salary = 0;
 };
 
-using location_type = std::atomic<size_t>;
-const size_t USER_LEN = sizeof(User);
+
+struct Entry{
+  User user;
+  int flag;
+};
+
+
+using location_type = std::atomic<uint64_t>;
+const uint64_t ENTRY_LEN = sizeof(Entry);
 
 /*
  * Data file
@@ -48,7 +55,7 @@ const size_t USER_LEN = sizeof(User);
  */
 
 // 其实按照他的最大数据量来就好了，省点AEP的空间，性能还更好
-const size_t DATA_LEN = USER_LEN * 50 * 1000000;
+const uint64_t DATA_LEN = ENTRY_LEN * 50 * 1000000;
 
 class Data
 {
@@ -57,7 +64,7 @@ public:
   ~Data() {}
 
   void open(const std::string &filename) {
-    size_t map_len;
+    uint64_t map_len;
     int is_pmem;
     bool new_create = false;
 
@@ -73,22 +80,30 @@ public:
     }
 
     // 初始化下一个位置
-    size_t *next_location = reinterpret_cast<size_t *>(ptr);
-    *next_location = sizeof(size_t);
+    uint64_t *next_location = reinterpret_cast<uint64_t *>(ptr);
+    *next_location = sizeof(uint64_t);
   }
 
   // data read and data write
-  const User *data_read(size_t offset) {
+  const User *data_read(uint64_t offset) {
+    int *flag = reinterpret_cast<int *>(ptr + offset + sizeof(User));
+    if (*flag == 0)
+      return nullptr;
     const User *user = reinterpret_cast<const User *>(ptr + offset);
     return user;
   }
 
-  size_t data_write(const User &user) {
+  uint64_t data_write(const User &user) {
     // maybe cache here
     location_type *next_location = reinterpret_cast<location_type *>(ptr);
-    size_t write_offset = next_location->fetch_add(USER_LEN);
-    pmem_memcpy_persist(ptr + write_offset, &user, USER_LEN);
+    uint64_t write_offset = next_location->fetch_add(ENTRY_LEN);
+    pmem_memcpy_persist(ptr + write_offset, &user, sizeof(User));
     return write_offset;
+  }
+
+  void put_flag(uint64_t offset) {
+    int *flag = reinterpret_cast<int *>(ptr + offset + sizeof(User));
+    *flag = 1;
   }
 
 private:
