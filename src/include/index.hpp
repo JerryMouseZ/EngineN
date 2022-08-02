@@ -122,7 +122,8 @@ public:
     put(bucket->next, data_offset);
   }
 
-  int get(uint64_t over_offset, const void *key, Data *data, int column, int select, void *res) {
+  int get(uint64_t over_offset, const void *key, Data *data, int column, int select, void *res, bool multi_value) {
+    int count = 0;
     Bucket *bucket = reinterpret_cast<Bucket *>(ptr + over_offset);
     for (int i = 0; i < ENTRY_NUM; ++i) {
       uint64_t offset = bucket->entries[i];
@@ -132,13 +133,16 @@ public:
         const User *tmp = data->data_read(offset);
         if (compare(key, tmp, column)) {
           res_copy(tmp, res, select);
+          count++;
+          if (!multi_value)
+            return count;
         }
-        return 1;
       }
     }
     if (bucket->next == 0)
-      return 0;
-    return get(over_offset, key, data, column, select, res);
+      return count;
+    count += get(over_offset, key, data, column, select, res, multi_value);
+    return count;
   }
 
   char *ptr;
@@ -148,7 +152,7 @@ public:
 
 template<class K>
 static size_t calc_index(const K &key) {
-  return std::hash<K>()(key);
+  return std::hash<K>()(key) % BUCKET_NUM;
 }
 
 template<class K>
@@ -212,7 +216,8 @@ public:
   }
 
 
-  int get(const void *key, Data *data, int column, int select, void *res) {
+  int get(const void *key, Data *data, int column, int select, void *res, bool multi_value) {
+    int count = 0;
     int64_t bucket_location = calc_index(key);
     Bucket *bucket = reinterpret_cast<Bucket*>(hash_ptr);
     for (int i = 0; i < ENTRY_NUM; ++i) {
@@ -221,17 +226,20 @@ public:
         return 0;
       } else {
         const User *tmp = data->data_read(offset);
-        if (compare(key, tmp, column)) {
+        if (tmp && compare(key, tmp, column)) {
           res_copy(tmp, res, select);
+          count++;
+          if (!multi_value)
+            return count;
         }
-        return 1;
       }
     }
 
     // overflow
     if (bucket[bucket_location].next == 0)
-      return 0;
-    return overflowindex->get(bucket[bucket_location].next, key, data, column, select, res);
+      return count;
+    count += overflowindex->get(bucket[bucket_location].next, key, data, column, select, res, multi_value);
+    return count;
   }
 
 private:

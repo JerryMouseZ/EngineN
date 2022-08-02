@@ -9,8 +9,8 @@ include_directories(../src)
 add_executable(test_data test_data.cpp ../src/interface.cpp)
 target_link_libraries(test_data pmem OpenMP::OpenMP_CXX)
 
-# add_executable(test_engine test_engine.cpp)
-# target_link_libraries(test_engine pmem pmemobj pthread OpenMP::OpenMP_CXX)
+add_executable(test_engine test_engine.cpp ../src/interface.cpp)
+target_link_libraries(test_engine pmem pthread OpenMP::OpenMP_CXX)
 
 # add_executable(test_engine_read test/test_engine_read.cpp)
 # target_link_libraries(test_engine_read pmem pmemobj pthread OpenMP::OpenMP_CXX)
