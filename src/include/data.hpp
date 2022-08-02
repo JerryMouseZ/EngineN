@@ -8,6 +8,28 @@
 #include <libpmem.h>
 #include <unistd.h>
 
+enum UserColumn{Id=0, Userid, Name, Salary};
+
+
+class UserString {
+public:
+  char ptr[128];
+  bool operator==(const UserString &other) {
+    return strncmp(ptr, other.ptr, 128) == 0;
+  }
+};
+
+
+template <>
+struct std::hash<UserString>
+{
+  std::size_t operator()(const UserString& k) const
+  {
+    return (hash<string>()(string(k.ptr, 128)));
+  }
+};
+
+
 struct User{
   int64_t id = 0;
   char user_id[128] = {};
@@ -33,7 +55,7 @@ class Data
 public:
   Data() {}
   ~Data() {}
-  
+
   void open(const std::string &filename) {
     size_t map_len;
     int is_pmem;
@@ -49,7 +71,7 @@ public:
     if (new_create) {
       pmem_memset_nodrain(ptr, 0, DATA_LEN);
     }
-    
+
     // 初始化下一个位置
     size_t *next_location = reinterpret_cast<size_t *>(ptr);
     *next_location = sizeof(size_t);
