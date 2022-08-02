@@ -5,6 +5,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(OpenMP)
 
 include_directories(src)
+
 add_library(interface
 SHARED
         src/interface.cpp

@@ -1,6 +1,5 @@
 #pragma once
 #include "data.hpp"
-#include "include/data.hpp"
 #include <cassert>
 #include <cstdint>
 #include <cstddef>
@@ -38,6 +37,16 @@ struct Bucket
 const int BUCKET_NUM = 2560000;
 class OverflowIndex {
 public:
+  OverflowIndex() : ptr(nullptr) {}
+
+
+  ~OverflowIndex() {
+    if (ptr) {
+      munmap(ptr, BUCKET_NUM * sizeof(Bucket));
+    }
+  }
+
+
   void map_file(const std::string &filename) {
     bool hash_create = false;
     if (access(filename.c_str(), F_OK)) {
@@ -71,7 +80,6 @@ public:
     put(bucket->next, data_offset);
   }
 
-
   char *ptr;
   std::atomic<size_t> *next_location;
 };
@@ -82,14 +90,18 @@ static size_t calc_index(const K &key) {
   return std::hash<K>(key);
 }
 
-template<class K, class V>
+template<class K>
 class Index{
+public:
   Index() {
+    overflowindex = new OverflowIndex();
   }
+
 
   ~Index() {
     if (hash_ptr)
       munmap(hash_ptr, sizeof(Bucket) * BUCKET_NUM);
+    delete overflowindex;
   }
 
 
@@ -138,22 +150,23 @@ class Index{
     overflowindex->put(bucket[bucket_location].next, data_offset);
   }
 
-  enum UserColumn{Id=0, Userid, Name, Salary};
 
   static bool compare(const K &key, User *user, int column) {
     switch(column) {
       case Id:
         return key == user->id;
       case Userid:
-        return key == user->user_id;
+        return key == *reinterpret_cast<UserString*>(user->user_id);
       case Name:
-        return key == user->name;
+        return key == *reinterpret_cast<UserString*>(user->name);
       case Salary:
         return key == user->salary;
+      default:
+        assert(0);
     }
-    assert(0);
     return 0;
   }
+
 
   static void * res_copy(const User *user, void *res, int32_t select_column) {
     switch(select_column) {
@@ -178,7 +191,8 @@ class Index{
     return res;
   }
 
-  User* get(const K &key, Data *data, int column, int select, void *res) {
+
+  int get(const K &key, Data *data, int column, int select, void *res) {
     int64_t bucket_location = calc_index(key);
     Bucket *bucket = reinterpret_cast<Bucket*>(hash_ptr);
     for (int i = 0; i < ENTRY_NUM; ++i) {
@@ -190,6 +204,7 @@ class Index{
         if (compare(key, tmp, column)) {
           res_copy(tmp, res, select);
         }
+        return 1;
       }
     }
   }
