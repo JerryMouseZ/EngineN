@@ -183,15 +183,15 @@ public:
 template<class K>
 class Index{
 public:
-  Index() {
-    overflowindex = new OverflowIndex();
+  Index() : hash_ptr(nullptr), overflowindex(nullptr){
   }
 
 
   ~Index() {
     if (hash_ptr)
       munmap(hash_ptr, sizeof(Bucket) * BUCKET_NUM);
-    delete overflowindex;
+    if (overflowindex)
+      delete overflowindex;
   }
 
 
