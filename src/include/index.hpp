@@ -174,7 +174,7 @@ public:
     }
     if (bucket->next == 0)
       return count;
-    count += get(over_offset, key, data, column, select, res, multi_value);
+    count += get(bucket->next, key, data, column, select, res, multi_value);
     return count;
   }
 
