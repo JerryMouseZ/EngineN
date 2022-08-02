@@ -32,8 +32,8 @@ public:
       data_prefix.push_back('/');
     data->open(data_prefix + ".data");
     
-    id_r->open(disk_path, "id");
-    uid_r->open(disk_path, "uid");
+    id_r->Open(disk_path, "id");
+    uid_r->Open(disk_path, "uid");
   }
 
 
@@ -49,10 +49,10 @@ public:
     size_t result = 0;
     switch(where_column) {
       case Id:
-        result = id_r->get(*(int64_t*)column_key, data, where_column, select_column, res);
+        result = id_r->get(column_key, data, where_column, select_column, res);
         break;
       case Userid:
-        result = uid_r->get(*(UserString *)column_key, data, where_column, select_column, res);
+        result = uid_r->get(column_key, data, where_column, select_column, res);
         break;
       default:
         fprintf(stderr, "unimplemented\n");

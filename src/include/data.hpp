@@ -79,7 +79,7 @@ public:
 
   // data read and data write
   const User *data_read(size_t offset) {
-    const User *user = reinterpret_cast<const User *>(ptr + offset + 8);
+    const User *user = reinterpret_cast<const User *>(ptr + offset);
     return user;
   }
 
@@ -87,7 +87,7 @@ public:
     // maybe cache here
     location_type *next_location = reinterpret_cast<location_type *>(ptr);
     size_t write_offset = next_location->fetch_add(USER_LEN);
-    memcpy(ptr + write_offset, &user, USER_LEN);
+    pmem_memcpy_persist(ptr + write_offset, &user, USER_LEN);
     return write_offset;
   }
 
