@@ -65,7 +65,7 @@ const uint64_t ENTRY_LEN = sizeof(User) + 8;
  */
 
 // 其实按照他的最大数据量来就好了，省点AEP的空间，性能还更好
-const uint64_t DATA_LEN = ENTRY_LEN * 50 * 1000000;
+const uint64_t DATA_LEN = ENTRY_LEN * 60 * 1000000;
 
 class Data
 {
