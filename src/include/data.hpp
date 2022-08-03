@@ -111,8 +111,10 @@ public:
   }
 
   void put_flag(uint64_t offset) {
-    int *flag = reinterpret_cast<int *>(ptr + offset + sizeof(User));
-    *flag = 1;
+    // persistent flag
+    pmem_memset_persist(ptr + offset + sizeof(User), 1, 1);
+    /* int *flag = reinterpret_cast<int *>(ptr + offset + sizeof(User)); */
+    /* *flag = 1; */
   }
 
 private:
