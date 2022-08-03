@@ -7,6 +7,7 @@
 #include <string>
 #include <libpmem.h>
 #include <unistd.h>
+#include <assert.h>
 
 enum UserColumn{Id=0, Userid, Name, Salary};
 /* #define DEBUG */
@@ -106,6 +107,11 @@ public:
     // maybe cache here
     location_type *next_location = reinterpret_cast<location_type *>(ptr);
     uint64_t write_offset = next_location->fetch_add(ENTRY_LEN);
+    if (write_offset >= DATA_LEN) {
+      // file size overflow
+      fprintf(stderr, "data file overflow!\n");
+      assert(0);
+    }
     pmem_memcpy_persist(ptr + write_offset, &user, sizeof(User));
     return write_offset;
   }

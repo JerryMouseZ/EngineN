@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <iostream>
@@ -17,11 +18,11 @@ public:
 
 enum Column{Id=0, Userid, Name, Salary};
 
-void test_engine_write()
+void test_engine_write(size_t num)
 {
-  void *context = engine_init(nullptr, nullptr, 0, "/mnt/aep/", "/mnt/disk/");
+  void *context = engine_init(nullptr, nullptr, 0, "/tmp/aep/", "/tmp/disk/");
 #pragma omp parallel for num_threads(50)
-  for (int i = 0; i < 5000000; ++i) {
+  for (int i = 0; i < num; ++i) {
     TestUser user;
     memset(&user, 0, sizeof(TestUser));
     user.id = i;
@@ -37,11 +38,11 @@ void test_engine_write()
 }
 
 
-void test_engine_read()
+void test_engine_read(size_t num)
 {
-  void *context = engine_init(nullptr, nullptr, 0, "/mnt/aep/", "/mnt/disk/");
+  void *context = engine_init(nullptr, nullptr, 0, "/tmp/aep/", "/tmp/disk/");
 #pragma omp parallel for num_threads(50)
-  for (long i = 0; i < 5000000; ++i) {
+  for (long i = 0; i < num; ++i) {
     TestUser user;
     memset(&user, 0, sizeof(user));
     int ret = engine_read(context, Userid, Id, &i, sizeof(user.id), (void *)user.user_id);
@@ -72,15 +73,16 @@ void test_engine_read()
 
 int main(int argc, char **argv)
 {
-  if (argc < 2) {
-    fprintf(stderr, "usage: %s read/write\n", argv[0]);
+  if (argc < 3) {
+    fprintf(stderr, "usage: %s read/write num\n", argv[0]);
     exit(0);
   }
-  
+
+  int num = atol(argv[2]);
   if (argv[1][0] == 'r') {
-    test_engine_read();
+    test_engine_read(num);
   } else {
-    test_engine_write();
+    test_engine_write(num);
   }
   return 0;
 }
