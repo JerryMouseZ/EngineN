@@ -12,8 +12,8 @@
 #include <fcntl.h>
 
 enum UserColumn{Id=0, Userid, Name, Salary};
-#define DEBUG
 
+#define DEBUG
 #ifdef DEBUG
 #define DEBUG_PRINTF(condition, ...) \
   do { \
@@ -27,6 +27,8 @@ enum UserColumn{Id=0, Userid, Name, Salary};
 #define DEBUG_PRINTF(...) (void)0
 #endif
 
+// not open
+#define LOG 1
 
 class UserString {
 public:
