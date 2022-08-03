@@ -21,7 +21,7 @@ enum Column{Id=0, Userid, Name, Salary};
 void test_engine_write(size_t num)
 {
   void *context = engine_init(nullptr, nullptr, 0, "/tmp/aep/", "/tmp/disk/");
-/* #pragma omp parallel for num_threads(50) */
+#pragma omp parallel for num_threads(50)
   for (int i = 0; i < num; ++i) {
     TestUser user;
     memset(&user, 0, sizeof(TestUser));
