@@ -48,7 +48,7 @@ static bool compare(const void *key, const User *user, int column) {
   case Salary:
     return *(int64_t *)key == user->salary;
   default:
-    DEBUG_PRINTF(0, "column error");
+    DEBUG_PRINTF(LOG, "column error");
   }
   return 0;
 }
@@ -72,7 +72,8 @@ static void * res_copy(const User *user, void *res, int32_t select_column) {
     memcpy(res, &user->salary, 8); 
     res = (char *)res + 8; 
     break;
-  default: DEBUG_PRINTF(0, "column error"); // wrong
+  default: 
+    DEBUG_PRINTF(LOG, "column error"); // wrong
   }
   return res;
 }
@@ -99,7 +100,7 @@ static inline uint64_t get_bucket_index(const void *key, int column) {
     bucket_location = calc_index(*(int64_t *)key);
     break;
   default:
-    DEBUG_PRINTF(0, "column error");
+    DEBUG_PRINTF(LOG, "column error");
   }
   return bucket_location;
 }
