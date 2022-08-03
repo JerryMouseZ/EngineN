@@ -256,7 +256,7 @@ public:
   }
 
 
-  int get(const void *key, Data *data, int column, int select, void *res, bool multi_value) {
+  int get(const void *key, Data *data, DataFlag *flags, int column, int select, void *res, bool multi_value) {
     int count = 0;
     int64_t bucket_location = get_bucket_index(key, column);
     Bucket *bucket = reinterpret_cast<Bucket*>(hash_ptr);
@@ -265,12 +265,14 @@ public:
       if (offset == 0) {
         return count;
       } else {
-        const User *tmp = data->data_read(offset);
-        if (tmp && compare(key, tmp, column)) {
-          res_copy(tmp, res, select);
-          count++;
-          if (!multi_value)
-            return count;
+        if (flags->get_flag(offset)) {
+          const User *tmp = data->data_read(offset);
+          if (compare(key, tmp, column)) {
+            res_copy(tmp, res, select);
+            count++;
+            if (!multi_value)
+              return count;
+          }
         }
       }
     }

@@ -16,11 +16,13 @@ public:
     uid_r = new Index<UserString>();
     sala_r = new Index<int64_t>();
     name_r = new Index<UserString>();
+    flags = new DataFlag();
   }
 
 
   ~Engine() {
     fprintf(stderr, "exiting\n");
+    delete flags;
     delete data;
     delete id_r;
     delete uid_r;
@@ -34,6 +36,7 @@ public:
     if (data_prefix[data_prefix.size() - 1] != '/')
       data_prefix.push_back('/');
     data->open(data_prefix + "user.data");
+    flags->Open(data_prefix + "user.flag");
 
     id_r->Open(disk_path, "id");
     uid_r->Open(disk_path, "uid");
@@ -51,8 +54,7 @@ public:
     sala_r->put(user->salary, offset);
 
     // validate flag
-    data->put_flag(offset);
-    assert(data->data_read(offset)); // assert flag
+    flags->set_flag(offset);
   }
 
   std::string column_str(int column)
@@ -81,19 +83,19 @@ public:
     size_t result = 0;
     switch(where_column) {
     case Id:
-      result = id_r->get(column_key, data, where_column, select_column, res, false);
+      result = id_r->get(column_key, data, flags, where_column, select_column, res, false);
       DEBUG_PRINTF(0, "select %s where ID = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
       break;
     case Userid:
-      result = uid_r->get(column_key, data, where_column, select_column, res, false);
+      result = uid_r->get(column_key, data, flags, where_column, select_column, res, false);
       DEBUG_PRINTF(0, "select %s where UID = %ld, res = %ld\n", column_str(select_column).c_str(), std::hash<std::string>()((char *) column_key), result);
       break;
     case Name:
-      result = name_r->get(column_key, data, where_column, select_column, res, false);
+      result = name_r->get(column_key, data, flags, where_column, select_column, res, false);
       DEBUG_PRINTF(0, "select %s where Name = %ld, res = %ld\n", column_str(select_column).c_str(), std::hash<std::string>()((char *) column_key), result);
       break;
     case Salary:
-      result = sala_r->get(column_key, data, where_column, select_column, res, true);
+      result = sala_r->get(column_key, data, flags, where_column, select_column, res, true);
       DEBUG_PRINTF(0, "select %s where salary = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
       break;
     default:
@@ -105,6 +107,7 @@ public:
 
 private:
   Data *data;
+  DataFlag *flags;
   Index<int64_t> *id_r;
   Index<UserString> *uid_r;
   Index<UserString> *name_r;
