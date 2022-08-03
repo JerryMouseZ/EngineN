@@ -27,8 +27,8 @@ enum UserColumn{Id=0, Userid, Name, Salary};
 #define DEBUG_PRINTF(...) (void)0
 #endif
 
-// not open
-#define LOG 1
+// open log
+#define LOG 0
 
 class UserString {
 public:
