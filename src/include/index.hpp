@@ -140,10 +140,12 @@ public:
 
   void put(uint64_t over_offset, uint64_t data_offset) {
     Bucket *bucket = reinterpret_cast<Bucket *>(ptr + over_offset);
-    size_t bucket_next = bucket->next_location.fetch_add(1);
-    if (bucket_next < ENTRY_NUM) {
-      bucket->entries[bucket_next] = data_offset;
-      return;
+    if (bucket->next_location < ENTRY_NUM) {
+      size_t bucket_next = bucket->next_location.fetch_add(1);
+      if (bucket_next < ENTRY_NUM) {
+        bucket->entries[bucket_next] = data_offset;
+        return;
+      }
     }
 
     if (bucket->next == 0) {
@@ -236,12 +238,13 @@ public:
   void put(const K &key, uint64_t data_offset) {
     Bucket *bucket = reinterpret_cast<Bucket*>(hash_ptr);
     int64_t bucket_location = calc_index(key);
-    size_t bucket_next = bucket[bucket_location].next_location.fetch_add(1);
-    if (bucket_next < ENTRY_NUM) {
-      bucket[bucket_location].entries[bucket_next] = data_offset;
-      return;
+    if (bucket[bucket_location].next_location < ENTRY_NUM) {
+      size_t bucket_next = bucket[bucket_location].next_location.fetch_add(1);
+      if (bucket_next < ENTRY_NUM) {
+        bucket[bucket_location].entries[bucket_next] = data_offset;
+        return;
+      }
     }
-
     // overflow
     if (bucket[bucket_location].next == 0) {
       // 这样保证同一个桶的溢出链不会分布在两个桶上，而且next不会丢失其中一个，不过这样可能会在溢出链的文件中留下不被使用的空洞，考虑到这种情况应该很少，就算了

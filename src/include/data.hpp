@@ -55,7 +55,7 @@ struct User{
 
 
 using location_type = std::atomic<uint64_t>;
-const uint64_t ENTRY_LEN = sizeof(User) + 4;
+const uint64_t ENTRY_LEN = sizeof(User) + 8;
 
 /*
  * Data file
@@ -96,10 +96,10 @@ public:
 
   // data read and data write
   const User *data_read(uint64_t offset) {
-    int *flag = reinterpret_cast<int *>(ptr + offset + sizeof(User));
+    uint64_t *flag = reinterpret_cast<uint64_t *>(ptr + offset);
     if (*flag == 0)
       return nullptr;
-    const User *user = reinterpret_cast<const User *>(ptr + offset);
+    const User *user = reinterpret_cast<const User *>(ptr + offset + 8);
     return user;
   }
 
@@ -112,15 +112,17 @@ public:
       fprintf(stderr, "data file overflow!\n");
       assert(0);
     }
-    pmem_memcpy_persist(ptr + write_offset, &user, sizeof(User));
+
+    // 可以留到flag一起drain
+    pmem_memcpy_nodrain(ptr + write_offset + 8, &user, sizeof(User));
     return write_offset;
   }
 
   void put_flag(uint64_t offset) {
     // persistent flag
-    pmem_memset_persist(ptr + offset + sizeof(User), 1, 1);
-    /* int *flag = reinterpret_cast<int *>(ptr + offset + sizeof(User)); */
-    /* *flag = 1; */
+    uint64_t *flag = reinterpret_cast<uint64_t *>(ptr + offset);
+    *flag = 1;
+    pmem_drain();
   }
 
 private:

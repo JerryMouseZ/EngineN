@@ -52,6 +52,7 @@ public:
 
     // validate flag
     data->put_flag(offset);
+    assert(data->data_read(offset)); // assert flag
   }
 
   std::string column_str(int column)
