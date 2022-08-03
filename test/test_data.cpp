@@ -22,7 +22,6 @@ void test_data_write()
     strncpy(user.name, std::to_string(i).c_str(), 128);
     user.salary = i * 20 + 50;
     uint64_t offset = data->data_write(user);
-    data->put_flag(offset);
     offsets.emplace_back(offset);
   }
   delete data;
