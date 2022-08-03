@@ -46,7 +46,7 @@ public:
 
 
   void write(const User *user) {
-    DEBUG_PRINTF(LOG, "write %ld %ld %ld %ld\n", user->id, std::hash<std::string>()(user->name), std::hash<std::string>()(user->user_id), user->salary);
+    DEBUG_PRINTF(LOG, "write %ld %ld %ld %ld\n", user->id, std::hash<std::string>()(std::string(user->name, 128)), std::hash<std::string>()(std::string(user->user_id, 128)), user->salary);
     uint64_t offset = data->data_write(*user);
     id_r->put(user->id, offset);
     uid_r->put(*(UserString *)(user->user_id), offset);
@@ -88,11 +88,11 @@ public:
       break;
     case Userid:
       result = uid_r->get(column_key, data, flags, where_column, select_column, res, false);
-      DEBUG_PRINTF(LOG, "select %s where UID = %ld, res = %ld\n", column_str(select_column).c_str(), std::hash<std::string>()((char *) column_key), result);
+      DEBUG_PRINTF(LOG, "select %s where UID = %ld, res = %ld\n", column_str(select_column).c_str(), std::hash<std::string>()(std::string((char *) column_key, 128)), result);
       break;
     case Name:
       result = name_r->get(column_key, data, flags, where_column, select_column, res, false);
-      DEBUG_PRINTF(LOG, "select %s where Name = %ld, res = %ld\n", column_str(select_column).c_str(), std::hash<std::string>()((char *) column_key), result);
+      DEBUG_PRINTF(LOG, "select %s where Name = %ld, res = %ld\n", column_str(select_column).c_str(), std::hash<std::string>()(std::string((char *) column_key, 128)), result);
       break;
     case Salary:
       result = sala_r->get(column_key, data, flags, where_column, select_column, res, true);
