@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string.h>
 #include <string>
+#include <algorithm>
 #include "../inc/interface.h"
 
 class TestUser
@@ -40,11 +41,14 @@ void test_engine_write()
 void test_engine_read()
 {
   void *context = engine_init(nullptr, nullptr, 0, "/mnt/aep/", "/mnt/disk/");
-  TestUser user;
-  memset(&user, 0, sizeof(TestUser));
   long salary = 50;
-  int ret = engine_read(context, Id, Salary, &salary, sizeof(salary), &user.id);
+  long ids[1000] = {0};
+  int ret = engine_read(context, Id, Salary, &salary, sizeof(salary), ids);
   assert(ret == 500);
+  std::sort(ids, &ids[500]);
+  for (int i = 0; i < 500; ++i) {
+    assert(ids[i] == i);
+  }
   engine_deinit(context);
 }
 
