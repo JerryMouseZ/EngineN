@@ -9,7 +9,6 @@ build
 .cache
 test_main
 compile_command.json
-test_*
 test_read
 test_write
 test_engine
