@@ -8,9 +8,11 @@
 #include <libpmem.h>
 #include <unistd.h>
 #include <assert.h>
+#include <sys/mman.h>
+#include <fcntl.h>
 
 enum UserColumn{Id=0, Userid, Name, Salary};
-/* #define DEBUG */
+#define DEBUG
 
 #ifdef DEBUG
 #define DEBUG_PRINTF(condition, ...) \
@@ -55,7 +57,7 @@ struct User{
 
 
 using location_type = std::atomic<uint64_t>;
-const uint64_t ENTRY_LEN = sizeof(User) + 8;
+const uint64_t ENTRY_LEN = sizeof(User);
 
 /*
  * Data file
@@ -83,7 +85,7 @@ public:
     }
 
     ptr = reinterpret_cast<char *>(pmem_map_file(filename.c_str(), DATA_LEN, PMEM_FILE_CREATE, 0666, &map_len, &is_pmem));
-    DEBUG_PRINTF(ptr, (filename + "open mmaped failed").c_str());
+    DEBUG_PRINTF(ptr, "%s open mmaped failed", filename.c_str());
 
     if (new_create) {
       pmem_memset_nodrain(ptr, 0, DATA_LEN);
@@ -96,10 +98,7 @@ public:
 
   // data read and data write
   const User *data_read(uint64_t offset) {
-    uint64_t *flag = reinterpret_cast<uint64_t *>(ptr + offset);
-    if (*flag == 0)
-      return nullptr;
-    const User *user = reinterpret_cast<const User *>(ptr + offset + 8);
+    const User *user = reinterpret_cast<const User *>(ptr + offset);
     return user;
   }
 
@@ -114,18 +113,55 @@ public:
     }
 
     // 可以留到flag一起drain
-    pmem_memcpy_nodrain(ptr + write_offset + 8, &user, sizeof(User));
+    pmem_memcpy_persist(ptr + write_offset, &user, sizeof(User));
     return write_offset;
-  }
-
-  void put_flag(uint64_t offset) {
-    // persistent flag
-    uint64_t *flag = reinterpret_cast<uint64_t *>(ptr + offset);
-    *flag = 1;
-    pmem_drain();
   }
 
 private:
   char *ptr = nullptr;
 };
 
+class DataFlag{
+private:
+  char *ptr;
+  int fd_;
+public:
+  static const int DATA_NUM = 60 * 1000000;
+  DataFlag() : ptr(nullptr), fd_(0) {}
+  ~DataFlag() {
+    if (ptr) {
+      munmap(ptr, DATA_NUM);
+    }
+    if (fd_) {
+      close(fd_);
+    }
+  }
+
+  void Open(const std::string &filename) {
+    bool hash_create = false;
+    if (access(filename.c_str(), F_OK)) {
+      hash_create = true;
+    }
+
+    fd_ = open(filename.c_str(), O_CREAT | O_RDWR, 0777);
+    DEBUG_PRINTF(fd_, "%s open error", filename.c_str());
+    ptr = reinterpret_cast<char*>(mmap(0, DATA_NUM, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0));
+    DEBUG_PRINTF(ptr, "%s mmaped error\n", filename.c_str());
+    if (hash_create) {
+      int ret = ftruncate(fd_, DATA_NUM);
+      DEBUG_PRINTF(ret >= 0, "%s ftruncate\n",  filename.c_str());
+      memset(ptr, 0, DATA_NUM);
+    }
+  }
+
+  void set_flag(uint64_t offset) {
+    size_t index = (offset - 8) / sizeof(User);
+    ptr[index] = 1;
+  }
+
+  bool get_flag(uint64_t offset) {
+    size_t index = (offset - 8) / sizeof(User);
+    return ptr[index];
+  }
+
+};
