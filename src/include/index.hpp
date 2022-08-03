@@ -168,7 +168,7 @@ public:
       } else {
         const User *tmp = data->data_read(offset);
         if (tmp && compare(key, tmp, column)) {
-          res_copy(tmp, res, select);
+          res = res_copy(tmp, res, select);
           count++;
           if (!multi_value)
             return count;
