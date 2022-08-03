@@ -158,12 +158,12 @@ public:
 
   void set_flag(uint64_t offset) {
     size_t index = (offset - 8) / sizeof(User);
-    ptr[index] = 1;
+    *reinterpret_cast<std::atomic_uint8_t *>(ptr + index) = 1;
   }
 
   bool get_flag(uint64_t offset) {
     size_t index = (offset - 8) / sizeof(User);
-    return ptr[index];
+    return *reinterpret_cast<std::atomic_uint8_t *>(ptr + index);
   }
 
 };
