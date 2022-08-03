@@ -25,8 +25,8 @@
  * Bucket buckets[max_num];
  */
 
-const int BUCKET_NUM = 2560000;
-static const int ENTRY_NUM = 30;
+const int BUCKET_NUM = 10240000;
+static const int ENTRY_NUM = 6;
 
 // 溢出链只是保证正确性的东西，没指望他省多少内存
 struct Bucket
