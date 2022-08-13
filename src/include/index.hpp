@@ -1,9 +1,11 @@
 #pragma once
 #include "data.hpp"
+#include <cassert>
 #include <cstdint>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
+#include <functional>
 #include <unistd.h>
 #include <unordered_map>
 #include <pthread.h>
@@ -13,7 +15,6 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <atomic>
-
 /*
  * Index file
  * Bucket buckets[max_num];
@@ -25,17 +26,40 @@
  * Bucket buckets[max_num];
  */
 
-const int BUCKET_NUM = 10240000;
-static const int ENTRY_NUM = 6;
+static const int BUCKET_NUM = 1 << 23;
+static const int ENTRY_NUM = 7;
 
-// 溢出链只是保证正确性的东西，没指望他省多少内存
-struct Bucket
-{
-  // 直接在下一个位置写，也能知道是不是满了
-  std::atomic<uint64_t> next_location; // 为了对齐，不然uint8就够用了，数组下标，初始化为0，不是地址!!!
-  uint64_t entries[ENTRY_NUM];
-  std::atomic<uint64_t> next;
+// 64-byte allign
+struct Bucket {
+  // reset to zero at memset
+  std::atomic<uint16_t> next_free;
+  std::atomic_flag spin_lock;
+  std::atomic<int8_t> rw_lock;
+  std::atomic<uint32_t> bucket_next; // offset = (bucket_next - 1) * sizeof(Bucket) + 8
+  std::atomic<uint64_t> entries[ENTRY_NUM];
 };
+
+static inline size_t key_hash(const void *key, int column) {
+  size_t val = 0;
+  switch(column) {
+  case Id:
+    val = std::hash<int64_t>()(*(int64_t *)key);
+    break;
+  case Userid:
+    val = std::hash<UserString>()(*(UserString *)key);
+    break;
+  case Name:
+    val = std::hash<UserString>()(*(UserString *)key);
+    break;
+  case Salary:
+    val = std::hash<int64_t>()(*(int64_t *)key);
+    break;
+  default:
+    DEBUG_PRINTF(LOG, "column error");
+  }
+  return val;
+}
+
 
 static bool compare(const void *key, const User *user, int column) {
   switch(column) {
@@ -53,8 +77,7 @@ static bool compare(const void *key, const User *user, int column) {
   return 0;
 }
 
-
-static void * res_copy(const User *user, void *res, int32_t select_column) {
+static void *res_copy(const User *user, void *res, int32_t select_column) {
   switch(select_column) {
   case Id: 
     memcpy(res, &user->id, 8); 
@@ -79,86 +102,45 @@ static void * res_copy(const User *user, void *res, int32_t select_column) {
 }
 
 
-template<class K>
-static size_t calc_index(const K &key) {
-  return std::hash<K>()(key) % BUCKET_NUM;
-}
 
-static inline uint64_t get_bucket_index(const void *key, int column) {
-  int64_t bucket_location = calc_index(key);
-  switch(column) {
-  case Id:
-    bucket_location = calc_index(*(int64_t *)key);
-    break;
-  case Userid:
-    bucket_location = calc_index(*(UserString *)key);
-    break;
-  case Name:
-    bucket_location = calc_index(*(UserString *)key);
-    break;
-  case Salary:
-    bucket_location = calc_index(*(int64_t *)key);
-    break;
-  default:
-    DEBUG_PRINTF(LOG, "column error");
-  }
-  return bucket_location;
-}
-
-
-class OverflowIndex {
+class OverflowIndex{
 public:
-  OverflowIndex() : ptr(nullptr) {}
+  std::atomic<size_t> *next_location; // open to index
+  OverflowIndex(const std::string &filename, Data *data) {
+    this->data = data;
+    ptr = reinterpret_cast<char *>(map_file(filename.c_str(), BUCKET_NUM * sizeof(Bucket)));
 
-
-  ~OverflowIndex() {
-    if (ptr) {
-      munmap(ptr, BUCKET_NUM * sizeof(Bucket));
-    }
-    close(fd_);
-  }
-
-
-  void Open(const std::string &filename) {
-    bool hash_create = false;
-    if (access(filename.c_str(), F_OK)) {
-      hash_create = true;
-    }
-
-    fd_ = open(filename.c_str(), O_CREAT | O_RDWR, 0777);
-    DEBUG_PRINTF(fd_, "%s open error", filename.c_str());
-
-    ptr = reinterpret_cast<char*>(mmap(0, BUCKET_NUM * sizeof(Bucket), PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0));
-    DEBUG_PRINTF(ptr, "%s mmaped error\n", filename.c_str());
-    if (hash_create) {
-      int ret = ftruncate(fd_, BUCKET_NUM * sizeof(Bucket));
-      DEBUG_PRINTF(ret >= 0, "%s ftruncate\n",  filename.c_str());
-      memset(ptr, 0, BUCKET_NUM * sizeof(Bucket));
-    }
     next_location = reinterpret_cast<std::atomic<size_t> *>(ptr);
-    *next_location = 8;
+    next_location->store(8, std::memory_order_release);
   }
 
   void put(uint64_t over_offset, uint64_t data_offset) {
     Bucket *bucket = reinterpret_cast<Bucket *>(ptr + over_offset);
-    if (bucket->next_location < ENTRY_NUM) {
-      size_t bucket_next = bucket->next_location.fetch_add(1);
-      if (bucket_next < ENTRY_NUM) {
-        bucket->entries[bucket_next] = data_offset;
-        return;
-      }
+    size_t next_free = bucket->next_free.fetch_add(1, std::memory_order_acq_rel);
+    if (next_free < ENTRY_NUM) {
+      size_t zero = 0;
+      bool success = bucket->entries[next_free].compare_exchange_weak(zero, data_offset, std::memory_order_acquire);
+      /* bucket->entries[next_free].store(data_offset, std::memory_order_release); */
+      DEBUG_PRINTF(success, "next_free error\n");
+      assert(success);
+      msync(&bucket->entries[next_free], 8, MS_SYNC);
+      return;
     }
 
-    if (bucket->next == 0) {
-      // 这样保证同一个桶的溢出链不会分布在两个桶上，而且next不会丢失其中一个，不过这样可能会在溢出链的文件中留下不被使用的空洞，考虑到这种情况应该很少，就算了
-      size_t old = 0;
+    if (next_free == ENTRY_NUM) {
       uint64_t maybe_next = next_location->fetch_add(sizeof(Bucket));
-      bucket->next.compare_exchange_weak(old, maybe_next);
+      uint32_t index = (maybe_next - 8) / sizeof(Bucket) + 1;
+      bucket->bucket_next.store(index, std::memory_order_release);
     }
-    put(bucket->next, data_offset);
+
+    size_t index;
+    while ((index = bucket->bucket_next.load(std::memory_order_acquire)) == 0);
+    uint64_t next_offset = 8 + (index - 1) * sizeof(Bucket);
+    put(next_offset, data_offset);
   }
 
-  int get(uint64_t over_offset, const void *key, Data *data, int column, int select, void *res, bool multi_value) {
+
+  size_t get(size_t over_offset, const void *key, int where_column, int select_column, void *res, bool multi) {
     int count = 0;
     Bucket *bucket = reinterpret_cast<Bucket *>(ptr + over_offset);
     for (int i = 0; i < ENTRY_NUM; ++i) {
@@ -167,126 +149,150 @@ public:
         return count;
       } else {
         const User *tmp = data->data_read(offset);
-        if (tmp && compare(key, tmp, column)) {
-          res = res_copy(tmp, res, select);
+        if (tmp && compare(key, tmp, where_column)) {
+          res = res_copy(tmp, res, select_column);
           count++;
-          if (!multi_value)
+          if (!multi)
             return count;
         }
       }
     }
-    if (bucket->next == 0)
+
+    size_t index;
+    if ((index = bucket->bucket_next.load(std::memory_order_acquire)) == 0)
       return count;
-    count += get(bucket->next, key, data, column, select, res, multi_value);
+
+    uint64_t next_offset = 8 + (index - 1) * sizeof(Bucket);
+    count += get(next_offset, key, where_column, select_column, res, multi);
     return count;
+
   }
 
+  ~OverflowIndex() {
+    if (ptr) {
+      munmap(ptr, BUCKET_NUM * sizeof(Bucket));
+    }
+  }
+
+private:
   char *ptr;
-  std::atomic<size_t> *next_location;
-  int fd_;
+  Data *data;
 };
 
-
-
-
-template<class K>
-class Index{
+class Index
+{
 public:
-  Index() : hash_ptr(nullptr), overflowindex(nullptr){
+  Index(const std::string &path, Data *data) {
+    std::string hash_file = path + ".hash";
+    std::string over_file = path + ".over";
+    
+    hash_ptr = reinterpret_cast<char *>(map_file(hash_file.c_str(), BUCKET_NUM * sizeof(Bucket)));
+    this->data = data;
+    overflowindex = new OverflowIndex(over_file, data);
   }
-
 
   ~Index() {
     if (hash_ptr)
       munmap(hash_ptr, sizeof(Bucket) * BUCKET_NUM);
-    if (overflowindex)
-      delete overflowindex;
-    close(fd_);
   }
 
 
-  void Open(const std::string &path, const std::string &prefix) {
-    std::string base_dir = path;
-    if (path[path.size() - 1] != '/')
-      base_dir.push_back('/');
-    base_dir += prefix;
-
-    std::string hash_file = base_dir + ".hash";
-    std::string over_file = base_dir + ".over";
-
-    bool hash_create = false;
-    if (access(hash_file.c_str(), F_OK)) {
-      hash_create = true;
-    }
-
-    fd_ = open(hash_file.c_str(), O_CREAT | O_RDWR, 0777);
-    DEBUG_PRINTF(fd_ > 0, "open %s error\n", hash_file.c_str());
-
-    hash_ptr = reinterpret_cast<char*>(mmap(0, BUCKET_NUM * sizeof(Bucket), PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0));
-    DEBUG_PRINTF(hash_ptr, "%s mmaped failed", hash_file.c_str());
-    if (hash_create) 
-    {
-      int ret = ftruncate(fd_, BUCKET_NUM * sizeof(Bucket));
-      DEBUG_PRINTF(ret >= 0, "%s ftruncate errored", hash_file.c_str());
-      memset(hash_ptr, 0, BUCKET_NUM * sizeof(Bucket));
-    }
-
-    overflowindex = new OverflowIndex();
-    overflowindex->Open(over_file);
-  }
-
-
-  void put(const K &key, uint64_t data_offset) {
-    Bucket *bucket = reinterpret_cast<Bucket*>(hash_ptr);
-    int64_t bucket_location = calc_index(key);
-    if (bucket[bucket_location].next_location < ENTRY_NUM) {
-      size_t bucket_next = bucket[bucket_location].next_location.fetch_add(1);
-      if (bucket_next < ENTRY_NUM) {
-        bucket[bucket_location].entries[bucket_next] = data_offset;
-        return;
+  // 读写互斥，读读写写不互斥
+  void bucket_rdlock(Bucket *bucket) {
+    while (true) {
+      while (bucket->spin_lock.test_and_set(std::memory_order_acquire));
+      if (bucket->rw_lock >= 0) {
+        bucket->rw_lock++;
+        break;
       }
+      bucket->spin_lock.clear(std::memory_order_release);
     }
-    // overflow
-    if (bucket[bucket_location].next == 0) {
-      // 这样保证同一个桶的溢出链不会分布在两个桶上，而且next不会丢失其中一个，不过这样可能会在溢出链的文件中留下不被使用的空洞，考虑到这种情况应该很少，就算了
-      size_t old = 0;
-      uint64_t maybe_next = overflowindex->next_location->fetch_add(sizeof(Bucket));
-      bucket[bucket_location].next.compare_exchange_weak(old, maybe_next);
-    }
-    overflowindex->put(bucket[bucket_location].next, data_offset);
   }
 
 
-  int get(const void *key, Data *data, DataFlag *flags, int column, int select, void *res, bool multi_value) {
+  void bucket_rdunlock(Bucket *bucket) {
+    bucket->rw_lock.fetch_sub(1, std::memory_order_acq_rel);
+  }
+
+
+  void bucket_wrlock(Bucket *bucket) {
+    while (true) {
+      while (bucket->spin_lock.test_and_set(std::memory_order_acquire));
+      if (bucket->rw_lock <= 0) {
+        bucket->rw_lock--;
+        break;
+      }
+      bucket->spin_lock.clear(std::memory_order_release);
+    }
+  }
+
+
+  void bucket_wrunlock(Bucket *bucket) {
+    bucket->rw_lock.fetch_add(1, std::memory_order_acq_rel);
+  }
+
+  
+  void put(size_t hash_val, uint64_t data_offset) {
+    size_t bucket_location = hash_val & (BUCKET_NUM - 1);
+    Bucket *bucket = reinterpret_cast<Bucket *>(hash_ptr + bucket_location * sizeof(Bucket));
+    bucket_rdlock(bucket);
+    size_t next_free = bucket->next_free.fetch_add(1, std::memory_order_acq_rel); // both read write
+    if (next_free < ENTRY_NUM) {
+      size_t zero = 0;
+      bool success = bucket->entries[next_free].compare_exchange_weak(zero, data_offset, std::memory_order_acquire);
+      DEBUG_PRINTF(success, "next_free error\n");
+      assert(success);
+      // TODO: does it need flush to disk ? If so, does next_free need flush to disk ?
+      msync(&bucket->entries[next_free], sizeof(uint64_t), MS_SYNC);
+      return;
+    }
+
+    if (next_free == BUCKET_NUM) {
+      uint64_t maybe_next = overflowindex->next_location->fetch_add(sizeof(Bucket), std::memory_order_acq_rel);
+      uint32_t index = (maybe_next - 8) / sizeof(Bucket) + 1;
+      bucket->bucket_next.store(index, std::memory_order_release);
+    }
+
+    // waiting for bucket allocation
+    size_t index;
+    while ((index = bucket->bucket_next.load(std::memory_order_acquire)) == 0);
+    uint64_t next_offset = 8 + (index - 1) * sizeof(Bucket);
+    overflowindex->put(next_offset, data_offset);
+    bucket_rdunlock(bucket);
+  }
+
+
+  int get(const void *key, int where_column, int select_column, void *res, bool multi) {
+    size_t bucket_location = key_hash(key, where_column) & (BUCKET_NUM - 1);
     int count = 0;
-    int64_t bucket_location = get_bucket_index(key, column);
-    Bucket *bucket = reinterpret_cast<Bucket*>(hash_ptr);
+    Bucket *bucket = reinterpret_cast<Bucket *>(hash_ptr + bucket_location * sizeof(Bucket));
+    bucket_wrlock(bucket);
     for (int i = 0; i < ENTRY_NUM; ++i) {
-      uint64_t offset = bucket[bucket_location].entries[i];
-      if (offset == 0) {
+      size_t offset = bucket->entries[i].load(std::memory_order_acquire);
+      if (offset == 0)
         return count;
-      } else {
-        if (flags->get_flag(offset)) {
-          const User *tmp = data->data_read(offset);
-          if (compare(key, tmp, column)) {
-            res = res_copy(tmp, res, select);
-            count++;
-            if (!multi_value)
-              return count;
-          }
-        }
+      const User *tmp = data->data_read(offset);
+      if (tmp && compare(key, tmp, where_column)) {
+        res = res_copy(tmp, res, select_column);
+        count++;
+        if (!multi)
+          return count;
       }
     }
-
-    // overflow
-    if (bucket[bucket_location].next == 0)
+    
+    size_t index;
+    if ((index = bucket->bucket_next.load(std::memory_order_acquire)) == 0)
       return count;
-    count += overflowindex->get(bucket[bucket_location].next, key, data, column, select, res, multi_value);
+
+    uint64_t next_offset = 8 + (index - 1) * sizeof(Bucket);
+    count += overflowindex->get(next_offset, key, where_column, select_column, res, multi);
+    bucket_wrunlock(bucket);
     return count;
   }
 
 private:
   char *hash_ptr;
   OverflowIndex *overflowindex;
-  int fd_;
+  Data *data;
 };
+
