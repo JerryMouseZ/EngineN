@@ -19,7 +19,6 @@ enum UserColumn{Id=0, Userid, Name, Salary};
   do { \
     if(!(condition)) \
     { \
-      /* fprintf(stderr,"\nIn %s - function %s at line %d: ", __FILE__, __func__, __LINE__); \ */ \
       fprintf(stderr,__VA_ARGS__); \
     } \
   } while(0)
@@ -61,21 +60,73 @@ struct User{
 using location_type = std::atomic<uint64_t>;
 const uint64_t ENTRY_LEN = sizeof(User);
 
+static inline void *map_file(const char *path, size_t len)
+{
+  bool hash_create = false;
+  if (access(path, F_OK)) {
+    hash_create = true;
+  }
+
+  int fd = open(path, O_CREAT | O_RDWR, 0777);
+  DEBUG_PRINTF(fd, "%s open error", path);
+  if (hash_create) {
+    int ret = ftruncate(fd, len);
+    DEBUG_PRINTF(ret >= 0, "%s ftruncate\n", path);
+  }
+
+  char *ptr = reinterpret_cast<char*>(mmap(0, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
+  DEBUG_PRINTF(ptr, "%s mmaped error\n", path);
+
+  close(fd);
+  return ptr;
+}
+
+/* Flag file
+ * char flags[DATA_NUM]
+ */
+class DataFlag{
+private:
+  char *ptr;
+public:
+  static const int DATA_NUM = 60 * 1000000;
+  DataFlag() : ptr(nullptr) {}
+  ~DataFlag() {
+    if (ptr) {
+      munmap(ptr, DATA_NUM);
+    }
+  }
+
+  void Open(const std::string &filename) {
+    ptr = reinterpret_cast<char *>(map_file(filename.c_str(), DATA_NUM));
+  }
+
+  void set_flag(uint64_t offset) {
+    size_t index = (offset - 8) / sizeof(User);
+    *reinterpret_cast<std::atomic_uint8_t *>(ptr + index) = 1;
+  }
+
+  bool get_flag(uint64_t offset) {
+    size_t index = (offset - 8) / sizeof(User);
+    return *reinterpret_cast<std::atomic_uint8_t *>(ptr + index);
+  }
+};
+
+
 /*
  * Data file
  * int64_t next_location = 8; // 初始化成8不用每次都加
  * ---------------------
- * User users[max_num]
+ * User users[DATA_NUM]
  */
-
 // 其实按照他的最大数据量来就好了，省点AEP的空间，性能还更好
 const uint64_t DATA_LEN = ENTRY_LEN * 60 * 1000000;
-
 class Data
 {
 public:
   Data() {}
-  ~Data() {}
+  ~Data() {
+    pmem_unmap(ptr, DATA_LEN);
+  }
 
   void open(const std::string &filename) {
     uint64_t map_len;
@@ -96,12 +147,18 @@ public:
     // 初始化下一个位置
     uint64_t *next_location = reinterpret_cast<uint64_t *>(ptr);
     *next_location = sizeof(uint64_t);
+    flags = new DataFlag();
+    flags->Open(filename + ".flags");
   }
 
   // data read and data write
   const User *data_read(uint64_t offset) {
-    const User *user = reinterpret_cast<const User *>(ptr + offset);
-    return user;
+    if (flags->get_flag(offset)) {
+      const User *user = reinterpret_cast<const User *>(ptr + offset);
+      return user;
+    }
+
+    return nullptr;
   }
 
   uint64_t data_write(const User &user) {
@@ -119,51 +176,13 @@ public:
     return write_offset;
   }
 
+  void put_flag(uint64_t offset) {
+    flags->set_flag(offset);
+  }
+
 private:
   char *ptr = nullptr;
+  DataFlag *flags;
 };
 
-class DataFlag{
-private:
-  char *ptr;
-  int fd_;
-public:
-  static const int DATA_NUM = 60 * 1000000;
-  DataFlag() : ptr(nullptr), fd_(0) {}
-  ~DataFlag() {
-    if (ptr) {
-      munmap(ptr, DATA_NUM);
-    }
-    if (fd_) {
-      close(fd_);
-    }
-  }
 
-  void Open(const std::string &filename) {
-    bool hash_create = false;
-    if (access(filename.c_str(), F_OK)) {
-      hash_create = true;
-    }
-
-    fd_ = open(filename.c_str(), O_CREAT | O_RDWR, 0777);
-    DEBUG_PRINTF(fd_, "%s open error", filename.c_str());
-    ptr = reinterpret_cast<char*>(mmap(0, DATA_NUM, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0));
-    DEBUG_PRINTF(ptr, "%s mmaped error\n", filename.c_str());
-    if (hash_create) {
-      int ret = ftruncate(fd_, DATA_NUM);
-      DEBUG_PRINTF(ret >= 0, "%s ftruncate\n",  filename.c_str());
-      memset(ptr, 0, DATA_NUM);
-    }
-  }
-
-  void set_flag(uint64_t offset) {
-    size_t index = (offset - 8) / sizeof(User);
-    *reinterpret_cast<std::atomic_uint8_t *>(ptr + index) = 1;
-  }
-
-  bool get_flag(uint64_t offset) {
-    size_t index = (offset - 8) / sizeof(User);
-    return *reinterpret_cast<std::atomic_uint8_t *>(ptr + index);
-  }
-
-};
