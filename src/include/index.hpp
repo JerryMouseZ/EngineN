@@ -207,6 +207,7 @@ public:
       }
       bucket->spin_lock.clear(std::memory_order_release);
     }
+    bucket->spin_lock.clear(std::memory_order_release);
   }
 
 
@@ -224,6 +225,7 @@ public:
       }
       bucket->spin_lock.clear(std::memory_order_release);
     }
+    bucket->spin_lock.clear(std::memory_order_release);
   }
 
 
@@ -248,7 +250,7 @@ public:
       return;
     }
 
-    if (next_free == BUCKET_NUM) {
+    if (next_free == ENTRY_NUM) {
       uint64_t maybe_next = overflowindex->next_location->fetch_add(sizeof(Bucket), std::memory_order_acq_rel);
       uint32_t index = (maybe_next - 8) / sizeof(Bucket) + 1;
       bucket->bucket_next.store(index, std::memory_order_release);
