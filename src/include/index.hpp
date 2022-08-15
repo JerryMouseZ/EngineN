@@ -123,7 +123,7 @@ public:
       /* bucket->entries[next_free].store(data_offset, std::memory_order_release); */
       DEBUG_PRINTF(success, "next_free error\n");
       assert(success);
-      msync(&bucket->entries[next_free], 8, MS_SYNC);
+      /* msync(&bucket->entries[next_free], 8, MS_SYNC); */
       return;
     }
 
@@ -243,7 +243,8 @@ public:
       DEBUG_PRINTF(success, "next_free error\n");
       assert(success);
       // TODO: does it need flush to disk ? If so, does next_free need flush to disk ?
-      msync(&bucket->entries[next_free], sizeof(uint64_t), MS_SYNC);
+      /* msync(&bucket->entries[next_free], sizeof(uint64_t), MS_SYNC); */
+      bucket_rdunlock(bucket);
       return;
     }
 
@@ -269,20 +270,26 @@ public:
     bucket_wrlock(bucket);
     for (int i = 0; i < ENTRY_NUM; ++i) {
       size_t offset = bucket->entries[i].load(std::memory_order_acquire);
-      if (offset == 0)
+      if (offset == 0) {
+        bucket_wrunlock(bucket);
         return count;
+      }
       const User *tmp = data->data_read(offset);
       if (tmp && compare(key, tmp, where_column)) {
         res = res_copy(tmp, res, select_column);
         count++;
-        if (!multi)
+        if (!multi) {
+          bucket_wrunlock(bucket);
           return count;
+        }
       }
     }
     
     size_t index;
-    if ((index = bucket->bucket_next.load(std::memory_order_acquire)) == 0)
+    if ((index = bucket->bucket_next.load(std::memory_order_acquire)) == 0) {
+      bucket_wrunlock(bucket);
       return count;
+    }
 
     uint64_t next_offset = 8 + (index - 1) * sizeof(Bucket);
     count += overflowindex->get(next_offset, key, where_column, select_column, res, multi);
