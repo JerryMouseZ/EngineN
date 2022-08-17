@@ -32,9 +32,7 @@ static const int ENTRY_NUM = 7;
 // 64-byte allign
 struct Bucket {
   // reset to zero at memset
-  std::atomic<uint16_t> next_free;
-  std::atomic_flag spin_lock;
-  std::atomic<int8_t> rw_lock;
+  std::atomic<uint32_t> next_free;
   std::atomic<uint32_t> bucket_next; // offset = (bucket_next - 1) * sizeof(Bucket) + 8
   std::atomic<uint64_t> entries[ENTRY_NUM];
 };
@@ -197,47 +195,9 @@ public:
   }
 
 
-  // 读写互斥，读读写写不互斥
-  void bucket_rdlock(Bucket *bucket) {
-    while (true) {
-      while (bucket->spin_lock.test_and_set(std::memory_order_acquire));
-      if (bucket->rw_lock >= 0) {
-        bucket->rw_lock++;
-        break;
-      }
-      bucket->spin_lock.clear(std::memory_order_release);
-    }
-    bucket->spin_lock.clear(std::memory_order_release);
-  }
-
-
-  void bucket_rdunlock(Bucket *bucket) {
-    bucket->rw_lock.fetch_sub(1, std::memory_order_acq_rel);
-  }
-
-
-  void bucket_wrlock(Bucket *bucket) {
-    while (true) {
-      while (bucket->spin_lock.test_and_set(std::memory_order_acquire));
-      if (bucket->rw_lock <= 0) {
-        bucket->rw_lock--;
-        break;
-      }
-      bucket->spin_lock.clear(std::memory_order_release);
-    }
-    bucket->spin_lock.clear(std::memory_order_release);
-  }
-
-
-  void bucket_wrunlock(Bucket *bucket) {
-    bucket->rw_lock.fetch_add(1, std::memory_order_acq_rel);
-  }
-
-  
   void put(size_t hash_val, uint64_t data_offset) {
     size_t bucket_location = hash_val & (BUCKET_NUM - 1);
     Bucket *bucket = reinterpret_cast<Bucket *>(hash_ptr + bucket_location * sizeof(Bucket));
-    bucket_rdlock(bucket);
     size_t next_free = bucket->next_free.fetch_add(1, std::memory_order_acq_rel); // both read write
     if (next_free < ENTRY_NUM) {
       size_t zero = 0;
@@ -246,7 +206,6 @@ public:
       assert(success);
       // TODO: does it need flush to disk ? If so, does next_free need flush to disk ?
       /* msync(&bucket->entries[next_free], sizeof(uint64_t), MS_SYNC); */
-      bucket_rdunlock(bucket);
       return;
     }
 
@@ -261,7 +220,6 @@ public:
     while ((index = bucket->bucket_next.load(std::memory_order_acquire)) == 0);
     uint64_t next_offset = 8 + (index - 1) * sizeof(Bucket);
     overflowindex->put(next_offset, data_offset);
-    bucket_rdunlock(bucket);
   }
 
 
@@ -269,11 +227,9 @@ public:
     size_t bucket_location = key_hash(key, where_column) & (BUCKET_NUM - 1);
     int count = 0;
     Bucket *bucket = reinterpret_cast<Bucket *>(hash_ptr + bucket_location * sizeof(Bucket));
-    bucket_wrlock(bucket);
     for (int i = 0; i < ENTRY_NUM; ++i) {
       size_t offset = bucket->entries[i].load(std::memory_order_acquire);
       if (offset == 0) {
-        bucket_wrunlock(bucket);
         return count;
       }
       const User *tmp = data->data_read(offset);
@@ -281,7 +237,6 @@ public:
         res = res_copy(tmp, res, select_column);
         count++;
         if (!multi) {
-          bucket_wrunlock(bucket);
           return count;
         }
       }
@@ -289,13 +244,11 @@ public:
     
     size_t index;
     if ((index = bucket->bucket_next.load(std::memory_order_acquire)) == 0) {
-      bucket_wrunlock(bucket);
       return count;
     }
 
     uint64_t next_offset = 8 + (index - 1) * sizeof(Bucket);
     count += overflowindex->get(next_offset, key, where_column, select_column, res, multi);
-    bucket_wrunlock(bucket);
     return count;
   }
 
