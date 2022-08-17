@@ -139,14 +139,14 @@ public:
 
     ptr = reinterpret_cast<char *>(pmem_map_file(fdata.c_str(), DATA_LEN, PMEM_FILE_CREATE, 0666, &map_len, &is_pmem));
     DEBUG_PRINTF(ptr, "%s open mmaped failed", fdata.c_str());
+    uint64_t *next_location = reinterpret_cast<uint64_t *>(ptr);
 
     if (new_create) {
       pmem_memset_nodrain(ptr, 0, DATA_LEN);
+      // 初始化下一个位置
+      *next_location = sizeof(uint64_t);
     }
 
-    // 初始化下一个位置
-    uint64_t *next_location = reinterpret_cast<uint64_t *>(ptr);
-    *next_location = sizeof(uint64_t);
     flags = new DataFlag();
     flags->Open(fflag);
   }
@@ -184,5 +184,3 @@ private:
   char *ptr = nullptr;
   DataFlag *flags;
 };
-
-
