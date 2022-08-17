@@ -1,3 +1,3 @@
 #!/bin/bash
-rm -f /tmp/aep/*
-rm -f /tmp/disk/*
+rm -f /mnt/aep/user.data
+rm -f /mnt/disk/*
