@@ -34,7 +34,7 @@ struct Bucket {
   // reset to zero at memset
   std::atomic<uint32_t> next_free;
   std::atomic<uint32_t> bucket_next; // offset = (bucket_next - 1) * sizeof(Bucket) + 8
-  std::atomic<uint64_t> entries[ENTRY_NUM];
+  uint64_t entries[ENTRY_NUM];
 };
 
 static inline size_t key_hash(const void *key, int column) {
@@ -120,11 +120,8 @@ public:
     volatile Bucket *bucket = reinterpret_cast<volatile Bucket *>(ptr + over_offset);
     size_t next_free = bucket->next_free.fetch_add(1, std::memory_order_acq_rel);
     if (next_free < ENTRY_NUM) {
-      size_t zero = 0;
-      bool success = bucket->entries[next_free].compare_exchange_weak(zero, data_offset, std::memory_order_acquire);
+      bucket->entries[next_free] = data_offset;
       /* bucket->entries[next_free].store(data_offset, std::memory_order_release); */
-      DEBUG_PRINTF(success, "next_free error\n");
-      assert(success);
       return;
     }
 
@@ -203,10 +200,7 @@ public:
     volatile Bucket *bucket = reinterpret_cast<volatile Bucket *>(hash_ptr + bucket_location * sizeof(Bucket));
     size_t next_free = bucket->next_free.fetch_add(1, std::memory_order_acq_rel); // both read write
     if (next_free < ENTRY_NUM) {
-      size_t zero = 0;
-      bool success = bucket->entries[next_free].compare_exchange_weak(zero, data_offset, std::memory_order_acquire);
-      DEBUG_PRINTF(success, "next_free error\n");
-      assert(success);
+      bucket->entries[next_free] = data_offset;
       return;
     }
 
@@ -229,7 +223,7 @@ public:
     int count = 0;
     Bucket *bucket = reinterpret_cast<Bucket *>(hash_ptr + bucket_location * sizeof(Bucket));
     for (int i = 0; i < ENTRY_NUM; ++i) {
-      size_t offset = bucket->entries[i].load(std::memory_order_acquire);
+      size_t offset = bucket->entries[i];
       if (offset == 0) {
         return count;
       }
