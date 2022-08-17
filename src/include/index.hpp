@@ -59,7 +59,7 @@ static inline size_t key_hash(const void *key, int column) {
 }
 
 
-static bool compare(const void *key, const User *user, int column) {
+static inline bool compare(const void *key, const User *user, int column) {
   switch(column) {
   case Id:
     return *(int64_t *)key == user->id;
