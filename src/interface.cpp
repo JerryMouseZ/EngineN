@@ -40,5 +40,5 @@ size_t engine_read(void *ctx, int32_t select_column,
 }
 
 bool operator==(const UserString &l, const UserString &r) {
-    return std::string(l.ptr, 128) == std::string(r.ptr, 128);
+    return memcmp(l.ptr, r.ptr, 128) == 0;
 }

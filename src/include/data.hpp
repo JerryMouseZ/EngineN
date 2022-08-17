@@ -33,7 +33,7 @@ class UserString {
 public:
   char ptr[128];
   bool operator==(const UserString &other) {
-    return std::string(ptr, 128) == std::string(other.ptr, 128);
+    return memcmp(ptr, other.ptr, 128) == 0;
   }
 };
 
