@@ -203,8 +203,6 @@ public:
       bool success = bucket->entries[next_free].compare_exchange_weak(zero, data_offset, std::memory_order_acquire);
       DEBUG_PRINTF(success, "next_free error\n");
       assert(success);
-      // TODO: does it need flush to disk ? If so, does next_free need flush to disk ?
-      /* msync(&bucket->entries[next_free], sizeof(uint64_t), MS_SYNC); */
       return;
     }
 
