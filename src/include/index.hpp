@@ -141,6 +141,7 @@ public:
   size_t get(size_t over_offset, const void *key, int where_column, int select_column, void *res, bool multi) {
     int count = 0;
     Bucket *bucket = reinterpret_cast<Bucket *>(ptr + over_offset);
+    __builtin_prefetch(bucket, 0, 0);
     for (int i = 0; i < ENTRY_NUM; ++i) {
       uint64_t offset = bucket->entries[i];
       if (offset == 0) {
@@ -222,6 +223,7 @@ public:
     size_t bucket_location = key_hash(key, where_column) & (BUCKET_NUM - 1);
     int count = 0;
     Bucket *bucket = reinterpret_cast<Bucket *>(hash_ptr + bucket_location * sizeof(Bucket));
+    __builtin_prefetch(bucket, 0, 0);
     for (int i = 0; i < ENTRY_NUM; ++i) {
       size_t offset = bucket->entries[i];
       if (offset == 0) {
