@@ -106,10 +106,14 @@ public:
   volatile std::atomic<size_t> *next_location; // open to index
   OverflowIndex(const std::string &filename, Data *data) {
     this->data = data;
+    bool new_create = false;
+    if (access(filename.c_str(), F_OK))
+      new_create = true;
     ptr = reinterpret_cast<char *>(map_file(filename.c_str(), BUCKET_NUM * sizeof(Bucket)));
-
     next_location = reinterpret_cast<std::atomic<size_t> *>(ptr);
-    next_location->store(8, std::memory_order_release);
+
+    if (new_create)
+      next_location->store(8, std::memory_order_release);
   }
 
   void put(uint64_t over_offset, uint64_t data_offset) {
