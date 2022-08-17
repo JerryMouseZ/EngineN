@@ -103,7 +103,7 @@ static void *res_copy(const User *user, void *res, int32_t select_column) {
 
 class OverflowIndex{
 public:
-  std::atomic<size_t> *next_location; // open to index
+  volatile std::atomic<size_t> *next_location; // open to index
   OverflowIndex(const std::string &filename, Data *data) {
     this->data = data;
     ptr = reinterpret_cast<char *>(map_file(filename.c_str(), BUCKET_NUM * sizeof(Bucket)));
@@ -113,7 +113,7 @@ public:
   }
 
   void put(uint64_t over_offset, uint64_t data_offset) {
-    Bucket *bucket = reinterpret_cast<Bucket *>(ptr + over_offset);
+    volatile Bucket *bucket = reinterpret_cast<volatile Bucket *>(ptr + over_offset);
     size_t next_free = bucket->next_free.fetch_add(1, std::memory_order_acq_rel);
     if (next_free < ENTRY_NUM) {
       size_t zero = 0;
@@ -121,7 +121,6 @@ public:
       /* bucket->entries[next_free].store(data_offset, std::memory_order_release); */
       DEBUG_PRINTF(success, "next_free error\n");
       assert(success);
-      /* msync(&bucket->entries[next_free], 8, MS_SYNC); */
       return;
     }
 
@@ -197,7 +196,7 @@ public:
 
   void put(size_t hash_val, uint64_t data_offset) {
     size_t bucket_location = hash_val & (BUCKET_NUM - 1);
-    Bucket *bucket = reinterpret_cast<Bucket *>(hash_ptr + bucket_location * sizeof(Bucket));
+    volatile Bucket *bucket = reinterpret_cast<volatile Bucket *>(hash_ptr + bucket_location * sizeof(Bucket));
     size_t next_free = bucket->next_free.fetch_add(1, std::memory_order_acq_rel); // both read write
     if (next_free < ENTRY_NUM) {
       size_t zero = 0;

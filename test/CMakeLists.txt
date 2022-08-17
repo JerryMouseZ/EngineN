@@ -6,9 +6,6 @@ find_package(OpenMP)
 
 include_directories(../src)
 
-add_executable(test_data test_data.cpp ../src/interface.cpp)
-target_link_libraries(test_data pmem)
-
 add_executable(test_multi ./test_multi.cpp ../src/interface.cpp)
 target_link_libraries(test_multi pmem pthread OpenMP::OpenMP_CXX)
 

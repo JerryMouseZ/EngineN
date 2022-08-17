@@ -28,7 +28,7 @@ public:
     if (data_prefix[data_prefix.size() - 1] != '/')
       data_prefix.push_back('/');
     data = new Data();
-    data->open(data_prefix + "user.data");
+    data->open(data_prefix + "user.data", disk_path + "flag");
 
     id_r = new Index(disk_path + "id", data);
     uid_r = new Index(disk_path + "uid", data);

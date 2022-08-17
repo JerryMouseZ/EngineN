@@ -86,28 +86,28 @@ static inline void *map_file(const char *path, size_t len)
  */
 class DataFlag{
 private:
-  char *ptr;
+  volatile uint8_t *ptr;
 public:
   static const int DATA_NUM = 60 * 1000000;
   DataFlag() : ptr(nullptr) {}
   ~DataFlag() {
     if (ptr) {
-      munmap(ptr, DATA_NUM);
+      munmap((void *)ptr, DATA_NUM);
     }
   }
 
   void Open(const std::string &filename) {
-    ptr = reinterpret_cast<char *>(map_file(filename.c_str(), DATA_NUM));
+    ptr = reinterpret_cast<volatile uint8_t *>(map_file(filename.c_str(), DATA_NUM));
   }
 
   void set_flag(uint64_t offset) {
     size_t index = (offset - 8) / sizeof(User);
-    *reinterpret_cast<std::atomic_uint8_t *>(ptr + index) = 1;
+    ptr[index] = 1;
   }
 
   bool get_flag(uint64_t offset) {
     size_t index = (offset - 8) / sizeof(User);
-    return *reinterpret_cast<std::atomic_uint8_t *>(ptr + index);
+    return ptr[index];
   }
 };
 
@@ -128,17 +128,17 @@ public:
     pmem_unmap(ptr, DATA_LEN);
   }
 
-  void open(const std::string &filename) {
+  void open(const std::string &fdata, const std::string &fflag) {
     uint64_t map_len;
     int is_pmem;
     bool new_create = false;
 
-    if (access(filename.c_str(), F_OK)) {
+    if (access(fdata.c_str(), F_OK)) {
       new_create = true;
     }
 
-    ptr = reinterpret_cast<char *>(pmem_map_file(filename.c_str(), DATA_LEN, PMEM_FILE_CREATE, 0666, &map_len, &is_pmem));
-    DEBUG_PRINTF(ptr, "%s open mmaped failed", filename.c_str());
+    ptr = reinterpret_cast<char *>(pmem_map_file(fdata.c_str(), DATA_LEN, PMEM_FILE_CREATE, 0666, &map_len, &is_pmem));
+    DEBUG_PRINTF(ptr, "%s open mmaped failed", fdata.c_str());
 
     if (new_create) {
       pmem_memset_nodrain(ptr, 0, DATA_LEN);
@@ -148,7 +148,7 @@ public:
     uint64_t *next_location = reinterpret_cast<uint64_t *>(ptr);
     *next_location = sizeof(uint64_t);
     flags = new DataFlag();
-    flags->Open(filename + ".flags");
+    flags->Open(fflag);
   }
 
   // data read and data write
