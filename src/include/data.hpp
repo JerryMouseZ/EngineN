@@ -74,7 +74,7 @@ static inline void *map_file(const char *path, size_t len)
     DEBUG_PRINTF(ret >= 0, "%s ftruncate\n", path);
   }
 
-  char *ptr = reinterpret_cast<char*>(mmap(0, len, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, fd, 0));
+  char *ptr = reinterpret_cast<char*>(mmap(0, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
   DEBUG_PRINTF(ptr, "%s mmaped error\n", path);
 
   close(fd);
