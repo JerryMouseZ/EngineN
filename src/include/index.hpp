@@ -26,7 +26,7 @@
  * Bucket buckets[max_num];
  */
 
-static const int BUCKET_NUM = 1 << 25;
+static const int BUCKET_NUM = 1 << 24;
 static const int ENTRY_NUM = 7;
 
 // 64-byte allign
