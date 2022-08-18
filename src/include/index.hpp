@@ -33,8 +33,9 @@ static const int ENTRY_NUM = 7;
 // 64-byte allign
 struct Bucket {
   // reset to zero at memset
-  std::atomic<uint32_t> next_free;
-  std::atomic<uint32_t> bucket_next; // offset = (bucket_next - 1) * sizeof(Bucket) + 8
+  std::atomic<uint16_t> next_free;
+  uint16_t is_overflow;
+  uint32_t bucket_next; // offset = (bucket_next - 1) * sizeof(Bucket) + 8
   uint64_t entries[ENTRY_NUM];
 };
 
@@ -119,22 +120,24 @@ public:
 
   void put(uint64_t over_offset, uint64_t data_offset) {
     volatile Bucket *bucket = reinterpret_cast<volatile Bucket *>(ptr + over_offset);
-    size_t next_free = bucket->next_free.fetch_add(1, std::memory_order_acq_rel);
-    if (next_free < ENTRY_NUM) {
-      bucket->entries[next_free] = data_offset;
-      /* bucket->entries[next_free].store(data_offset, std::memory_order_release); */
-      return;
-    }
+    if (!bucket->is_overflow) {
+      size_t next_free = bucket->next_free.fetch_add(1, std::memory_order_acq_rel);
+      if (next_free < ENTRY_NUM) {
+        bucket->entries[next_free] = data_offset;
+        return;
+      }
 
-    if (next_free == ENTRY_NUM) {
-      uint64_t maybe_next = next_location->fetch_add(sizeof(Bucket));
-      assert(maybe_next < OVER_NUM * sizeof(Bucket));
-      uint32_t index = (maybe_next - 8) / sizeof(Bucket) + 1;
-      bucket->bucket_next.store(index, std::memory_order_release);
+      if (next_free == ENTRY_NUM) {
+        uint64_t maybe_next = next_location->fetch_add(sizeof(Bucket));
+        assert(maybe_next < OVER_NUM * sizeof(Bucket));
+        uint32_t index = (maybe_next - 8) / sizeof(Bucket) + 1;
+        bucket->bucket_next = index;
+        bucket->is_overflow = 1;
+      }
     }
 
     size_t index;
-    while ((index = bucket->bucket_next.load(std::memory_order_acquire)) == 0);
+    while ((index = bucket->bucket_next) == 0);
     uint64_t next_offset = 8 + (index - 1) * sizeof(Bucket);
     put(next_offset, data_offset);
   }
@@ -160,7 +163,7 @@ public:
     }
 
     size_t index;
-    if ((index = bucket->bucket_next.load(std::memory_order_acquire)) == 0)
+    if ((index = bucket->bucket_next) == 0)
       return count;
 
     uint64_t next_offset = 8 + (index - 1) * sizeof(Bucket);
@@ -186,7 +189,7 @@ public:
   Index(const std::string &path, Data *data) {
     std::string hash_file = path + ".hash";
     std::string over_file = path + ".over";
-    
+
     hash_ptr = reinterpret_cast<char *>(map_file(hash_file.c_str(), BUCKET_NUM * sizeof(Bucket)));
     this->data = data;
     overflowindex = new OverflowIndex(over_file, data);
@@ -201,22 +204,25 @@ public:
   void put(size_t hash_val, uint64_t data_offset) {
     size_t bucket_location = hash_val & (BUCKET_NUM - 1);
     volatile Bucket *bucket = reinterpret_cast<volatile Bucket *>(hash_ptr + bucket_location * sizeof(Bucket));
-    size_t next_free = bucket->next_free.fetch_add(1, std::memory_order_acq_rel); // both read write
-    if (next_free < ENTRY_NUM) {
-      bucket->entries[next_free] = data_offset;
-      return;
-    }
+    if (!bucket->is_overflow) {
+      size_t next_free = bucket->next_free.fetch_add(1, std::memory_order_acq_rel); // both read write
+      if (next_free < ENTRY_NUM) {
+        bucket->entries[next_free] = data_offset;
+        return;
+      }
 
-    if (next_free == ENTRY_NUM) {
-      uint64_t maybe_next = overflowindex->next_location->fetch_add(sizeof(Bucket), std::memory_order_acq_rel);
-      assert(maybe_next < sizeof(Bucket) * OVER_NUM);
-      uint32_t index = (maybe_next - 8) / sizeof(Bucket) + 1;
-      bucket->bucket_next.store(index, std::memory_order_release);
+      if (next_free == ENTRY_NUM) {
+        uint64_t maybe_next = overflowindex->next_location->fetch_add(sizeof(Bucket), std::memory_order_acq_rel);
+        assert(maybe_next < sizeof(Bucket) * OVER_NUM);
+        uint32_t index = (maybe_next - 8) / sizeof(Bucket) + 1;
+        bucket->bucket_next = index;
+        bucket->is_overflow = 1;
+      }
     }
 
     // waiting for bucket allocation
     size_t index;
-    while ((index = bucket->bucket_next.load(std::memory_order_acquire)) == 0);
+    while ((index = bucket->bucket_next) == 0);
     uint64_t next_offset = 8 + (index - 1) * sizeof(Bucket);
     overflowindex->put(next_offset, data_offset);
   }
@@ -241,9 +247,9 @@ public:
         }
       }
     }
-    
+
     size_t index;
-    if ((index = bucket->bucket_next.load(std::memory_order_acquire)) == 0) {
+    if ((index = bucket->bucket_next) == 0) {
       return count;
     }
 
