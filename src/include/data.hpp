@@ -170,7 +170,9 @@ public:
       fprintf(stderr, "data file overflow!\n");
       assert(0);
     }
-
+    
+    // prefetch write
+    /* __builtin_prefetch(ptr + write_offset, 1, 0); */
     // 可以留到flag一起drain
     pmem_memcpy_persist(ptr + write_offset, &user, sizeof(User));
     return write_offset;

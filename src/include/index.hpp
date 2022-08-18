@@ -26,7 +26,7 @@
  * Bucket buckets[max_num];
  */
 
-static const int BUCKET_NUM = 1 << 23;
+static const int BUCKET_NUM = 1 << 25;
 static const int ENTRY_NUM = 7;
 
 // 64-byte allign
@@ -147,6 +147,7 @@ public:
         return count;
       } else {
         const User *tmp = data->data_read(offset);
+        /* __builtin_prefetch(tmp, 0, 0); */
         if (tmp && compare(key, tmp, where_column)) {
           res = res_copy(tmp, res, select_column);
           count++;
@@ -228,6 +229,7 @@ public:
         return count;
       }
       const User *tmp = data->data_read(offset);
+      /* __builtin_prefetch(tmp, 0, 0); */
       if (tmp && compare(key, tmp, where_column)) {
         res = res_copy(tmp, res, select_column);
         count++;
