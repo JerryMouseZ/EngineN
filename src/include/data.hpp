@@ -76,7 +76,8 @@ static inline void *map_file(const char *path, size_t len)
 
   char *ptr = reinterpret_cast<char*>(mmap(0, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
   DEBUG_PRINTF(ptr, "%s mmaped error\n", path);
-
+  
+  /* madvise(ptr, len, MADV_HUGEPAGE); */
   close(fd);
   return ptr;
 }
@@ -139,6 +140,7 @@ public:
 
     ptr = reinterpret_cast<char *>(pmem_map_file(fdata.c_str(), DATA_LEN, PMEM_FILE_CREATE, 0666, &map_len, &is_pmem));
     DEBUG_PRINTF(ptr, "%s open mmaped failed", fdata.c_str());
+    madvise(ptr, DATA_LEN, MADV_HUGEPAGE);
     uint64_t *next_location = reinterpret_cast<uint64_t *>(ptr);
 
     if (new_create) {

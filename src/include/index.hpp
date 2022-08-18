@@ -112,6 +112,7 @@ public:
     if (access(filename.c_str(), F_OK))
       new_create = true;
     ptr = reinterpret_cast<char *>(map_file(filename.c_str(), OVER_NUM * sizeof(Bucket)));
+    madvise(ptr, OVER_NUM * sizeof(Bucket), MADV_RANDOM);
     next_location = reinterpret_cast<std::atomic<size_t> *>(ptr);
 
     if (new_create)
@@ -191,6 +192,7 @@ public:
     std::string over_file = path + ".over";
 
     hash_ptr = reinterpret_cast<char *>(map_file(hash_file.c_str(), BUCKET_NUM * sizeof(Bucket)));
+    madvise(hash_ptr, BUCKET_NUM * sizeof(Bucket), MADV_RANDOM);
     this->data = data;
     overflowindex = new OverflowIndex(over_file, data);
   }
