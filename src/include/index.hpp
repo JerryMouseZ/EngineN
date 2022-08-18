@@ -27,6 +27,7 @@
  */
 
 static const int BUCKET_NUM = 1 << 24;
+static const int OVER_NUM = 1 << 14;
 static const int ENTRY_NUM = 7;
 
 // 64-byte allign
@@ -109,7 +110,7 @@ public:
     bool new_create = false;
     if (access(filename.c_str(), F_OK))
       new_create = true;
-    ptr = reinterpret_cast<char *>(map_file(filename.c_str(), BUCKET_NUM * sizeof(Bucket)));
+    ptr = reinterpret_cast<char *>(map_file(filename.c_str(), OVER_NUM * sizeof(Bucket)));
     next_location = reinterpret_cast<std::atomic<size_t> *>(ptr);
 
     if (new_create)
@@ -127,6 +128,7 @@ public:
 
     if (next_free == ENTRY_NUM) {
       uint64_t maybe_next = next_location->fetch_add(sizeof(Bucket));
+      assert(maybe_next < OVER_NUM * sizeof(Bucket));
       uint32_t index = (maybe_next - 8) / sizeof(Bucket) + 1;
       bucket->bucket_next.store(index, std::memory_order_release);
     }
@@ -207,6 +209,7 @@ public:
 
     if (next_free == ENTRY_NUM) {
       uint64_t maybe_next = overflowindex->next_location->fetch_add(sizeof(Bucket), std::memory_order_acq_rel);
+      assert(maybe_next < sizeof(Bucket) * OVER_NUM);
       uint32_t index = (maybe_next - 8) / sizeof(Bucket) + 1;
       bucket->bucket_next.store(index, std::memory_order_release);
     }
