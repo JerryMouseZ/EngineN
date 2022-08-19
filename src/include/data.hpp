@@ -74,8 +74,19 @@ static inline void *map_file(const char *path, size_t len)
     DEBUG_PRINTF(ret >= 0, "%s ftruncate\n", path);
   }
 
-  char *ptr = reinterpret_cast<char*>(mmap(0, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
+  char *ptr = reinterpret_cast<char*>(mmap(0, len, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, fd, 0));
   DEBUG_PRINTF(ptr, "%s mmaped error\n", path);
+
+  if (hash_create) {
+    memset(ptr, 0, len);
+  } else {
+    // prefault
+    long reader = 0;
+    for (long i = 0; i < len ; i += 4096) {
+      reader += ptr[i];
+    }
+    fprintf(stderr, "%ld\n", reader);
+  }
   
   /* madvise(ptr, len, MADV_HUGEPAGE); */
   close(fd);
@@ -119,17 +130,17 @@ public:
  * ---------------------
  * User users[DATA_NUM]
  */
-// 其实按照他的最大数据量来就好了，省点AEP的空间，性能还更好
-const uint64_t DATA_LEN = ENTRY_LEN * 60 * 1000000;
+const uint64_t DATA_LEN = ENTRY_LEN * 30 * 1000000;
+const uint64_t CACHE_LEN = ENTRY_LEN * 30 * 1000000 + 8;
 class Data
 {
 public:
   Data() {}
   ~Data() {
-    pmem_unmap(ptr, DATA_LEN);
+    pmem_unmap(pmem_ptr, DATA_LEN);
   }
 
-  void open(const std::string &fdata, const std::string &fflag) {
+  void open(const std::string &fdata, const std::string &fcache, const std::string &fflag) {
     uint64_t map_len;
     int is_pmem;
     bool new_create = false;
@@ -138,13 +149,13 @@ public:
       new_create = true;
     }
 
-    ptr = reinterpret_cast<char *>(pmem_map_file(fdata.c_str(), DATA_LEN, PMEM_FILE_CREATE, 0666, &map_len, &is_pmem));
-    DEBUG_PRINTF(ptr, "%s open mmaped failed", fdata.c_str());
-    madvise(ptr, DATA_LEN, MADV_HUGEPAGE);
-    uint64_t *next_location = reinterpret_cast<uint64_t *>(ptr);
+    pmem_ptr = reinterpret_cast<char *>(pmem_map_file(fdata.c_str(), DATA_LEN, PMEM_FILE_CREATE, 0666, &map_len, &is_pmem));
+    DEBUG_PRINTF(pmem_ptr, "%s open mmaped failed", fdata.c_str());
+
+    cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN));
+    uint64_t *next_location = reinterpret_cast<uint64_t *>(cache_ptr);
 
     if (new_create) {
-      pmem_memset_nodrain(ptr, 0, DATA_LEN);
       // 初始化下一个位置
       *next_location = sizeof(uint64_t);
     }
@@ -156,7 +167,11 @@ public:
   // data read and data write
   const User *data_read(uint64_t offset) {
     if (flags->get_flag(offset)) {
-      const User *user = reinterpret_cast<const User *>(ptr + offset);
+      User *user;
+      if (offset < CACHE_LEN)
+        user = reinterpret_cast<User *>(cache_ptr + offset);
+      else
+        user = reinterpret_cast<User *>(pmem_ptr + offset - CACHE_LEN);
       return user;
     }
 
@@ -165,9 +180,9 @@ public:
 
   uint64_t data_write(const User &user) {
     // maybe cache here
-    location_type *next_location = reinterpret_cast<location_type *>(ptr);
+    location_type *next_location = reinterpret_cast<location_type *>(cache_ptr);
     uint64_t write_offset = next_location->fetch_add(ENTRY_LEN);
-    if (write_offset >= DATA_LEN) {
+    if (write_offset >= DATA_LEN + CACHE_LEN) {
       // file size overflow
       fprintf(stderr, "data file overflow!\n");
       assert(0);
@@ -176,7 +191,10 @@ public:
     // prefetch write
     /* __builtin_prefetch(ptr + write_offset, 1, 0); */
     // 可以留到flag一起drain
-    pmem_memcpy_persist(ptr + write_offset, &user, sizeof(User));
+    if (write_offset < CACHE_LEN)
+      memcpy(cache_ptr + write_offset, &user, sizeof(User));
+    else
+      pmem_memcpy_persist(pmem_ptr + write_offset - CACHE_LEN, &user, sizeof(User));
     return write_offset;
   }
 
@@ -185,6 +203,7 @@ public:
   }
 
 private:
-  char *ptr = nullptr;
+  char *pmem_ptr = nullptr;
+  char *cache_ptr = nullptr;
   DataFlag *flags;
 };
