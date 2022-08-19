@@ -80,7 +80,7 @@ static inline bool compare(const void *key, const User *user, int column) {
 static void *res_copy(const User *user, void *res, int32_t select_column) {
   switch(select_column) {
   case Id: 
-    memcpy(res, &user->id, 8); 
+    *(int64_t *) res = user->id;
     res = (char *)res + 8; 
     break;
   case Userid: 
@@ -92,7 +92,7 @@ static void *res_copy(const User *user, void *res, int32_t select_column) {
     res = (char *)res + 128; 
     break; 
   case Salary: 
-    memcpy(res, &user->salary, 8); 
+    *(int64_t *) res = user->salary;
     res = (char *)res + 8; 
     break;
   default: 
