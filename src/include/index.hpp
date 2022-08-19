@@ -111,12 +111,12 @@ public:
     bool new_create = false;
     if (access(filename.c_str(), F_OK))
       new_create = true;
-    ptr = reinterpret_cast<char *>(map_file(filename.c_str(), OVER_NUM * sizeof(Bucket)));
+    ptr = reinterpret_cast<char *>(map_file(filename.c_str(), OVER_NUM * sizeof(Bucket) + 64));
     madvise(ptr, OVER_NUM * sizeof(Bucket), MADV_RANDOM);
     next_location = reinterpret_cast<std::atomic<size_t> *>(ptr);
 
     if (new_create)
-      next_location->store(8, std::memory_order_release);
+      next_location->store(64, std::memory_order_release);
   }
 
   void put(uint64_t over_offset, uint64_t data_offset) {
@@ -131,7 +131,7 @@ public:
       if (next_free == ENTRY_NUM) {
         uint64_t maybe_next = next_location->fetch_add(sizeof(Bucket));
         assert(maybe_next < OVER_NUM * sizeof(Bucket));
-        uint32_t index = (maybe_next - 8) / sizeof(Bucket) + 1;
+        uint32_t index = (maybe_next - 64) / sizeof(Bucket) + 1;
         bucket->bucket_next = index;
         bucket->is_overflow = 1;
       }
@@ -139,7 +139,7 @@ public:
 
     size_t index;
     while ((index = bucket->bucket_next) == 0);
-    uint64_t next_offset = 8 + (index - 1) * sizeof(Bucket);
+    uint64_t next_offset = 64 + (index - 1) * sizeof(Bucket);
     put(next_offset, data_offset);
   }
 
@@ -167,7 +167,7 @@ public:
     if ((index = bucket->bucket_next) == 0)
       return count;
 
-    uint64_t next_offset = 8 + (index - 1) * sizeof(Bucket);
+    uint64_t next_offset = 64 + (index - 1) * sizeof(Bucket);
     count += get(next_offset, key, where_column, select_column, res, multi);
     return count;
 
@@ -216,7 +216,7 @@ public:
       if (next_free == ENTRY_NUM) {
         uint64_t maybe_next = overflowindex->next_location->fetch_add(sizeof(Bucket), std::memory_order_acq_rel);
         assert(maybe_next < sizeof(Bucket) * OVER_NUM);
-        uint32_t index = (maybe_next - 8) / sizeof(Bucket) + 1;
+        uint32_t index = (maybe_next - 64) / sizeof(Bucket) + 1;
         bucket->bucket_next = index;
         bucket->is_overflow = 1;
       }
@@ -225,7 +225,7 @@ public:
     // waiting for bucket allocation
     size_t index;
     while ((index = bucket->bucket_next) == 0);
-    uint64_t next_offset = 8 + (index - 1) * sizeof(Bucket);
+    uint64_t next_offset = 64 + (index - 1) * sizeof(Bucket);
     overflowindex->put(next_offset, data_offset);
   }
 
@@ -255,7 +255,7 @@ public:
       return count;
     }
 
-    uint64_t next_offset = 8 + (index - 1) * sizeof(Bucket);
+    uint64_t next_offset = 64 + (index - 1) * sizeof(Bucket);
     count += overflowindex->get(next_offset, key, where_column, select_column, res, multi);
     return count;
   }

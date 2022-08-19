@@ -129,8 +129,8 @@ public:
  * ---------------------
  * User users[DATA_NUM]
  */
-const uint64_t DATA_LEN = ENTRY_LEN * 40 * 1000000;
-const uint64_t CACHE_LEN = ENTRY_LEN * 20 * 1000000 + 64;
+const uint64_t DATA_LEN = ENTRY_LEN * 52 * 1000000;
+const uint64_t CACHE_LEN = ENTRY_LEN * 8 * 1000000 + 64;
 class Data
 {
 public:
@@ -155,7 +155,7 @@ public:
     if (new_create) {
       // 初始化下一个位置
       pmem_memset_nodrain(pmem_ptr, 0, DATA_LEN);
-      cache_ptr = reinterpret_cast<char *>(pmem_map_file(fcache.c_str(), DATA_LEN, PMEM_FILE_CREATE, 0666, &map_len, &is_pmem));
+      cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN));
       uint64_t *next_location = reinterpret_cast<uint64_t *>(cache_ptr);
       *next_location = 64;
     } else {
@@ -194,7 +194,7 @@ public:
     /* __builtin_prefetch(ptr + write_offset, 1, 0); */
     // 可以留到flag一起drain
     if (write_offset < CACHE_LEN)
-      pmem_memcpy_persist(cache_ptr + write_offset, &user, sizeof(User));
+      memcpy(cache_ptr + write_offset, &user, sizeof(User));
     else
       pmem_memcpy_persist(pmem_ptr + write_offset - CACHE_LEN, &user, sizeof(User));
     return write_offset;
