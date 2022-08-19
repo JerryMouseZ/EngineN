@@ -81,11 +81,10 @@ static inline void *map_file(const char *path, size_t len)
     memset(ptr, 0, len);
   } else {
     // prefault
-    long reader = 0;
+    volatile long reader = 0;
     for (long i = 0; i < len ; i += 4096) {
       reader += ptr[i];
     }
-    fprintf(stderr, "%ld\n", reader);
   }
   
   /* madvise(ptr, len, MADV_HUGEPAGE); */
@@ -130,8 +129,8 @@ public:
  * ---------------------
  * User users[DATA_NUM]
  */
-const uint64_t DATA_LEN = ENTRY_LEN * 30 * 1000000;
-const uint64_t CACHE_LEN = ENTRY_LEN * 30 * 1000000 + 8;
+const uint64_t DATA_LEN = ENTRY_LEN * 40 * 1000000;
+const uint64_t CACHE_LEN = ENTRY_LEN * 20 * 1000000 + 64;
 class Data
 {
 public:
@@ -152,12 +151,15 @@ public:
     pmem_ptr = reinterpret_cast<char *>(pmem_map_file(fdata.c_str(), DATA_LEN, PMEM_FILE_CREATE, 0666, &map_len, &is_pmem));
     DEBUG_PRINTF(pmem_ptr, "%s open mmaped failed", fdata.c_str());
 
-    cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN));
-    uint64_t *next_location = reinterpret_cast<uint64_t *>(cache_ptr);
 
     if (new_create) {
       // 初始化下一个位置
-      *next_location = sizeof(uint64_t);
+      pmem_memset_nodrain(pmem_ptr, 0, DATA_LEN);
+      cache_ptr = reinterpret_cast<char *>(pmem_map_file(fcache.c_str(), DATA_LEN, PMEM_FILE_CREATE, 0666, &map_len, &is_pmem));
+      uint64_t *next_location = reinterpret_cast<uint64_t *>(cache_ptr);
+      *next_location = 64;
+    } else {
+      cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN));
     }
 
     flags = new DataFlag();
@@ -187,12 +189,12 @@ public:
       fprintf(stderr, "data file overflow!\n");
       assert(0);
     }
-    
+
     // prefetch write
     /* __builtin_prefetch(ptr + write_offset, 1, 0); */
     // 可以留到flag一起drain
     if (write_offset < CACHE_LEN)
-      memcpy(cache_ptr + write_offset, &user, sizeof(User));
+      pmem_memcpy_persist(cache_ptr + write_offset, &user, sizeof(User));
     else
       pmem_memcpy_persist(pmem_ptr + write_offset - CACHE_LEN, &user, sizeof(User));
     return write_offset;
