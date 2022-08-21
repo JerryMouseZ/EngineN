@@ -74,17 +74,17 @@ static inline void *map_file(const char *path, size_t len)
     DEBUG_PRINTF(ret >= 0, "%s ftruncate\n", path);
   }
 
-  char *ptr = reinterpret_cast<char*>(mmap(0, len, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, fd, 0));
+  char *ptr = reinterpret_cast<char*>(mmap(0, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
   DEBUG_PRINTF(ptr, "%s mmaped error\n", path);
 
   if (hash_create) {
     memset(ptr, 0, len);
   } else {
     // prefault
-    volatile long reader = 0;
-    for (long i = 0; i < len ; i += 4096) {
-      reader += ptr[i];
-    }
+    /* volatile long reader = 0; */
+    /* for (long i = 0; i < len ; i += 4096) { */
+    /*   reader += ptr[i]; */
+    /* } */
   }
   
   /* madvise(ptr, len, MADV_HUGEPAGE); */
@@ -112,12 +112,12 @@ public:
   }
 
   void set_flag(uint64_t offset) {
-    size_t index = (offset - 8) / sizeof(User);
+    size_t index = (offset - 64) / sizeof(User);
     ptr[index] = 1;
   }
 
   bool get_flag(uint64_t offset) {
-    size_t index = (offset - 8) / sizeof(User);
+    size_t index = (offset - 64) / sizeof(User);
     return ptr[index];
   }
 };
