@@ -94,9 +94,9 @@ static inline void *map_file(const char *path, size_t len)
   return ptr;
 }
 
-static inline size_t get_index(size_t offset) {
-  return (offset - START) / sizeof(User);
-}
+/* static inline size_t get_index(size_t offset) { */
+/*   return (offset - START) / sizeof(User); */
+/* } */
 
 /* Flag file
  * char flags[DATA_NUM]
@@ -117,14 +117,12 @@ public:
     ptr = reinterpret_cast<volatile uint8_t *>(map_file(filename.c_str(), DATA_NUM));
   }
   
-  void set_flag(size_t offset) {
-    size_t index = get_index(offset);
-    ptr[index] = 1;
+  void set_flag(uint32_t index) {
+    ptr[index - 1] = 1;
   }
 
-  bool get_flag(size_t offset) {
-    size_t index = get_index(offset);
-    return ptr[index];
+  bool get_flag(size_t index) {
+    return ptr[index - 1];
   }
 };
 
@@ -156,16 +154,20 @@ public:
 
     pmem_ptr = reinterpret_cast<char *>(pmem_map_file(fdata.c_str(), DATA_LEN, PMEM_FILE_CREATE, 0666, &map_len, &is_pmem));
     DEBUG_PRINTF(pmem_ptr, "%s open mmaped failed", fdata.c_str());
+    pmem_users = (User *)pmem_ptr;
 
 
     if (new_create) {
       // 初始化下一个位置
       pmem_memset_nodrain(pmem_ptr, 0, DATA_LEN);
       cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN));
-      size_t *next_location = reinterpret_cast<size_t *>(cache_ptr);
-      *next_location = START;
+      next_location = reinterpret_cast<std::atomic<size_t> *>(cache_ptr);
+      cache_users = (User *) (cache_ptr + START);
+      *next_location = 1;
     } else {
       cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN));
+      next_location = reinterpret_cast<std::atomic<size_t> *>(cache_ptr);
+      cache_users = (User *) (cache_ptr + START);
     }
 
     flags = new DataFlag();
@@ -173,26 +175,26 @@ public:
   }
 
   // data read and data write
-  const User *data_read(size_t offset) {
-    if (flags->get_flag(offset)) {
+  const User *data_read(uint32_t index) {
+    if (flags->get_flag(index)) {
       User *user;
-      size_t index = get_index(offset);
-      if ((index + 1))
-      if (offset < CACHE_LEN)
-        user = reinterpret_cast<User *>(cache_ptr + offset);
-      else
-        user = reinterpret_cast<User *>(pmem_ptr + offset - CACHE_LEN);
-      return user;
+      if (index % 8 == 0) {
+        index -= 1;
+        index >>= 3;
+        return cache_users + index;
+      } else {
+        index -= 1;
+        index -= (index >> 3);
+        return pmem_users + index;
+      }
     }
-
     return nullptr;
   }
 
-  size_t data_write(const User &user) {
+  uint32_t data_write(const User &user) {
     // maybe cache here
-    location_type *next_location = reinterpret_cast<location_type *>(cache_ptr);
-    size_t write_offset = next_location->fetch_add(ENTRY_LEN);
-    if (write_offset >= DATA_LEN + CACHE_LEN) {
+    uint32_t write_index = next_location->fetch_add(1);
+    if (write_index >= 56000000) {
       // file size overflow
       fprintf(stderr, "data file overflow!\n");
       assert(0);
@@ -201,19 +203,28 @@ public:
     // prefetch write
     /* __builtin_prefetch(ptr + write_offset, 1, 0); */
     // 可以留到flag一起drain
-    if (write_offset < CACHE_LEN)
-      memcpy(cache_ptr + write_offset, &user, sizeof(User));
-    else
-      pmem_memcpy_persist(pmem_ptr + write_offset - CACHE_LEN, &user, sizeof(User));
-    return write_offset;
+    if ((write_index) % 8 == 0) {
+      uint32_t index = write_index - 1;
+      index >>= 3;
+      cache_users[index] = user;
+    } else {
+      uint32_t index = write_index - 1;
+      index -= (index >> 3);
+      pmem_memcpy_persist(pmem_users + index, &user, sizeof(User));
+    }
+
+    return write_index;
   }
 
-  void put_flag(size_t offset) {
-    flags->set_flag(offset);
+  void put_flag(uint32_t index) {
+    flags->set_flag(index);
   }
 
 private:
   char *pmem_ptr = nullptr;
   char *cache_ptr = nullptr;
+  User *pmem_users = nullptr;
+  User *cache_users = nullptr;
+  std::atomic<size_t> *next_location = nullptr;
   DataFlag *flags;
 };
