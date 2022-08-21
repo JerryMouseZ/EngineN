@@ -81,10 +81,10 @@ static inline void *map_file(const char *path, size_t len)
     memset(ptr, 0, len);
   } else {
     // prefault
-    /* volatile long reader = 0; */
-    /* for (long i = 0; i < len ; i += 4096) { */
-    /*   reader += ptr[i]; */
-    /* } */
+    volatile long reader = 0;
+    for (long i = 0; i < len ; i += 4096) {
+      reader += ptr[i];
+    }
   }
   
   /* madvise(ptr, len, MADV_HUGEPAGE); */
