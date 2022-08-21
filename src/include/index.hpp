@@ -84,8 +84,8 @@ static inline bool inlinecompare(size_t hashval, const void *key, const User *us
   size_t val = extra;
   val <<= 32;
   val += inlinekey;
-  val <<= 24;
-  if ((val & hashval) == 0)
+  hashval >>= 24;
+  if (val != hashval)
     return 0;
 
   switch(column) {
