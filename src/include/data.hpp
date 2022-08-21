@@ -29,6 +29,8 @@ enum UserColumn{Id=0, Userid, Name, Salary};
 // close log
 #define LOG 1
 
+#define START 64
+
 class UserString {
 public:
   char ptr[128];
@@ -42,7 +44,7 @@ bool operator==(const UserString &l, const UserString &r);
 template <>
 struct std::hash<UserString>
 {
-  uint64_t operator()(const UserString& k) const
+  size_t operator()(const UserString& k) const
   {
     return (hash<string>()(string(k.ptr, 128)));
   }
@@ -57,8 +59,8 @@ struct User{
 };
 
 
-using location_type = std::atomic<uint64_t>;
-const uint64_t ENTRY_LEN = sizeof(User);
+using location_type = std::atomic<size_t>;
+const size_t ENTRY_LEN = sizeof(User);
 
 static inline void *map_file(const char *path, size_t len)
 {
@@ -92,6 +94,10 @@ static inline void *map_file(const char *path, size_t len)
   return ptr;
 }
 
+static inline size_t get_index(size_t offset) {
+  return (offset - START) / sizeof(User);
+}
+
 /* Flag file
  * char flags[DATA_NUM]
  */
@@ -110,14 +116,14 @@ public:
   void Open(const std::string &filename) {
     ptr = reinterpret_cast<volatile uint8_t *>(map_file(filename.c_str(), DATA_NUM));
   }
-
-  void set_flag(uint64_t offset) {
-    size_t index = (offset - 64) / sizeof(User);
+  
+  void set_flag(size_t offset) {
+    size_t index = get_index(offset);
     ptr[index] = 1;
   }
 
-  bool get_flag(uint64_t offset) {
-    size_t index = (offset - 64) / sizeof(User);
+  bool get_flag(size_t offset) {
+    size_t index = get_index(offset);
     return ptr[index];
   }
 };
@@ -129,8 +135,8 @@ public:
  * ---------------------
  * User users[DATA_NUM]
  */
-const uint64_t DATA_LEN = ENTRY_LEN * 52 * 1000000;
-const uint64_t CACHE_LEN = ENTRY_LEN * 8 * 1000000 + 64;
+const size_t DATA_LEN = ENTRY_LEN * 48 * 1000000;
+const size_t CACHE_LEN = ENTRY_LEN * 8 * 1000000 + START;
 class Data
 {
 public:
@@ -140,7 +146,7 @@ public:
   }
 
   void open(const std::string &fdata, const std::string &fcache, const std::string &fflag) {
-    uint64_t map_len;
+    size_t map_len;
     int is_pmem;
     bool new_create = false;
 
@@ -156,8 +162,8 @@ public:
       // 初始化下一个位置
       pmem_memset_nodrain(pmem_ptr, 0, DATA_LEN);
       cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN));
-      uint64_t *next_location = reinterpret_cast<uint64_t *>(cache_ptr);
-      *next_location = 64;
+      size_t *next_location = reinterpret_cast<size_t *>(cache_ptr);
+      *next_location = START;
     } else {
       cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN));
     }
@@ -167,9 +173,11 @@ public:
   }
 
   // data read and data write
-  const User *data_read(uint64_t offset) {
+  const User *data_read(size_t offset) {
     if (flags->get_flag(offset)) {
       User *user;
+      size_t index = get_index(offset);
+      if ((index + 1))
       if (offset < CACHE_LEN)
         user = reinterpret_cast<User *>(cache_ptr + offset);
       else
@@ -180,10 +188,10 @@ public:
     return nullptr;
   }
 
-  uint64_t data_write(const User &user) {
+  size_t data_write(const User &user) {
     // maybe cache here
     location_type *next_location = reinterpret_cast<location_type *>(cache_ptr);
-    uint64_t write_offset = next_location->fetch_add(ENTRY_LEN);
+    size_t write_offset = next_location->fetch_add(ENTRY_LEN);
     if (write_offset >= DATA_LEN + CACHE_LEN) {
       // file size overflow
       fprintf(stderr, "data file overflow!\n");
@@ -200,7 +208,7 @@ public:
     return write_offset;
   }
 
-  void put_flag(uint64_t offset) {
+  void put_flag(size_t offset) {
     flags->set_flag(offset);
   }
 
