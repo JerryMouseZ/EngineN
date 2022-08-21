@@ -36,7 +36,7 @@ struct Bucket {
   std::atomic<uint16_t> next_free;
   uint16_t is_overflow;
   uint32_t bucket_next; // offset = (bucket_next - 1) * sizeof(Bucket) + 8
-  uint64_t entries[ENTRY_NUM];
+  uint32_t entries[ENTRY_NUM];
 };
 
 static inline size_t key_hash(const void *key, int column) {
@@ -119,7 +119,7 @@ public:
       next_location->store(64, std::memory_order_release);
   }
 
-  void put(uint64_t over_offset, uint64_t data_offset) {
+  void put(uint64_t over_offset, uint32_t data_offset) {
     volatile Bucket *bucket = reinterpret_cast<volatile Bucket *>(ptr + over_offset);
     if (!bucket->is_overflow) {
       size_t next_free = bucket->next_free.fetch_add(1, std::memory_order_acq_rel);
@@ -203,7 +203,7 @@ public:
   }
 
 
-  void put(size_t hash_val, uint64_t data_offset) {
+  void put(size_t hash_val, uint32_t data_offset) {
     size_t bucket_location = hash_val & (BUCKET_NUM - 1);
     volatile Bucket *bucket = reinterpret_cast<volatile Bucket *>(hash_ptr + bucket_location * sizeof(Bucket));
     if (!bucket->is_overflow) {
