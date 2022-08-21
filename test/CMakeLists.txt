@@ -12,6 +12,9 @@ target_link_libraries(test_multi pmem pthread OpenMP::OpenMP_CXX)
 add_executable(test_engine test_engine.cpp ../src/interface.cpp)
 target_link_libraries(test_engine pmem pthread OpenMP::OpenMP_CXX)
 
+add_executable(test_data test_data.cpp)
+target_link_libraries(test_data pmem pthread)
+
 add_executable(test_engine_read test_engine_read.cpp ../src/interface.cpp)
 target_link_libraries(test_engine_read pmem)
 
