@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <thread>
 
 enum UserColumn{Id=0, Userid, Name, Salary};
 
@@ -62,6 +63,27 @@ struct User{
 using location_type = std::atomic<size_t>;
 const size_t ENTRY_LEN = sizeof(User);
 
+static inline void prefault(char *ptr, size_t len)
+{
+  volatile long *reader = new long;
+  std::thread *threads[8];
+  size_t per_thread = len / 8;
+  for (int i = 0; i < 8; ++i) {
+    threads[i] = new std::thread([=]{
+      for (size_t j = i * per_thread; j < (i + 1) * per_thread  && j < len; j += 4096) {
+        __sync_fetch_and_add(reader, ptr[j]);
+        __builtin_prefetch(ptr + 4096 * 2, 1, 0);
+      }
+    });
+  }
+
+  for (int i = 0; i < 8; ++i) {
+    threads[i]->join();
+    delete threads[i];
+  }
+  delete reader;
+}
+
 static inline void *map_file(const char *path, size_t len)
 {
   bool hash_create = false;
@@ -83,12 +105,9 @@ static inline void *map_file(const char *path, size_t len)
     memset(ptr, 0, len);
   } else {
     // prefault
-    volatile long reader = 0;
-    for (long i = 0; i < len ; i += 4096) {
-      reader += ptr[i];
-    }
+    prefault(ptr, len);
   }
-  
+
   /* madvise(ptr, len, MADV_HUGEPAGE); */
   close(fd);
   return ptr;
@@ -116,7 +135,7 @@ public:
   void Open(const std::string &filename) {
     ptr = reinterpret_cast<volatile uint8_t *>(map_file(filename.c_str(), DATA_NUM));
   }
-  
+
   void set_flag(uint32_t index) {
     ptr[index - 1] = 1;
   }
