@@ -102,6 +102,7 @@ static inline void *map_file(const char *path, size_t len)
   DEBUG_PRINTF(ptr, "%s mmaped error\n", path);
 
   if (hash_create) {
+    // 其实会自动置零，这里相当于一个prefault
     memset(ptr, 0, len);
   } else {
     // prefault
@@ -171,13 +172,13 @@ public:
       new_create = true;
     }
 
-    pmem_ptr = reinterpret_cast<char *>(pmem_map_file(fdata.c_str(), DATA_LEN, PMEM_FILE_CREATE, 0666, &map_len, &is_pmem));
+    pmem_ptr = reinterpret_cast<char *>(pmem_map_file(fdata.c_str(), DATA_LEN, PMEM_FILE_CREATE | PMEM_FILE_SPARSE, 0666, &map_len, &is_pmem));
     DEBUG_PRINTF(pmem_ptr, "%s open mmaped failed", fdata.c_str());
     pmem_users = (User *)pmem_ptr;
 
 
     if (new_create) {
-      // 初始化下一个位置
+      // 其实会自动置零的，这里相当于是一个populate
       pmem_memset_nodrain(pmem_ptr, 0, DATA_LEN);
       cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN));
       next_location = reinterpret_cast<std::atomic<size_t> *>(cache_ptr);
