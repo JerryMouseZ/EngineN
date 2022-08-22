@@ -153,8 +153,8 @@ public:
  * ---------------------
  * User users[DATA_NUM]
  */
-const size_t DATA_LEN = ENTRY_LEN * 48 * 1000000;
-const size_t CACHE_LEN = ENTRY_LEN * 8 * 1000000 + START;
+const size_t DATA_LEN = ENTRY_LEN * 52 * 1000000;
+const size_t CACHE_LEN = START;
 class Data
 {
 public:
@@ -180,14 +180,12 @@ public:
     if (new_create) {
       // 其实会自动置零的，这里相当于是一个populate
       pmem_memset_nodrain(pmem_ptr, 0, DATA_LEN);
-      cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN));
+      char *cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN));
       next_location = reinterpret_cast<std::atomic<size_t> *>(cache_ptr);
-      cache_users = (User *) (cache_ptr + START);
       *next_location = 1;
     } else {
-      cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN));
+      char *cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN));
       next_location = reinterpret_cast<std::atomic<size_t> *>(cache_ptr);
-      cache_users = (User *) (cache_ptr + START);
     }
 
     flags = new DataFlag();
@@ -198,15 +196,8 @@ public:
   const User *data_read(uint32_t index) {
     if (flags->get_flag(index)) {
       User *user;
-      if (index % 8 == 0) {
-        index -= 1;
-        index >>= 3;
-        return cache_users + index;
-      } else {
-        index -= 1;
-        index -= (index >> 3);
-        return pmem_users + index;
-      }
+      index -= 1;
+      return pmem_users + index;
     }
     return nullptr;
   }
@@ -221,18 +212,11 @@ public:
     }
 
     // prefetch write
-    /* __builtin_prefetch(ptr + write_offset, 1, 0); */
     // 可以留到flag一起drain
-    if ((write_index) % 8 == 0) {
-      uint32_t index = write_index - 1;
-      index >>= 3;
-      cache_users[index] = user;
-    } else {
-      uint32_t index = write_index - 1;
-      index -= (index >> 3);
-      pmem_memcpy_persist(pmem_users + index, &user, sizeof(User));
-    }
-
+    uint32_t index = write_index - 1;
+    pmem_memcpy_persist(pmem_users + index, &user, sizeof(User));
+    if ((index + 1) % 15 == 0)
+      __builtin_prefetch(pmem_users + index + 15, 1, 0);
     return write_index;
   }
 
@@ -242,9 +226,7 @@ public:
 
 private:
   char *pmem_ptr = nullptr;
-  char *cache_ptr = nullptr;
   User *pmem_users = nullptr;
-  User *cache_users = nullptr;
   std::atomic<size_t> *next_location = nullptr;
   DataFlag *flags;
 };
