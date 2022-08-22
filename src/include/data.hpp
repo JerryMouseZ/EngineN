@@ -94,7 +94,7 @@ static inline void *map_file(const char *path, size_t len)
   int fd = open(path, O_CREAT | O_RDWR, 0777);
   DEBUG_PRINTF(fd, "%s open error", path);
   if (hash_create) {
-    int ret = ftruncate(fd, len);
+    int ret = posix_fallocate(fd, 0, len);
     DEBUG_PRINTF(ret >= 0, "%s ftruncate\n", path);
   }
 
@@ -172,7 +172,7 @@ public:
       new_create = true;
     }
 
-    pmem_ptr = reinterpret_cast<char *>(pmem_map_file(fdata.c_str(), DATA_LEN, PMEM_FILE_CREATE | PMEM_FILE_SPARSE, 0666, &map_len, &is_pmem));
+    pmem_ptr = reinterpret_cast<char *>(pmem_map_file(fdata.c_str(), DATA_LEN, PMEM_FILE_CREATE, 0666, &map_len, &is_pmem));
     DEBUG_PRINTF(pmem_ptr, "%s open mmaped failed", fdata.c_str());
     pmem_users = (User *)pmem_ptr;
 
