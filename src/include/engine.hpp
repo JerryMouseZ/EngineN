@@ -1,9 +1,11 @@
 #pragma once
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <vector>
+#include "log.hpp"
 
 #include "index.hpp"
 #include "data.hpp"
@@ -29,16 +31,18 @@ public:
       data_prefix.push_back('/');
     data = new Data();
     data->open(data_prefix + "user.data", disk_path + "cache", disk_path + "flag");
+    log = new CircularFifo(disk_path + "log", data);
 
-    id_r = new Index(disk_path + "id", data);
-    uid_r = new Index(disk_path + "uid", data);
-    sala_r = new Index(disk_path + "salary", data);
+    id_r = new Index(disk_path + "id", log);
+    uid_r = new Index(disk_path + "uid", log);
+    sala_r = new Index(disk_path + "salary", log);
   }
 
 
   void write(const User *user) {
     DEBUG_PRINTF(LOG, "write %ld %ld %ld %ld\n", user->id, std::hash<std::string>()(std::string(user->name, 128)), std::hash<std::string>()(std::string(user->user_id, 128)), user->salary);
-    uint64_t offset = data->data_write(*user);
+    size_t offset = log->push(*user);
+    /* uint64_t offset = data->data_write(*user); */
     id_r->put(user->id, offset);
     uid_r->put(std::hash<UserString>()(*(UserString *)(user->user_id)), offset);
     sala_r->put(user->salary, offset);
@@ -101,4 +105,5 @@ private:
   Index *uid_r;
   // salary need multi-index
   Index *sala_r;
+  CircularFifo *log;
 };
