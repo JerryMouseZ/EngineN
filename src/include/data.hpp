@@ -220,10 +220,18 @@ public:
     return write_index;
   }
 
+
   void put_flag(uint32_t index) {
     flags->set_flag(index);
   }
 
+  bool get_flag(uint32_t index) {
+    return flags->get_flag(index);
+  }
+  
+  User *get_pmem_users() {
+    return pmem_users;
+  }
 private:
   char *pmem_ptr = nullptr;
   User *pmem_users = nullptr;
