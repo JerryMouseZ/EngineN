@@ -1,5 +1,6 @@
 #pragma once
 #include "data.hpp"
+#include "log.hpp"
 #include <cassert>
 #include <cstdint>
 #include <cstddef>
@@ -132,8 +133,8 @@ static void *res_copy(const User *user, void *res, int32_t select_column) {
 class OverflowIndex{
 public:
   volatile std::atomic<size_t> *next_location; // open to index
-  OverflowIndex(const std::string &filename, Data *data) {
-    this->data = data;
+  OverflowIndex(const std::string &filename, CircularFifo *log) {
+    this->log = log;
     bool new_create = false;
     if (access(filename.c_str(), F_OK))
       new_create = true;
@@ -180,7 +181,7 @@ public:
       if (offset == 0) {
         return count;
       } else {
-        const User *tmp = data->data_read(offset);
+        const User *tmp = log->read(offset);
         /* __builtin_prefetch(tmp, 0, 0); */
         if (tmp && inlinecompare(hash_val, key, tmp, where_column, bucket->extra[i], bucket->inlinekeys[i])) {
           res = res_copy(tmp, res, select_column);
@@ -209,20 +210,20 @@ public:
 
 private:
   char *ptr;
-  Data *data;
+  CircularFifo *log;
 };
 
 class Index
 {
 public:
-  Index(const std::string &path, Data *data) {
+  Index(const std::string &path, CircularFifo *log) {
     std::string hash_file = path + ".hash";
     std::string over_file = path + ".over";
 
     hash_ptr = reinterpret_cast<char *>(map_file(hash_file.c_str(), BUCKET_NUM * sizeof(Bucket)));
     madvise(hash_ptr, BUCKET_NUM * sizeof(Bucket), MADV_RANDOM);
-    this->data = data;
-    overflowindex = new OverflowIndex(over_file, data);
+    this->log = log;
+    overflowindex = new OverflowIndex(over_file, log);
   }
 
   ~Index() {
@@ -270,7 +271,7 @@ public:
       if (offset == 0) {
         return count;
       }
-      const User *tmp = data->data_read(offset);
+      const User *tmp = log->read(offset);
       /* __builtin_prefetch(tmp, 0, 0); */
       if (tmp && inlinecompare(hash_val, key, tmp, where_column, bucket->extra[i], bucket->inlinekeys[i])) {
         res = res_copy(tmp, res, select_column);
@@ -294,6 +295,6 @@ public:
 private:
   char *hash_ptr;
   OverflowIndex *overflowindex;
-  Data *data;
+  CircularFifo *log;
 };
 

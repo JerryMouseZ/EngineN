@@ -194,12 +194,10 @@ public:
 
   // data read and data write
   const User *data_read(uint32_t index) {
-    if (flags->get_flag(index)) {
-      User *user;
-      index -= 1;
-      return pmem_users + index;
-    }
-    return nullptr;
+    // 让log来检查，这里就不重复检查了
+    User *user;
+    index -= 1;
+    return pmem_users + index;
   }
 
   uint32_t data_write(const User &user) {
@@ -228,7 +226,7 @@ public:
   bool get_flag(uint32_t index) {
     return flags->get_flag(index);
   }
-  
+
   User *get_pmem_users() {
     return pmem_users;
   }
