@@ -18,6 +18,7 @@ public:
 
 
   ~Engine() {
+    delete log;
     delete data;
     delete id_r;
     delete uid_r;

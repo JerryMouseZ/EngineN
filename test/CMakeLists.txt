@@ -16,6 +16,9 @@ target_link_libraries(test_engine pmem pthread)
 add_executable(test_data test_data.cpp)
 target_link_libraries(test_data pmem pthread)
 
+add_executable(test_log test_log.cpp)
+target_link_libraries(test_log pmem pthread)
+
 add_executable(test_engine_read test_engine_read.cpp ../src/interface.cpp)
 target_link_libraries(test_engine_read pmem)
 
