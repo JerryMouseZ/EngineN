@@ -3,7 +3,7 @@ project("interface")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(OpenMP)
-add_compile_options(-O3)
+# add_compile_options(-O3)
 
 include_directories(../src)
 
