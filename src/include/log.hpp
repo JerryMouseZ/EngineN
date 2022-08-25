@@ -10,7 +10,17 @@
 
 class CircularFifo{
 public:
-  enum {Capacity = 30};
+  enum {Capacity = 30 * 128 * 1024};
+
+  void tail_commit() {
+    int count = (_tail->load(std::memory_order_relaxed) - *_head) / 30;
+    for (int i = 0; i < count; ++i)
+      pop();
+    for (size_t i = *_head; i < _tail->load(std::memory_order_relaxed); ++i) {
+      pmem_memcpy_persist(pmem_users + i, _array + i % Capacity, sizeof(User));
+    }
+    *_head = _tail->load(std::memory_order_relaxed);
+  }
 
   CircularFifo(const std::string &filename, Data *data) : _tail(0), _head(0), pop_count(0){
     char *map_ptr = reinterpret_cast<char *>(map_file(filename.c_str(), Capacity * sizeof(User) + 64));
@@ -19,25 +29,28 @@ public:
     _array = reinterpret_cast<User *>(map_ptr + 64);
     this->data = data;
     this->pmem_users = data->get_pmem_users();
+
+    tail_commit(); // 把上一次退出没提交完的提交完
+    
     exited = false;
-    writer_thread = new std::thread([&]{
+    auto write_task = [&] {
       while (!exited) {
-        while (pop_count == 0)
+        while (pop_count == 0) {
           std::this_thread::yield();
+          if (exited)
+            break;
+        }
         pop();
       }
-    });
+    };
+    writer_thread = new std::thread(write_task);
   }
-
+  
   ~CircularFifo() {
+    exited = true;
     writer_thread->join();
     // tail commit
-    int count = (_tail->load(std::memory_order_relaxed) - *_head) / 30;
-    for (int i = 0; i < count; ++i)
-      pop();
-    for (size_t i = *_head; i < _tail->load(std::memory_order_relaxed); ++i) {
-      pmem_memcpy_persist(pmem_users + i, _array + i % Capacity, sizeof(User));
-    }
+    tail_commit();
     munmap((void *)_head, Capacity * sizeof(User) + 64);
   }
 
@@ -80,7 +93,7 @@ private:
   std::atomic<size_t> pop_count; // 这个需要放文件里面吗，感觉好像有问题
   Data *data;
   User *pmem_users;
-  bool exited;
+  volatile bool exited;
   std::thread *writer_thread;
 public:
 };
