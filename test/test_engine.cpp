@@ -28,7 +28,7 @@ void test_engine_write(size_t num)
   std::vector<long> iters(num);
   for (int i = 0; i < num; ++i)
     iters[i] = i;
-  std::shuffle(iters.begin(), iters.end(), rng);
+  /* std::shuffle(iters.begin(), iters.end(), rng); */
 
 
   void *context = engine_init(nullptr, nullptr, 0, "/mnt/aep/", "/mnt/disk/");
@@ -36,7 +36,7 @@ void test_engine_write(size_t num)
   long per_thread = num / 50;
   std::thread *threads[50];
   for (long tid = 0; tid < 50; ++tid) {
-    threads[tid] = new std::thread([=]{
+    /* threads[tid] = new std::thread([=]{ */
       long data_begin = tid * per_thread, data_end = (tid + 1) * per_thread;
       for (long i = data_begin; i < data_end; ++i) {
         TestUser user;
@@ -49,12 +49,12 @@ void test_engine_write(size_t num)
         user.salary = iters[i] / 4;
         engine_write(context, &user, sizeof(user));
       }
-    });
+    /* }); */
   }
 
   for (int tid = 0; tid < 50; tid++) {
-    threads[tid]->join();
-    delete threads[tid];
+    /* threads[tid]->join(); */
+    /* delete threads[tid]; */
   }
   engine_deinit(context);
 }
@@ -66,7 +66,7 @@ void test_engine_read(size_t num)
   std::vector<long> iters(num);
   for (int i = 0; i < num; ++i)
     iters[i] = i;
-  std::shuffle(iters.begin(), iters.end(), rng);
+  /* std::shuffle(iters.begin(), iters.end(), rng); */
 
 
   void *context = engine_init(nullptr, nullptr, 0, "/mnt/aep/", "/mnt/disk/");
@@ -74,7 +74,7 @@ void test_engine_read(size_t num)
   int per_thread = num / 50;
   std::thread *threads[50];
   for (int tid = 0; tid < 50; ++tid) {
-    threads[tid] = new std::thread([=]{
+    /* threads[tid] = new std::thread([=]{ */
       for (long i = tid * per_thread; i < (tid + 1) * per_thread; ++i) {
         TestUser user;
         memset(&user, 0, sizeof(user));
@@ -82,6 +82,8 @@ void test_engine_read(size_t num)
         if (ret == 0)
           fprintf(stderr, "Line %d  %ld\n", __LINE__, iters[i]);
         assert(ret);
+        if(std::to_string(iters[i]) != user.user_id)
+          fprintf(stderr, "Line %d  %ld\n", __LINE__, iters[i]);
         assert(std::to_string(iters[i]) == user.user_id);
 
         memset(&user, 0, sizeof(user));
@@ -92,6 +94,9 @@ void test_engine_read(size_t num)
         if (ret == 0)
           fprintf(stderr, "Line %d  %ld\n", __LINE__, iters[i]);
         assert(ret);
+        if(iters[i] != user.id) {
+          fprintf(stderr, "Line %d  %ld\n", __LINE__, iters[i]);
+        }
         assert(iters[i] == user.id);
 
         memset(&user, 0, sizeof(user));
@@ -103,11 +108,11 @@ void test_engine_read(size_t num)
         }
         assert(ret == 4);
       }
-    });
+      /* }); */
   }
   for (int tid = 0; tid < 50; tid++) {
-    threads[tid]->join();
-    delete threads[tid];
+    /* threads[tid]->join(); */
+    /* delete threads[tid]; */
   }
   engine_deinit(context);
 }
