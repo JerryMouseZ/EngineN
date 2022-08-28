@@ -13,18 +13,18 @@ public:
   enum {Capacity = 30 * 128 * 1024};
 
   void tail_commit() {
-    int count = (_tail->load(std::memory_order_relaxed) - *_head) / 30;
+    int count = (_tail->load(std::memory_order_acquire) - _head->load(std::memory_order_acquire)) / 30;
     for (int i = 0; i < count; ++i)
       pop();
-    for (size_t i = *_head; i < _tail->load(std::memory_order_relaxed); ++i) {
+    for (size_t i = *_head; i < _tail->load(std::memory_order_acquire); ++i) {
       pmem_memcpy_persist(pmem_users + i, _array + i % Capacity, sizeof(User));
     }
-    *_head = _tail->load(std::memory_order_relaxed);
+    *_head = _tail->load(std::memory_order_acquire);
   }
 
   CircularFifo(const std::string &filename, Data *data) : _tail(0), _head(0), pop_count(0){
     char *map_ptr = reinterpret_cast<char *>(map_file(filename.c_str(), Capacity * sizeof(User) + 64));
-    _head = reinterpret_cast<volatile size_t *>(map_ptr);
+    _head = reinterpret_cast<std::atomic<size_t> *>(map_ptr);
     _tail = reinterpret_cast<std::atomic<size_t> *>(map_ptr + 8);
     _array = reinterpret_cast<User *>(map_ptr + 64);
     this->data = data;
@@ -60,7 +60,7 @@ public:
   size_t push(const User& item)
   {
     const auto current_tail = _tail->fetch_add(1, std::memory_order_acquire);
-    while(current_tail - *_head >= Capacity);
+    while(current_tail - _head->load(std::memory_order_acquire) >= Capacity);
     if ((current_tail + 1) % 30 == 0)
       pop_count.fetch_add(1);
     _array[current_tail % Capacity] = item;
@@ -70,10 +70,10 @@ public:
   // 在pop就不要任何检查了
   void pop()
   {
-    size_t index = *_head;
+    size_t index = _head->load(std::memory_order_acquire);
     pmem_memcpy_persist(pmem_users + index, _array + index % Capacity, sizeof(User) * 30);
     // pmem的next_free好像没用了，但是还是要考虑一下中断之后写的情况
-    *_head += 30;
+    _head->fetch_add(30);
     pop_count.fetch_sub(1);
   }
 
@@ -88,7 +88,7 @@ public:
 
 private:
   std::atomic<size_t>  *_tail; // 当next_location用就好了
-  volatile size_t *_head;
+  std::atomic<size_t> *_head;
   User *_array;
   std::atomic<size_t> pop_count; // 这个需要放文件里面吗，感觉好像有问题
   Data *data;
