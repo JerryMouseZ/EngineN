@@ -4,51 +4,72 @@
 #include "include/data.hpp"
 
 void test_log_write(size_t num) {
+  assert(num % 50 == 0);
   Data *data = new Data();
   data->open("/mnt/aep/user.data", "/mnt/disk/cache", "/mnt/disk/flag");
   CircularFifo *log = new CircularFifo("/mnt/disk/log", data);
-  
-  for (size_t i = 0; i < num; ++i) {
-    User user;
-    memset(&user, 0, sizeof(User));
-    user.id = i;
-    memset(user.name, 0, 128);
-    memset(user.user_id, 0, 128);
-    strcpy(user.name, std::to_string(i).c_str());
-    strcpy(user.user_id, std::to_string(i).c_str());
-    user.salary = i / 4;
+  long per_thread = num / 50;
+  std::thread *threads[50];
+  for (long tid = 0; tid < 50; ++tid) {
+    threads[tid] = new std::thread([=]{
+      for (size_t i = tid * per_thread; i < (tid + 1) * per_thread && i < num; ++i) {
+        User user;
+        memset(&user, 0, sizeof(User));
+        user.id = i;
+        memset(user.name, 0, 128);
+        memset(user.user_id, 0, 128);
+        strcpy(user.name, std::to_string(i).c_str());
+        strcpy(user.user_id, std::to_string(i).c_str());
+        user.salary = i / 4;
 
-    int index = log->push(user);
-    data->put_flag(index);
+        int index = log->push(user);
+        data->put_flag(index);
+      }
+    });
+  }
+  for (int i = 0; i < 50; ++i) {
+    threads[i]->join();
+    delete threads[i];
   }
   delete log;
   delete data;
 }
 
 void test_log_read(size_t num) {
+  assert(num % 50 == 0);
   Data *data = new Data();
   data->open("/mnt/aep/user.data", "/mnt/disk/cache", "/mnt/disk/flag");
   CircularFifo *log = new CircularFifo("/mnt/disk/log", data);
-  
-  for (size_t i = 0; i < num; ++i) {
-    User user;
-    memset(&user, 0, sizeof(User));
-    user.id = i;
-    memset(user.name, 0, 128);
-    memset(user.user_id, 0, 128);
-    strcpy(user.name, std::to_string(i).c_str());
-    strcpy(user.user_id, std::to_string(i).c_str());
-    user.salary = i / 4;
 
-    int index = i + 1;
-    const User *res_user = log->read(index);
-    if (res_user->id != user.id) {
-      fprintf(stderr, "Line %d  %ld\n", __LINE__, i);
-    }
-    assert(res_user->id == user.id);
-    assert(std::string(res_user->name) == user.name);
-    assert(std::string(res_user->user_id) == user.user_id);
-    assert(res_user->salary == user.salary);
+  long per_thread = num / 50;
+  std::thread *threads[50];
+  for (long tid = 0; tid < 50; ++tid) {
+    /* threads[tid] = new std::thread([=]{ */
+      for (size_t i = 0; i < num; ++i) {
+        User user;
+        memset(&user, 0, sizeof(User));
+        user.id = i;
+        memset(user.name, 0, 128);
+        memset(user.user_id, 0, 128);
+        strcpy(user.name, std::to_string(i).c_str());
+        strcpy(user.user_id, std::to_string(i).c_str());
+        user.salary = i / 4;
+
+        int index = i + 1;
+        const User *res_user = log->read(index);
+        if (res_user->id != user.id) {
+          fprintf(stderr, "Line %d  %ld\n", __LINE__, i);
+        }
+        assert(res_user->id == user.id);
+        assert(std::string(res_user->name) == user.name);
+        assert(std::string(res_user->user_id) == user.user_id);
+        assert(res_user->salary == user.salary);
+      }
+    /* }); */
+  }
+  for (int i = 0; i < 50; ++i) {
+    /* threads[i]->join(); */
+    /* delete threads[i]; */
   }
   delete log;
   delete data;
