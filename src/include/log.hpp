@@ -1,6 +1,7 @@
 #ifndef LOG_H
 #define LOG_H
 #include <atomic>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -29,11 +30,10 @@ public:
     _head = reinterpret_cast<std::atomic<size_t> *>(map_ptr);
     _tail = reinterpret_cast<std::atomic<size_t> *>(map_ptr + 8);
     _count = reinterpret_cast<std::atomic<size_t> *>(map_ptr + 16);
-    is_readable = reinterpret_cast<std::atomic<uint8_t> *>(map_ptr + 64);
+    is_readable = reinterpret_cast<volatile uint8_t *>(map_ptr + 64);
     _array = reinterpret_cast<User *>(map_ptr + 64 + Capacity);
     this->data = data;
     this->pmem_users = data->get_pmem_users();
-    memset(cmpa, 1, 30);
     tail_commit(); // 把上一次退出没提交完的提交完
     
     exited = false;
@@ -73,24 +73,39 @@ public:
     is_readable[current_tail % Capacity] = 1;
     // 有什么办法能确保这30个全部写完了呢
     if ((current_tail + 1) % 30 == 0)
-      done_count.fetch_add(1);
+      done_count.fetch_add(1, std::memory_order_acquire);
     return current_tail + 1;
+  }
+
+  bool check_readable(int index) {
+    static const uint32_t value = 0x01010101;
+    uint32_t *base = (uint32_t *)(is_readable + (index % Capacity));
+    for (int i = 0; i < 7; ++i) {
+      if (base[i] != value)
+        return true;
+    }
+    uint8_t *res = (uint8_t *)base;
+    if (res[28] && res[29])
+      return false;
+    return true;
   }
 
   // 在pop就不要任何检查了
   void pop()
   {
-    size_t index = _head->load(std::memory_order_acquire);
+    size_t index = _head->load(std::memory_order_relaxed);
     // 等30个全部写完
-    while (memcmp((void *)&is_readable[index % Capacity], cmpa, 30)) {
+    while (check_readable(index)) {
       sched_yield();
     }
+    /* for (int i = 0; i < 30; ++i) { */
+    /*   assert(is_readable[(index + i) % Capacity] == 1); */
+    /* } */
 
     pmem_memcpy_persist(pmem_users + index, _array + index % Capacity, sizeof(User) * 30);
     memset((void *)&is_readable[index % Capacity], 0, 30);
-    // pmem的next_free好像没用了，但是还是要考虑一下中断之后写的情况
-    _head->fetch_add(30);
-    done_count.fetch_sub(1);
+    _head->store(index + 30, std::memory_order_release);
+    done_count.fetch_sub(1, std::memory_order_acquire);
   }
 
   const User *read(uint32_t index) {
@@ -106,8 +121,7 @@ private:
   std::atomic<size_t>  *_tail; // 当next_location用就好了
   std::atomic<size_t> *_head;
   std::atomic<size_t> *_count;
-  std::atomic<uint8_t> *is_readable;
-  uint8_t cmpa[30];
+  volatile uint8_t *is_readable;
   User *_array;
   std::atomic<size_t> done_count; // 这个需要放文件里面吗，感觉好像有问题
   Data *data;
