@@ -13,6 +13,9 @@ target_link_libraries(test_multi pmem pthread)
 add_executable(test_engine test_engine.cpp ../src/interface.cpp)
 target_link_libraries(test_engine pmem pthread)
 
+add_executable(init init.cpp ../src/interface.cpp)
+target_link_libraries(init pmem pthread)
+
 add_executable(test_data test_data.cpp)
 target_link_libraries(test_data pmem pthread)
 

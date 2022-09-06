@@ -41,10 +41,8 @@ public:
     exited = false;
     auto write_task = [&] {
       while (!exited) {
-        while (done_count < 30) {
+        while (done_count == 0 && !exited) {
           std::this_thread::yield();
-          if (exited)
-            break;
         }
         if (exited)
           break;
@@ -77,10 +75,11 @@ public:
     }
 
     size_t current_tail = _tail->fetch_add(1, std::memory_order_acquire);
-    // 有什么办法能确保这30个全部写完了呢
     _array[current_tail % Capacity] = item;
     is_readable[current_tail % Capacity] = 1;
-    done_count.fetch_add(1);
+    // 有什么办法能确保这30个全部写完了呢
+    if ((current_tail + 1) % 30 == 0)
+      done_count.fetch_add(1);
     return current_tail + 1;
   }
 
@@ -88,14 +87,14 @@ public:
   void pop()
   {
     size_t index = _head->load(std::memory_order_acquire);
-    while (memcmp((void *)&is_readable[index % Capacity], cmpa, 30) && !exited) {
-
+    while (memcmp((void *)&is_readable[index % Capacity], cmpa, 30)) {
     }
+
     pmem_memcpy_persist(pmem_users + index, _array + index % Capacity, sizeof(User) * 30);
     memset((void *)&is_readable[index % Capacity], 0, 30);
     // pmem的next_free好像没用了，但是还是要考虑一下中断之后写的情况
     _head->fetch_add(30);
-    done_count.fetch_sub(30);
+    done_count.fetch_sub(1);
   }
 
   const User *read(uint32_t index) {
