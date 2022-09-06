@@ -186,6 +186,7 @@ public:
     } else {
       char *cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN));
       next_location = reinterpret_cast<std::atomic<size_t> *>(cache_ptr);
+      prefault(pmem_ptr, DATA_LEN);
     }
 
     flags = new DataFlag();
