@@ -5,20 +5,41 @@
 #include <cstdio>
 #include <cstring>
 #include <vector>
-#include "log.hpp"
+#include <thread>
+#include "queue.hpp"
 
 #include "index.hpp"
 #include "data.hpp"
 
+extern User *pmem_users;
+
+void pop_work(const User *src, uint64_t first_index, uint64_t pop_cnt) {
+  pmem_memcpy_persist(pmem_users + first_index, src, pop_cnt * sizeof(User));
+}
+
+void tail_pop_work(const User *src, uint64_t first_index, uint64_t pop_cnt) {
+  pmem_memcpy_persist(pmem_users + first_index, src, pop_cnt * sizeof(User));
+}
+
 class Engine
 {
 public:
-  Engine(): data(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr) {
+  Engine(): data(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr), consumers(nullptr) {
   }
 
 
   ~Engine() {
-    delete log;
+    
+    q.notify_producers_exit();
+
+    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+        if (consumers[i].joinable()) {
+            consumers[i].join();
+        }
+    }
+
+    q.tail_commit(tail_pop_work);
+
     delete data;
     delete id_r;
     delete uid_r;
@@ -32,18 +53,44 @@ public:
       data_prefix.push_back('/');
     data = new Data();
     data->open(data_prefix + "user.data", disk_path + "cache", disk_path + "flag");
-    log = new CircularFifo(disk_path + "log", data);
 
-    id_r = new Index(disk_path + "id", log);
-    uid_r = new Index(disk_path + "uid", log);
-    sala_r = new Index(disk_path + "salary", log);
+    pmem_users = data->get_pmem_users();
+
+    bool q_is_new_create;
+    if (q.open(disk_path + "queue", &q_is_new_create)) {
+      return;
+    }
+    
+    printf("Init success\n");
+
+    id_r = new Index(disk_path + "id", data, &q);
+    uid_r = new Index(disk_path + "uid", data, &q);
+    sala_r = new Index(disk_path + "salary", data, &q);
+
+    if (!q_is_new_create && q.need_rollback()) {
+      q.rollback(pop_work);
+    }
+
+    q.reset_thread_states();
+
+    consumers = new std::thread[MAX_NR_CONSUMER];
+    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+      consumers[i] = std::thread([this]{
+        init_consumer_id();
+        while (q.pop(pop_work, NR_POP_BATCH))
+          ;
+      });
+    }
   }
 
 
   void write(const User *user) {
+    if (unlikely(!have_producer_id())) {
+      init_producer_id();
+    }
+
     DEBUG_PRINTF(LOG, "write %ld %ld %ld %ld\n", user->id, std::hash<std::string>()(std::string(user->name, 128)), std::hash<std::string>()(std::string(user->user_id, 128)), user->salary);
-    size_t offset = log->push(*user);
-    /* uint64_t offset = data->data_write(*user); */
+    size_t offset = q.push(user);
     id_r->put(user->id, offset);
     uid_r->put(std::hash<UserString>()(*(UserString *)(user->user_id)), offset);
     sala_r->put(user->salary, offset);
@@ -106,5 +153,6 @@ private:
   Index *uid_r;
   // salary need multi-index
   Index *sala_r;
-  CircularFifo *log;
+  LocklessQueue<User> q;
+  std::thread *consumers;
 };

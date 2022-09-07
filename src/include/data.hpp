@@ -8,29 +8,11 @@
 #include <libpmem.h>
 #include <unistd.h>
 #include <assert.h>
-#include <sys/mman.h>
-#include <fcntl.h>
 #include <thread>
 
+#include "util.hpp"
+
 enum UserColumn{Id=0, Userid, Name, Salary};
-
-#define DEBUG
-#ifdef DEBUG
-#define DEBUG_PRINTF(condition, ...) \
-  do { \
-    if(!(condition)) \
-    { \
-      fprintf(stderr,__VA_ARGS__); \
-    } \
-  } while(0)
-#else
-#define DEBUG_PRINTF(...) (void)0
-#endif
-
-// close log
-#define LOG 1
-
-#define START 64
 
 class UserString {
 public:
@@ -51,7 +33,6 @@ struct std::hash<UserString>
   }
 };
 
-
 struct User{
   int64_t id = 0;
   char user_id[128] = {};
@@ -62,57 +43,6 @@ struct User{
 
 using location_type = std::atomic<size_t>;
 const size_t ENTRY_LEN = sizeof(User);
-
-static inline void prefault(char *ptr, size_t len)
-{
-  volatile long *reader = new long;
-  std::thread *threads[8];
-  size_t per_thread = len / 8;
-  for (int i = 0; i < 8; ++i) {
-    threads[i] = new std::thread([=]{
-      for (size_t j = i * per_thread; j < (i + 1) * per_thread  && j < len; j += 4096) {
-        __sync_fetch_and_add(reader, ptr[j]);
-        __builtin_prefetch(ptr + 4096 * 2, 1, 0);
-      }
-    });
-  }
-
-  for (int i = 0; i < 8; ++i) {
-    threads[i]->join();
-    delete threads[i];
-  }
-  delete reader;
-}
-
-static inline void *map_file(const char *path, size_t len)
-{
-  bool hash_create = false;
-  if (access(path, F_OK)) {
-    hash_create = true;
-  }
-
-  int fd = open(path, O_CREAT | O_RDWR, 0777);
-  DEBUG_PRINTF(fd, "%s open error", path);
-  if (hash_create) {
-    int ret = posix_fallocate(fd, 0, len);
-    DEBUG_PRINTF(ret >= 0, "%s ftruncate\n", path);
-  }
-
-  char *ptr = reinterpret_cast<char*>(mmap(0, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
-  DEBUG_PRINTF(ptr, "%s mmaped error\n", path);
-
-  if (hash_create) {
-    // 其实会自动置零，这里相当于一个prefault
-    memset(ptr, 0, len);
-  } else {
-    // prefault
-    prefault(ptr, len);
-  }
-
-  /* madvise(ptr, len, MADV_HUGEPAGE); */
-  close(fd);
-  return ptr;
-}
 
 /* static inline size_t get_index(size_t offset) { */
 /*   return (offset - START) / sizeof(User); */
@@ -134,7 +64,7 @@ public:
   }
 
   void Open(const std::string &filename) {
-    ptr = reinterpret_cast<volatile uint8_t *>(map_file(filename.c_str(), DATA_NUM));
+    ptr = reinterpret_cast<volatile uint8_t *>(map_file(filename.c_str(), DATA_NUM, nullptr));
   }
 
   void set_flag(uint32_t index) {
@@ -180,11 +110,11 @@ public:
     if (new_create) {
       // 其实会自动置零的，这里相当于是一个populate
       pmem_memset_nodrain(pmem_ptr, 0, DATA_LEN);
-      char *cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN));
+      char *cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN, nullptr));
       next_location = reinterpret_cast<std::atomic<size_t> *>(cache_ptr);
       *next_location = 1;
     } else {
-      char *cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN));
+      char *cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN, nullptr));
       next_location = reinterpret_cast<std::atomic<size_t> *>(cache_ptr);
     }
 
@@ -195,8 +125,6 @@ public:
   // data read and data write
   const User *data_read(uint32_t index) {
     // 让log来检查，这里就不重复检查了
-    User *user;
-    index -= 1;
     return pmem_users + index;
   }
 

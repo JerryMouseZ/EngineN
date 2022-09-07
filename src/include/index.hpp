@@ -1,6 +1,5 @@
 #pragma once
-#include "data.hpp"
-#include "log.hpp"
+#include "data_access.hpp"
 #include <cassert>
 #include <cstdint>
 #include <cstddef>
@@ -133,12 +132,12 @@ static void *res_copy(const User *user, void *res, int32_t select_column) {
 class OverflowIndex{
 public:
   volatile std::atomic<size_t> *next_location; // open to index
-  OverflowIndex(const std::string &filename, CircularFifo *log) {
-    this->log = log;
+  OverflowIndex(const std::string &filename, const DataAccess &accessor)
+    : accessor(accessor) {
     bool new_create = false;
     if (access(filename.c_str(), F_OK))
       new_create = true;
-    ptr = reinterpret_cast<char *>(map_file(filename.c_str(), OVER_NUM * sizeof(Bucket) + 64));
+    ptr = reinterpret_cast<char *>(map_file(filename.c_str(), OVER_NUM * sizeof(Bucket) + 64, nullptr));
     madvise(ptr, OVER_NUM * sizeof(Bucket), MADV_RANDOM);
     next_location = reinterpret_cast<std::atomic<size_t> *>(ptr);
 
@@ -181,7 +180,7 @@ public:
       if (offset == 0) {
         return count;
       } else {
-        const User *tmp = log->read(offset);
+        const User *tmp = accessor.read(offset);
         /* __builtin_prefetch(tmp, 0, 0); */
         if (tmp && inlinecompare(hash_val, key, tmp, where_column, bucket->extra[i], bucket->inlinekeys[i])) {
           res = res_copy(tmp, res, select_column);
@@ -210,20 +209,20 @@ public:
 
 private:
   char *ptr;
-  CircularFifo *log;
+  DataAccess accessor;
 };
 
 class Index
 {
 public:
-  Index(const std::string &path, CircularFifo *log) {
+  Index(const std::string &path, Data *data, LocklessQueue<User> *q)
+    : accessor(data, q) {
     std::string hash_file = path + ".hash";
     std::string over_file = path + ".over";
 
-    hash_ptr = reinterpret_cast<char *>(map_file(hash_file.c_str(), BUCKET_NUM * sizeof(Bucket)));
+    hash_ptr = reinterpret_cast<char *>(map_file(hash_file.c_str(), BUCKET_NUM * sizeof(Bucket), nullptr));
     madvise(hash_ptr, BUCKET_NUM * sizeof(Bucket), MADV_RANDOM);
-    this->log = log;
-    overflowindex = new OverflowIndex(over_file, log);
+    overflowindex = new OverflowIndex(over_file, accessor);
   }
 
   ~Index() {
@@ -271,7 +270,7 @@ public:
       if (offset == 0) {
         return count;
       }
-      const User *tmp = log->read(offset);
+      const User *tmp = accessor.read(offset);
       /* __builtin_prefetch(tmp, 0, 0); */
       if (tmp && inlinecompare(hash_val, key, tmp, where_column, bucket->extra[i], bucket->inlinekeys[i])) {
         res = res_copy(tmp, res, select_column);
@@ -295,6 +294,6 @@ public:
 private:
   char *hash_ptr;
   OverflowIndex *overflowindex;
-  CircularFifo *log;
+  DataAccess accessor;
 };
 

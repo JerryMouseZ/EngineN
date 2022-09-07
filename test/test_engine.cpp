@@ -59,6 +59,13 @@ void test_engine_write(size_t num)
   engine_deinit(context);
 }
 
+void print_user(const TestUser &user) {
+  printf("User:\n");
+  printf("  Id: %lu\n", user.id);
+  printf("  Uid: %s\n", user.user_id);
+  printf("  Name: %s\n", user.name);
+  printf("  Salary: %lu\n", user.salary);
+}
 
 void test_engine_read(size_t num)
 {
@@ -77,15 +84,20 @@ void test_engine_read(size_t num)
     threads[tid] = new std::thread([=]{
       for (long i = tid * per_thread; i < (tid + 1) * per_thread; ++i) {
         TestUser user;
+
+        // Select Uid from ... where Id
         memset(&user, 0, sizeof(user));
         int ret = engine_read(context, Userid, Id, &iters[i], sizeof(user.id), (void *)user.user_id);
         if (ret == 0)
           fprintf(stderr, "Line %d  %ld\n", __LINE__, iters[i]);
         assert(ret);
-        if(std::to_string(iters[i]) != user.user_id)
+        if(std::to_string(iters[i]) != user.user_id) {
           fprintf(stderr, "Line %d  %ld\n", __LINE__, iters[i]);
+          print_user(user);
+        }
         assert(std::to_string(iters[i]) == user.user_id);
 
+        // Select Id from ... where Uid
         memset(&user, 0, sizeof(user));
         char uid_buffer[128] = {0};
         std::string i2string = std::to_string(iters[i]);
@@ -99,6 +111,7 @@ void test_engine_read(size_t num)
         }
         assert(iters[i] == user.id);
 
+        // Select Id from ... where Salary
         memset(&user, 0, sizeof(user));
         long salary = iters[i] / 4;
         int64_t ids[4];
