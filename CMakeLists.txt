@@ -10,7 +10,7 @@ include_directories(src)
 add_library(interface
 SHARED
         src/interface.cpp
-        # src/engine.cpp
+        src/thread_data.cpp
 )
 
 message(${CMAKE_SOURCE_DIR})

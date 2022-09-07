@@ -2,23 +2,16 @@
 
 #include <atomic>
 
+constexpr uint64_t MAX_NR_PRODUCER = 50;
+constexpr uint64_t MAX_NR_CONSUMER = 5;
+constexpr uint64_t NR_POP_BATCH = 30;
+
 extern std::atomic<int> nr_producer;
 extern std::atomic<int> nr_cosumer;
 extern thread_local int producer_id;
 extern thread_local int consumer_id;
 
-static inline bool have_producer_id() {
-    return producer_id >= 0;
-}
-
-static inline void init_producer_id() {
-    producer_id = nr_producer.fetch_add(1, std::memory_order_consume);
-}
-
-static inline bool have_consumer_id() {
-    return consumer_id >= 0;
-}
-
-static inline void init_consumer_id() {
-    consumer_id = nr_cosumer.fetch_add(1, std::memory_order_consume);
-}
+bool have_producer_id();
+void init_producer_id();
+bool have_consumer_id();
+void init_consumer_id();

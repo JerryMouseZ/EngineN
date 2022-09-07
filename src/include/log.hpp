@@ -23,7 +23,7 @@ public:
   }
 
   CircularFifo(const std::string &filename, Data *data) : _tail(0), _head(0), pop_count(0){
-    char *map_ptr = reinterpret_cast<char *>(map_file(filename.c_str(), Capacity * sizeof(User) + 64));
+    char *map_ptr = reinterpret_cast<char *>(map_file(filename.c_str(), Capacity * sizeof(User) + 64, nullptr));
     _head = reinterpret_cast<std::atomic<size_t> *>(map_ptr);
     _tail = reinterpret_cast<std::atomic<size_t> *>(map_ptr + 8);
     _array = reinterpret_cast<User *>(map_ptr + 64);
