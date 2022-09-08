@@ -15,6 +15,8 @@ constexpr uint64_t NR_TEST_DATA = NR_TEST_PRODUCER * NR_DATA_PER_PRODUCER;
 
 constexpr uint64_t NR_TEST_CONSUMER = 5;
 
+constexpr uint64_t TEST_ALIGN = 8192;
+
 bool data_ready[NR_TEST_DATA] = {false};
 
 struct TestUser {
@@ -24,7 +26,7 @@ struct TestUser {
     int64_t salary;
 };
 
-LocklessQueue<TestUser> queue;
+LocklessQueue<TestUser, TEST_ALIGN> queue;
 
 int64_t id2salary(int64_t id) {
     return id * 10;
@@ -80,14 +82,14 @@ void producer_work() {
     }
 }
 
-constexpr uint64_t NR_CONSUMER_BUFFER = 30;
-thread_local TestUser consumer_buffer[NR_CONSUMER_BUFFER];
+using TestArray = CommitArray<TestUser, TEST_ALIGN>;
+thread_local TestArray *consumer_buffer;
 
-void do_batch_pop(const TestUser *data, uint64_t first_index, uint64_t pop_cnt) {
-    memcpy(consumer_buffer, data, pop_cnt * sizeof(TestUser));
+void do_batch_pop(const TestArray *data, uint64_t first_index) {
+    memcpy(consumer_buffer, data, TEST_ALIGN);
     
-    for (int i = 0; i < pop_cnt; i++) {
-        const TestUser &user = data[i];
+    for (int i = 0; i < TestArray::N_DATA; i++) {
+        const TestUser &user = consumer_buffer->data[i];
         assert(user.id < NR_TEST_DATA && user.id >= 0);
         assert(!data_ready[user.id]);
         assert_user(user);
@@ -95,23 +97,13 @@ void do_batch_pop(const TestUser *data, uint64_t first_index, uint64_t pop_cnt) 
     }
 }
 
-void do_tail_pop(const TestUser *data, uint64_t first_index, uint64_t pop_cnt) {
-    int loop_cnt = pop_cnt / NR_CONSUMER_BUFFER;
+TestArray *map_ptr;
 
-    for (int bat = 0; bat < loop_cnt; bat++) {
-        for (int i = 0; i < NR_CONSUMER_BUFFER; i++) {
-            const TestUser &user = data[i];
-            assert(user.id < NR_TEST_DATA && user.id >= 0);
-            // assert(!data_ready[user.id]);
-            assert_user(user);
-            data_ready[user.id] = true;
-        }
-    }
+void do_tail_pop(const TestArray *data, uint64_t first_index, uint64_t pop_cnt) {
+    memcpy(map_ptr, data, pop_cnt * sizeof(TestUser));
 
-    int rest_cnt = pop_cnt % NR_CONSUMER_BUFFER;
-
-    for (int i = 0; i < rest_cnt; i++) {
-        const TestUser &user = data[i];
+    for (int i = 0; i < pop_cnt; i++) {
+        const TestUser &user = map_ptr->data[i];
         assert(user.id < NR_TEST_DATA && user.id >= 0);
         // assert(!data_ready[user.id]);
         assert_user(user);
@@ -122,13 +114,14 @@ void do_tail_pop(const TestUser *data, uint64_t first_index, uint64_t pop_cnt) {
 void consumer_work() {
     init_consumer_id();
 
-    while (queue.pop(do_batch_pop, NR_CONSUMER_BUFFER))
+    while (queue.pop(do_batch_pop))
         ;
 }
 
-
 int main() {
     using namespace std::chrono;
+
+    map_ptr = static_cast<TestArray *>(mmap(0, NR_TEST_CONSUMER * TEST_ALIGN, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
 
     std::thread producer_threads[NR_TEST_PRODUCER];
     std::thread consumer_threads[NR_TEST_CONSUMER];
@@ -145,7 +138,10 @@ int main() {
     }
 
     for (int i = 0; i < NR_TEST_CONSUMER; i++) {
-        consumer_threads[i] = std::thread(consumer_work);
+        consumer_threads[i] = std::thread([i]() {
+            consumer_buffer = &map_ptr[i];
+            consumer_work();
+        });
     }
 
     for (int i = 0; i < NR_TEST_PRODUCER; i++) {
@@ -163,7 +159,7 @@ int main() {
         }
     }
 
-    queue.tail_commit(do_tail_pop);
+    queue.tail_commit(do_batch_pop, do_tail_pop);
 
     auto t2 = high_resolution_clock::now(); 
 

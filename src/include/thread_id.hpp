@@ -2,9 +2,7 @@
 
 #include <atomic>
 
-constexpr uint64_t MAX_NR_PRODUCER = 50;
-constexpr uint64_t MAX_NR_CONSUMER = 5;
-constexpr uint64_t NR_POP_BATCH = 30;
+#include "config.hpp"
 
 extern std::atomic<int> nr_producer;
 extern std::atomic<int> nr_cosumer;

@@ -11,14 +11,14 @@
 #include "index.hpp"
 #include "data.hpp"
 
-extern User *pmem_users;
+extern UserArray *pmem_users;
 
-void pop_work(const User *src, uint64_t first_index, uint64_t pop_cnt) {
-  pmem_memcpy_persist(pmem_users + first_index, src, pop_cnt * sizeof(User));
+void cmt_work(const UserArray *src, uint64_t ca_index) {
+  pmem_memcpy_persist(&pmem_users[ca_index], src, QCMT_ALIGN);
 }
 
-void tail_pop_work(const User *src, uint64_t first_index, uint64_t pop_cnt) {
-  pmem_memcpy_persist(pmem_users + first_index, src, pop_cnt * sizeof(User));
+void tail_cmt_work(const UserArray *src, uint64_t ca_index, uint64_t pop_cnt) {
+  pmem_memcpy_persist(&pmem_users[ca_index], src, pop_cnt * sizeof(User));
 }
 
 class Engine
@@ -38,7 +38,7 @@ public:
         }
     }
 
-    q.tail_commit(tail_pop_work);
+    q.tail_commit(cmt_work, tail_cmt_work);
 
     delete data;
     delete id_r;
@@ -68,7 +68,7 @@ public:
     sala_r = new Index(disk_path + "salary", data, &q);
 
     if (!q_is_new_create && q.need_rollback()) {
-      q.rollback(pop_work);
+      q.tail_commit(cmt_work, tail_cmt_work);
     }
 
     q.reset_thread_states();
@@ -77,7 +77,7 @@ public:
     for (int i = 0; i < MAX_NR_CONSUMER; i++) {
       consumers[i] = std::thread([this]{
         init_consumer_id();
-        while (q.pop(pop_work, NR_POP_BATCH))
+        while (q.pop(cmt_work))
           ;
       });
     }
@@ -153,6 +153,6 @@ private:
   Index *uid_r;
   // salary need multi-index
   Index *sala_r;
-  LocklessQueue<User> q;
+  UserQueue q;
   std::thread *consumers;
 };
