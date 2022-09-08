@@ -9,7 +9,6 @@ add_definitions("-DLIBURING_INTERNAL -D_GNU_SOURCE")
 include_directories(src)
 
 add_library(uring
-SHARED
         src/setup.c
         src/queue.c
         src/register.c
