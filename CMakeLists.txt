@@ -6,11 +6,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_compile_options(-O3)
 
 include_directories(src)
+include_directories(liburing/src/include)
+
+add_subdirectory(liburing)
 
 add_library(interface
 SHARED
         src/interface.cpp
-        # src/engine.cpp
 )
+
+target_link_libraries(interface uring)
 
 message(${CMAKE_SOURCE_DIR})
