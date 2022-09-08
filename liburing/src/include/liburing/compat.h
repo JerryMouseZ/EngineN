@@ -4,6 +4,6 @@
 
 #include <linux/time_types.h>
 
-#include <linux/openat2.h>
+#include <openat2.h>
 
 #endif
