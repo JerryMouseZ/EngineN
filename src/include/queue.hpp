@@ -5,10 +5,11 @@
 #include <unistd.h>
 
 #include "thread_id.hpp"
+#include "commit_array.hpp"
 #include "util.hpp"
 
 // 测试性能，需要调参
-constexpr uint64_t QBITS = 18;
+constexpr uint64_t QBITS = 14;
 // 测试正确性
 // constexpr uint64_t QBITS = 10;
 constexpr uint64_t QSIZE = 1 << QBITS;
@@ -19,10 +20,17 @@ struct alignas(64) cache_aligned_uint64 {
     uint64_t value;
 };
 
-template<typename T>
+template<typename T, uint64_t CMT_ALIGN>
 class LocklessQueue {
 public:
-    using read_func_t = void (*)(const T *, uint64_t, uint64_t);
+
+    using DataArray = CommitArray<T, CMT_ALIGN>;
+    using cmt_func_t = void (*)(const DataArray *, uint64_t);
+    using tail_cmt_func_t = void (*)(const DataArray *, uint64_t, uint64_t);
+
+    static constexpr uint64_t CMT_BATCH_CNT = DataArray::N_DATA;
+    static constexpr uint64_t UNALIGNED_META_SIZE = 2 * (64 + 64) + (MAX_NR_PRODUCER + MAX_NR_CONSUMER) * 64;
+    static constexpr uint64_t QMETA_SIZE = ((UNALIGNED_META_SIZE + CMT_ALIGN - 1) / CMT_ALIGN) * CMT_ALIGN;
 
     LocklessQueue() 
         : producers_exit(false), yield_producer_cnt({0}) {
@@ -30,7 +38,7 @@ public:
 
     int open(std::string fname, bool *is_new_create) {
 
-        char *map_ptr = reinterpret_cast<char *>(map_file(fname.c_str(), 2 * (64 + 64) + (MAX_NR_PRODUCER + MAX_NR_CONSUMER) * 64 + QSIZE * sizeof(T), is_new_create));
+        char *map_ptr = reinterpret_cast<char *>(map_file(fname.c_str(), QMETA_SIZE + QSIZE * sizeof(DataArray), is_new_create));
         
         if (map_ptr == nullptr) {
             return 1;
@@ -54,7 +62,7 @@ public:
         thread_tails = reinterpret_cast<volatile cache_aligned_uint64 *>(((char *)tail) + 64);
         last_head = reinterpret_cast<volatile uint64_t *>(thread_tails + MAX_NR_CONSUMER);
 
-        data = (T *)(last_head + 8);
+        data = (DataArray *)(map_ptr + QMETA_SIZE);
 
         printf("Open queue: last_tail = %lu, tail = %lu, last_head = %lu, head = %lu\n", *last_tail, tail->load(), *last_head, head->load());
 
@@ -67,6 +75,10 @@ public:
         uint64_t pos = head->fetch_add(1, std::memory_order_acq_rel);
 
         this_thread_head() = pos;
+
+        uint64_t caid = pos / CMT_BATCH_CNT;
+        uint64_t inner_ca_pos = pos % CMT_BATCH_CNT;
+        uint64_t ca_pos = caid & QMASK;
         
         while (*last_tail + QSIZE <= pos) {
             // printf("Producer %d yield at %lu last_tail = %lu, last_head = %lu, head = %lu\n", producer_id, nv_this_thread_head(), *last_tail, *last_head, head->load());
@@ -75,7 +87,8 @@ public:
             update_last_tail();
         }
         
-        memcpy(&data[pos & QMASK], new_data, sizeof(T));
+        memcpy(&data[ca_pos].data[inner_ca_pos], new_data, sizeof(T));
+
         // printf("Pid = %d, DataId = %lu, DataIndex = %lu, DataPos = %lu\n", producer_id, *((uint64_t *)new_data), pos, pos & QMASK);
 
         std::atomic_thread_fence(std::memory_order_release);
@@ -84,11 +97,17 @@ public:
         return pos + 1;
     }
 
-    bool pop(read_func_t read_func, uint64_t pop_cnt) {
+    bool pop(cmt_func_t cmt_func) {
         this_thread_tail() = tail->load(std::memory_order_consume);
-        this_thread_tail() = tail->fetch_add(pop_cnt, std::memory_order_acq_rel);
+
+        uint64_t pos = tail->fetch_add(CMT_BATCH_CNT, std::memory_order_acq_rel);
         
-        while (nv_this_thread_tail() + pop_cnt - 1 >= *last_head) {
+        this_thread_tail() = pos;
+
+        uint64_t caid = pos / CMT_BATCH_CNT;
+        uint64_t ca_pos = caid & QMASK;
+        
+        while (nv_this_thread_tail() + CMT_BATCH_CNT - 1 >= *last_head) {
 
             // exit condition
             if (unlikely(producers_exit)) {
@@ -123,17 +142,7 @@ public:
             } while(*last_head < min);
         }
         
-        uint64_t read_start = nv_this_thread_tail() & QMASK;
-        uint64_t first_batch_cnt = QSIZE - read_start;
-        
-        if (likely(first_batch_cnt >= pop_cnt)) {
-            read_func(&data[read_start], nv_this_thread_tail(), pop_cnt);    
-        } else {
-            // printf("Winded read_func: read_start: %lu, this_tail = %lu, first_batch: %lu, pop_cnt = %lu, new_iter = %lu\n",
-            //     read_start, nv_this_thread_tail(), first_batch_cnt, pop_cnt, pop_cnt - first_batch_cnt);
-            read_func(&data[read_start], nv_this_thread_tail(), first_batch_cnt);
-            read_func(&data[0], nv_this_thread_tail() + first_batch_cnt, pop_cnt - first_batch_cnt);
-        }
+        cmt_func(&data[ca_pos], caid);    
 
         std::atomic_thread_fence(std::memory_order_release);
 
@@ -146,7 +155,7 @@ public:
         producers_exit = true;
     }
 
-    void tail_commit(read_func_t read_func) {
+    void tail_commit(cmt_func_t cmt_func, tail_cmt_func_t tail_cmt_func) {
 
         printf("Before tail commit, last_tail = %lu, head = %lu, tail = %lu\n", *last_tail, head->load(), tail->load());
 
@@ -166,22 +175,36 @@ public:
             return;
         }
 
-        uint64_t start_pos = tail_value & QMASK;
-        uint64_t end_pos = head_value & QMASK;
+        if (tail_value % CMT_BATCH_CNT != 0) {
+            printf("Wierd, last_tail not aligned to CMT_CNT: last_tail = %lu\n", tail_value);
+        }
 
-        printf("Start pos: %lu, End pos: %lu, QSIZE = %lu\n", start_pos, end_pos, QSIZE);
+        uint64_t start_caid = tail_value / CMT_BATCH_CNT;
+        uint64_t end_caid = head_value / CMT_BATCH_CNT;
+        uint64_t end_ca_cnt = head_value % CMT_BATCH_CNT;
 
-        if (start_pos < end_pos) {
+        uint64_t start_ca_pos = start_caid & QMASK;
+        uint64_t end_ca_pos = end_caid & QMASK;
+
+        printf("Start pos: %lu, End pos: %lu, nonfull_cnt = %lu, QSIZE = %lu\n", start_ca_pos, end_ca_pos, end_ca_cnt, QSIZE);
+
+        if (start_ca_pos <= end_ca_pos) {
             printf("No wind\n");
-            read_func(&data[start_pos], tail_value, end_pos - start_pos);
+            for (auto i = 0; i < end_ca_pos - start_ca_pos; i++) {
+                cmt_func(&data[start_ca_pos + i], start_caid + i);
+            }
         } else {
             printf("Wind\n");
-            read_func(&data[start_pos], tail_value, QSIZE - start_pos);
-
-            if (end_pos != 0) {
-                printf("Read wind\n");
-                read_func(&data[0], tail_value + QSIZE - start_pos, end_pos);
+            for (auto i = 0; i < QSIZE - start_ca_pos; i++) {
+                cmt_func(&data[start_ca_pos + i], start_caid + i);
             }
+            for (auto i = 0; i < end_ca_pos; i++) {
+                cmt_func(&data[i], start_caid + i + QSIZE - start_ca_pos);
+            }
+        }
+        
+        if (end_ca_cnt != 0) {
+            tail_cmt_func(&data[end_ca_pos], end_caid, end_ca_cnt);
         }
 
         std::atomic_thread_fence(std::memory_order_release);
@@ -210,11 +233,6 @@ public:
 
     bool need_rollback() {
         return *last_tail != head->load();
-    }
-
-    void rollback(read_func_t read_func) {
-        printf("Start rollback\n");
-        tail_commit(read_func);
     }
 
 private:
@@ -290,7 +308,8 @@ private:
     volatile cache_aligned_uint64 *thread_tails;
     volatile uint64_t *last_head;
 
-    T *data;
+    DataArray *data;
+
     volatile bool producers_exit;
 
     char pad[64];

@@ -215,7 +215,7 @@ private:
 class Index
 {
 public:
-  Index(const std::string &path, Data *data, LocklessQueue<User> *q)
+  Index(const std::string &path, Data *data, UserQueue *q)
     : accessor(data, q) {
     std::string hash_file = path + ".hash";
     std::string over_file = path + ".over";

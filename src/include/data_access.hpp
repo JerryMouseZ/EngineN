@@ -3,11 +3,13 @@
 #include "data.hpp"
 #include "queue.hpp"
 
+using UserQueue = LocklessQueue<User, QCMT_ALIGN>;
+
 extern thread_local User race_data;
 
 class DataAccess {
 public:
-  DataAccess(Data *data, LocklessQueue<User> *q)
+  DataAccess(Data *data, UserQueue *q)
     : data(data), q(q) {}
 
   const User *read(uint32_t index) {
@@ -33,5 +35,5 @@ public:
 
 private:
     Data *data;
-    LocklessQueue<User> *q;
+    UserQueue *q;
 };
