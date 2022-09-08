@@ -34,6 +34,18 @@ public:
 
     LocklessQueue() 
         : producers_exit(false), yield_producer_cnt({0}) {
+
+        pthread_mutex_init(&mtx, NULL);
+        pthread_cond_init(&cond_var, NULL);
+
+        for (int i = 0; i < MAX_NR_PRODUCER; i++) {
+            producer_yield_cnts[i].value = 0;
+        }
+        for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+            consumer_yield_cnts[i].value = 0;
+        }
+
+	    first = false;
     }
 
     int open(std::string fname, bool *is_new_create) {
@@ -153,6 +165,9 @@ public:
 
     void notify_producers_exit() {
         producers_exit = true;
+        pthread_mutex_lock(&mtx);
+        pthread_cond_broadcast(&cond_var);
+        pthread_mutex_unlock(&mtx);
     }
 
     void tail_commit(cmt_func_t cmt_func, tail_cmt_func_t tail_cmt_func) {
@@ -235,6 +250,29 @@ public:
         return *last_tail != head->load();
     }
 
+    ~LocklessQueue() {
+        uint64_t total_producer_yield_cnts = 0,
+            total_consumer_yield_cnts = 0;
+        
+        for (int i = 0; i < MAX_NR_PRODUCER; i++) {
+            total_producer_yield_cnts += producer_yield_cnts[i].value;
+        }
+        for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+            total_consumer_yield_cnts += consumer_yield_cnts[i].value;
+        }
+
+        printf( "Total yield:\n"
+                "\tproducer: %lu\n"
+                "\tconsumer: %lu\n"
+                "Avg yield:\n"
+                "\tproducer: %lu\n"
+                "\tconsumer: %lu\n",
+                total_producer_yield_cnts, 
+                total_consumer_yield_cnts,
+                total_producer_yield_cnts / MAX_NR_PRODUCER,
+                total_consumer_yield_cnts / MAX_NR_CONSUMER);
+    }
+
 private:
     volatile uint64_t &this_thread_head() {
         return thread_heads[producer_id].value;
@@ -253,21 +291,34 @@ private:
     }
 
     void producer_yield_thread() {
-        if (MAX_NR_PRODUCER - yield_producer_cnt.fetch_add(1) <= 5 * MAX_NR_CONSUMER) {
-            yield_producer_cnt.fetch_sub(1);
-            sched_yield();
+        // if (MAX_NR_PRODUCER - yield_producer_cnt.fetch_add(1) <= 5 * MAX_NR_CONSUMER) {
+        //     yield_producer_cnt.fetch_sub(1);
+        //     sched_yield();
+        // } else {
+        //     usleep(10);
+        //     yield_producer_cnt.fetch_sub(1);
+        // }
+
+        pthread_mutex_lock(&mtx);
+	
+        if (!first) {
+            first = true;
+                pthread_cond_broadcast(&cond_var);
+            first = false;
         } else {
-            usleep(10);
-            yield_producer_cnt.fetch_sub(1);
+            sched_yield();
         }
-        // usleep(1);
-        // 需要调参
+
+        pthread_mutex_unlock(&mtx);
+
+        producer_yield_cnts[producer_id].value++;
     }
 
     void consumer_yield_thread() {
-        // sched_yield();
-        usleep(1);
-        // usleep(10);
+        pthread_mutex_lock(&mtx);
+        pthread_cond_wait(&cond_var, &mtx);
+        pthread_mutex_unlock(&mtx);
+        consumer_yield_cnts[consumer_id].value++;
     }
 
     void update_last_tail() {
@@ -314,4 +365,11 @@ private:
 
     char pad[64];
     std::atomic<uint64_t> yield_producer_cnt;
+
+    cache_aligned_uint64 producer_yield_cnts[MAX_NR_PRODUCER];
+    cache_aligned_uint64 consumer_yield_cnts[MAX_NR_CONSUMER];
+
+    pthread_mutex_t mtx;
+    pthread_cond_t cond_var;
+    volatile bool first;
 };
