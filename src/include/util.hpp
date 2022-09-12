@@ -24,6 +24,8 @@
 
 // close log
 #define LOG 1
+#define QINFO 1
+#define QDEBUG 1
 
 #define START 64
 

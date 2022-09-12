@@ -82,7 +82,7 @@ public:
         this->pmem_data = pmem_data;
         this->id = id;
 
-        printf("Open queue: last_tail = %lu, tail = %lu, last_head = %lu, head = %lu\n", *last_tail, tail->load(), *last_head, head->load());
+        DEBUG_PRINTF(QINFO, "Open queue %u: last_tail = %lu, tail = %lu, last_head = %lu, head = %lu\n", id, *last_tail, tail->load(), *last_head, head->load());
 
         return 0;
     }
@@ -175,12 +175,12 @@ public:
         return true;
     }
 
-    void do_commit(const UserArray *src, uint64_t ca_index) {
-        pmem_memcpy_persist(&pmem_data[ca_index], src, QCMT_ALIGN);
+    void do_commit(const DataArray *src, uint64_t ca_index) {
+        pmem_memcpy_persist(&pmem_data[ca_index], src, CMT_ALIGN);
     }
 
-    void do_unaligned_commit(const UserArray *src, uint64_t ca_index, uint64_t pop_cnt) {
-        pmem_memcpy_persist(&pmem_data[ca_index], src, pop_cnt * sizeof(User));
+    void do_unaligned_commit(const DataArray *src, uint64_t ca_index, uint64_t pop_cnt) {
+        pmem_memcpy_persist(&pmem_data[ca_index], src, pop_cnt * sizeof(T));
     }
 
     void notify_producers_exit() {
@@ -192,26 +192,26 @@ public:
 
     void tail_commit() {
 
-        printf("Before tail commit, last_tail = %lu, head = %lu, tail = %lu\n", *last_tail, head->load(), tail->load());
+        DEBUG_PRINTF(QDEBUG, "Before tail commit, last_tail = %lu, head = %lu, tail = %lu\n", *last_tail, head->load(), tail->load());
 
         update_last_tail();
         
         uint64_t tail_value = *last_tail;
         uint64_t head_value = head->load(std::memory_order_relaxed);
 
-        printf("Start tail commit, last_tail = %lu, head = %lu, tail = %lu\n", tail_value, head_value, tail->load());
+        DEBUG_PRINTF(QDEBUG, "Start tail commit, last_tail = %lu, head = %lu, tail = %lu\n", tail_value, head_value, tail->load());
 
         if (tail_value == head_value) {
             tail->store(tail_value);
-            printf("No thing to commit, last_tail > head: last_tail = %lu, tail = %lu, head: %lu\n", tail_value, tail->load(), head_value);
+            DEBUG_PRINTF(QINFO, "Queue %u tail_commit: No thing to commit, last_tail > head: last_tail = %lu, tail = %lu, head: %lu\n", id, tail_value, tail->load(), head_value);
             return;
         } else if (tail_value > head_value) {
-            printf("Wierd, last_tail > head: last_tail = %lu, tail = %lu, head: %lu\n", tail_value, tail->load(), head_value);
+            DEBUG_PRINTF(QINFO, "Wierd, last_tail > head: last_tail = %lu, tail = %lu, head: %lu\n", tail_value, tail->load(), head_value);
             return;
         }
 
         if (tail_value % CMT_BATCH_CNT != 0) {
-            printf("Wierd, last_tail not aligned to CMT_CNT: last_tail = %lu\n", tail_value);
+            DEBUG_PRINTF(QINFO, "Wierd, last_tail not aligned to CMT_CNT: last_tail = %lu\n", tail_value);
         }
 
         uint64_t start_caid = tail_value / CMT_BATCH_CNT;
@@ -221,15 +221,15 @@ public:
         uint64_t start_ca_pos = start_caid & QMASK;
         uint64_t end_ca_pos = end_caid & QMASK;
 
-        printf("Start pos: %lu, End pos: %lu, nonfull_cnt = %lu, QSIZE = %lu\n", start_ca_pos, end_ca_pos, end_ca_cnt, QSIZE);
+        DEBUG_PRINTF(QINFO, "Queue %u tail_commit: Start pos: %lu, End pos: %lu, nonfull_cnt = %lu, QSIZE = %lu\n", id, start_ca_pos, end_ca_pos, end_ca_cnt, QSIZE);
 
         if (start_ca_pos <= end_ca_pos) {
-            printf("No wind\n");
+            DEBUG_PRINTF(QDEBUG, "No wind\n");
             for (auto i = 0; i < end_ca_pos - start_ca_pos; i++) {
                 do_commit(&data[start_ca_pos + i], start_caid + i);
             }
         } else {
-            printf("Wind\n");
+            DEBUG_PRINTF(QDEBUG, "Wind\n");
             for (auto i = 0; i < QSIZE - start_ca_pos; i++) {
                 do_commit(&data[start_ca_pos + i], start_caid + i);
             }
@@ -246,7 +246,7 @@ public:
         *last_tail = head_value;
         tail->store(head_value);
 
-        printf("End tail commit\n");
+        DEBUG_PRINTF(QDEBUG, "End tail commit\n");
     }
 
     uint64_t min_uncommitted_data_index() {
@@ -281,7 +281,8 @@ public:
             total_consumer_yield_cnts += consumer_yield_cnts[i].value;
         }
 
-        printf( "Queue %u:\n"
+        DEBUG_PRINTF(QINFO,
+                "Queue %u:\n"
                 "\tTotal yield:\n"
                 "\t\tproducer: %lu\n"
                 "\t\tconsumer: %lu\n"
