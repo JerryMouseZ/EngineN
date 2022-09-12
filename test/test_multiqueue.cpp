@@ -10,7 +10,7 @@ using std::string;
 
 // 如需修改，需要一并修改queue.hpp
 constexpr uint64_t NR_TEST_PRODUCER = 50;
-constexpr uint64_t NR_DATA_PER_PRODUCER = 10000;
+constexpr uint64_t NR_DATA_PER_PRODUCER = 1000000;
 constexpr uint64_t NR_TEST_DATA = NR_TEST_PRODUCER * NR_DATA_PER_PRODUCER;
 
 constexpr uint64_t NR_TEST_CONSUMER = 8;
