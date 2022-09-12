@@ -6,6 +6,9 @@
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
+#define ROUND_DIV(x, CONST_N) (((x) + CONST_N - 1) / CONST_N)
+#define ROUND_UP(x, CONST_N) (ROUND_DIV(x, CONST_N) * CONST_N)
+
 #define DEBUG
 #ifdef DEBUG
 #define DEBUG_PRINTF(condition, ...) \

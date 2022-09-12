@@ -3,6 +3,7 @@
 #include <memory.h>
 #include <sched.h>
 #include <unistd.h>
+#include <libpmem.h>
 
 #include "thread_id.hpp"
 #include "commit_array.hpp"
@@ -16,12 +17,14 @@ constexpr uint64_t QSIZE = 1 << QBITS;
 constexpr uint64_t QMASK = QSIZE - 1;
 
 // OPT8
-struct alignas(64) cache_aligned_uint64 {
+struct alignas(CACHELINE_SIZE) cache_aligned_uint64 {
     uint64_t value;
 };
 
+constexpr uint64_t PER_QUEUE_CONSUMER = 1;
+
 template<typename T, uint64_t CMT_ALIGN>
-class LocklessQueue {
+class alignas(CACHELINE_SIZE) LocklessQueue {
 public:
 
     using DataArray = CommitArray<T, CMT_ALIGN>;
@@ -29,8 +32,8 @@ public:
     using tail_cmt_func_t = void (*)(const DataArray *, uint64_t, uint64_t);
 
     static constexpr uint64_t CMT_BATCH_CNT = DataArray::N_DATA;
-    static constexpr uint64_t UNALIGNED_META_SIZE = 2 * (64 + 64) + (MAX_NR_PRODUCER + MAX_NR_CONSUMER) * 64;
-    static constexpr uint64_t QMETA_SIZE = ((UNALIGNED_META_SIZE + CMT_ALIGN - 1) / CMT_ALIGN) * CMT_ALIGN;
+    static constexpr uint64_t UNALIGNED_META_SIZE = 2 * (64 + 64) + (MAX_NR_PRODUCER + PER_QUEUE_CONSUMER) * 64;
+    static constexpr uint64_t QMETA_SIZE = ROUND_UP(UNALIGNED_META_SIZE, CMT_ALIGN);
 
     LocklessQueue() 
         : producers_exit(false), yield_producer_cnt({0}) {
@@ -41,14 +44,15 @@ public:
         for (int i = 0; i < MAX_NR_PRODUCER; i++) {
             producer_yield_cnts[i].value = 0;
         }
-        for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+        for (int i = 0; i < PER_QUEUE_CONSUMER; i++) {
             consumer_yield_cnts[i].value = 0;
         }
 
 	    first = false;
+        consumer_maybe_waiting = false;
     }
 
-    int open(std::string fname, bool *is_new_create) {
+    int open(std::string fname, bool *is_new_create, DataArray *pmem_data, uint32_t id) {
 
         char *map_ptr = reinterpret_cast<char *>(map_file(fname.c_str(), QMETA_SIZE + QSIZE * sizeof(DataArray), is_new_create));
         
@@ -72,9 +76,11 @@ public:
 
         tail = (std::atomic<uint64_t> *)(last_tail + 8); // cast away volatile qualifier
         thread_tails = reinterpret_cast<volatile cache_aligned_uint64 *>(((char *)tail) + 64);
-        last_head = reinterpret_cast<volatile uint64_t *>(thread_tails + MAX_NR_CONSUMER);
+        last_head = reinterpret_cast<volatile uint64_t *>(thread_tails + PER_QUEUE_CONSUMER);
 
         data = (DataArray *)(map_ptr + QMETA_SIZE);
+        this->pmem_data = pmem_data;
+        this->id = id;
 
         printf("Open queue: last_tail = %lu, tail = %lu, last_head = %lu, head = %lu\n", *last_tail, tail->load(), *last_head, head->load());
 
@@ -92,13 +98,14 @@ public:
         uint64_t inner_ca_pos = pos % CMT_BATCH_CNT;
         uint64_t ca_pos = caid & QMASK;
         
+        int local_yield_cnt = 0;
         while (*last_tail + QSIZE <= pos) {
             // printf("Producer %d yield at %lu last_tail = %lu, last_head = %lu, head = %lu\n", producer_id, nv_this_thread_head(), *last_tail, *last_head, head->load());
-            producer_yield_thread();
+            producer_yield_thread(local_yield_cnt++);
 
             update_last_tail();
         }
-        
+
         memcpy(&data[ca_pos].data[inner_ca_pos], new_data, sizeof(T));
 
         // printf("Pid = %d, DataId = %lu, DataIndex = %lu, DataPos = %lu\n", producer_id, *((uint64_t *)new_data), pos, pos & QMASK);
@@ -106,10 +113,14 @@ public:
         std::atomic_thread_fence(std::memory_order_release);
         this_thread_head() = UINT64_MAX;
 
+        if (pos % (QSIZE >> 5) == 0) {
+            try_wake_consumer();
+        }
+
         return pos + 1;
     }
 
-    bool pop(cmt_func_t cmt_func) {
+    bool pop() {
         this_thread_tail() = tail->load(std::memory_order_consume);
 
         uint64_t pos = tail->fetch_add(CMT_BATCH_CNT, std::memory_order_acq_rel);
@@ -132,6 +143,7 @@ public:
             auto min = head->load(std::memory_order_consume);
 
             for (int i = 0; i < MAX_NR_PRODUCER; i++) {
+                __builtin_prefetch((cache_aligned_uint64 *)(thread_heads + i + 1));
                 auto tmp_head = thread_heads[i].value;
 
                 std::atomic_thread_fence(std::memory_order_consume);
@@ -154,7 +166,7 @@ public:
             } while(*last_head < min);
         }
         
-        cmt_func(&data[ca_pos], caid);    
+        do_commit(&data[ca_pos], caid);    
 
         std::atomic_thread_fence(std::memory_order_release);
 
@@ -163,14 +175,22 @@ public:
         return true;
     }
 
+    void do_commit(const UserArray *src, uint64_t ca_index) {
+        pmem_memcpy_persist(&pmem_data[ca_index], src, QCMT_ALIGN);
+    }
+
+    void do_unaligned_commit(const UserArray *src, uint64_t ca_index, uint64_t pop_cnt) {
+        pmem_memcpy_persist(&pmem_data[ca_index], src, pop_cnt * sizeof(User));
+    }
+
     void notify_producers_exit() {
         producers_exit = true;
         pthread_mutex_lock(&mtx);
-        pthread_cond_broadcast(&cond_var);
+        pthread_cond_signal(&cond_var);
         pthread_mutex_unlock(&mtx);
     }
 
-    void tail_commit(cmt_func_t cmt_func, tail_cmt_func_t tail_cmt_func) {
+    void tail_commit() {
 
         printf("Before tail commit, last_tail = %lu, head = %lu, tail = %lu\n", *last_tail, head->load(), tail->load());
 
@@ -206,20 +226,20 @@ public:
         if (start_ca_pos <= end_ca_pos) {
             printf("No wind\n");
             for (auto i = 0; i < end_ca_pos - start_ca_pos; i++) {
-                cmt_func(&data[start_ca_pos + i], start_caid + i);
+                do_commit(&data[start_ca_pos + i], start_caid + i);
             }
         } else {
             printf("Wind\n");
             for (auto i = 0; i < QSIZE - start_ca_pos; i++) {
-                cmt_func(&data[start_ca_pos + i], start_caid + i);
+                do_commit(&data[start_ca_pos + i], start_caid + i);
             }
             for (auto i = 0; i < end_ca_pos; i++) {
-                cmt_func(&data[i], start_caid + i + QSIZE - start_ca_pos);
+                do_commit(&data[i], start_caid + i + QSIZE - start_ca_pos);
             }
         }
         
         if (end_ca_cnt != 0) {
-            tail_cmt_func(&data[end_ca_pos], end_caid, end_ca_cnt);
+            do_unaligned_commit(&data[end_ca_pos], end_caid, end_ca_cnt);
         }
 
         std::atomic_thread_fence(std::memory_order_release);
@@ -241,7 +261,7 @@ public:
         for (int i = 0; i < MAX_NR_PRODUCER; i++) {
             thread_heads[i].value = UINT64_MAX;
         }
-        for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+        for (int i = 0; i < PER_QUEUE_CONSUMER; i++) {
             thread_tails[i].value = UINT64_MAX;
         }
     }
@@ -250,7 +270,7 @@ public:
         return *last_tail != head->load();
     }
 
-    ~LocklessQueue() {
+    void statistics(uint32_t qid) {
         uint64_t total_producer_yield_cnts = 0,
             total_consumer_yield_cnts = 0;
         
@@ -261,12 +281,14 @@ public:
             total_consumer_yield_cnts += consumer_yield_cnts[i].value;
         }
 
-        printf( "Total yield:\n"
-                "\tproducer: %lu\n"
-                "\tconsumer: %lu\n"
-                "Avg yield:\n"
-                "\tproducer: %lu\n"
-                "\tconsumer: %lu\n",
+        printf( "Queue %u:\n"
+                "\tTotal yield:\n"
+                "\t\tproducer: %lu\n"
+                "\t\tconsumer: %lu\n"
+                "\tAvg yield:\n"
+                "\t\tproducer: %lu\n"
+                "\t\tconsumer: %lu\n\n",
+                qid,
                 total_producer_yield_cnts, 
                 total_consumer_yield_cnts,
                 total_producer_yield_cnts / MAX_NR_PRODUCER,
@@ -283,29 +305,22 @@ private:
     }
 
     volatile uint64_t &this_thread_tail() {
-        return thread_tails[consumer_id].value;
+        return thread_tails[0].value;
     }
 
     uint64_t nv_this_thread_tail() {
-        return ((cache_aligned_uint64 *)thread_tails)[consumer_id].value;
+        return ((cache_aligned_uint64 *)thread_tails)[0].value;
     }
 
-    void producer_yield_thread() {
-        // if (MAX_NR_PRODUCER - yield_producer_cnt.fetch_add(1) <= 5 * MAX_NR_CONSUMER) {
-        //     yield_producer_cnt.fetch_sub(1);
-        //     sched_yield();
-        // } else {
-        //     usleep(10);
-        //     yield_producer_cnt.fetch_sub(1);
-        // }
-
+    void producer_yield_thread(uint32_t cnt) {
         pthread_mutex_lock(&mtx);
 	
         if (!first) {
             first = true;
-                pthread_cond_broadcast(&cond_var);
+                pthread_cond_signal(&cond_var);
             first = false;
         } else {
+            // usleep(10 + cnt * 10);
             sched_yield();
         }
 
@@ -314,9 +329,19 @@ private:
         producer_yield_cnts[producer_id].value++;
     }
 
+    void try_wake_consumer() {
+        if (consumer_maybe_waiting) {
+            pthread_mutex_lock(&mtx);
+            pthread_cond_signal(&cond_var);
+            pthread_mutex_unlock(&mtx);
+        }
+    }
+
     void consumer_yield_thread() {
         pthread_mutex_lock(&mtx);
+        consumer_maybe_waiting = true;
         pthread_cond_wait(&cond_var, &mtx);
+        consumer_maybe_waiting = false;
         pthread_mutex_unlock(&mtx);
         consumer_yield_cnts[consumer_id].value++;
     }
@@ -325,7 +350,7 @@ private:
 
         auto min = tail->load(std::memory_order_consume);
         
-        for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+        for (int i = 0; i < PER_QUEUE_CONSUMER; i++) {
 
             auto tmp_tail = thread_tails[i].value;
 
@@ -349,8 +374,6 @@ private:
         } while(*last_tail < min);
     }
 
-    
-
     std::atomic<uint64_t> *head;
     volatile cache_aligned_uint64 *thread_heads;
     volatile uint64_t *last_tail;
@@ -360,6 +383,7 @@ private:
     volatile uint64_t *last_head;
 
     DataArray *data;
+    DataArray *pmem_data;
 
     volatile bool producers_exit;
 
@@ -372,4 +396,6 @@ private:
     pthread_mutex_t mtx;
     pthread_cond_t cond_var;
     volatile bool first;
+    volatile bool consumer_maybe_waiting;
+    uint32_t id;
 };

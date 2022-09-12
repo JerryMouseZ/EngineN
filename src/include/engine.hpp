@@ -11,26 +11,21 @@
 #include "index.hpp"
 #include "data.hpp"
 
-extern UserArray *pmem_users;
-
-void cmt_work(const UserArray *src, uint64_t ca_index) {
-  pmem_memcpy_persist(&pmem_users[ca_index], src, QCMT_ALIGN);
-}
-
-void tail_cmt_work(const UserArray *src, uint64_t ca_index, uint64_t pop_cnt) {
-  pmem_memcpy_persist(&pmem_users[ca_index], src, pop_cnt * sizeof(User));
-}
+extern thread_local UserQueue *consumer_q;
 
 class Engine
 {
 public:
-  Engine(): data(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr), consumers(nullptr) {
+  Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr), consumers(nullptr) {
+    qs = static_cast<UserQueue *>(mmap(0, MAX_NR_CONSUMER * sizeof(UserQueue), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
+    DEBUG_PRINTF(qs, "Fail to mmap consumer queues\n");
   }
-
 
   ~Engine() {
     
-    q.notify_producers_exit();
+    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+      qs[i].notify_producers_exit();
+    }
 
     for (int i = 0; i < MAX_NR_CONSUMER; i++) {
         if (consumers[i].joinable()) {
@@ -38,51 +33,56 @@ public:
         }
     }
 
-    q.tail_commit(cmt_work, tail_cmt_work);
+    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+      qs[i].tail_commit();
+    }
 
-    delete data;
+    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+      qs[i].statistics(i);
+    }
+
+    delete[] datas;
     delete id_r;
     delete uid_r;
     delete sala_r;
   }
 
-
   void open(std::string aep_path, std::string disk_path) {
     std::string data_prefix = aep_path;
     if (data_prefix[data_prefix.size() - 1] != '/')
       data_prefix.push_back('/');
-    data = new Data();
-    data->open(data_prefix + "user.data", disk_path + "cache", disk_path + "flag");
+    datas = new Data[MAX_NR_CONSUMER];
+    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+      datas[i].open(data_prefix + "user.data" + std::to_string(i), disk_path + "cache", disk_path + "flag" + std::to_string(i));
+    }
 
-    pmem_users = data->get_pmem_users();
+    id_r = new Index(disk_path + "id", datas, qs);
+    uid_r = new Index(disk_path + "uid", datas, qs);
+    sala_r = new Index(disk_path + "salary", datas, qs);
 
     bool q_is_new_create;
-    if (q.open(disk_path + "queue", &q_is_new_create)) {
-      return;
+    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+      if (qs[i].open(disk_path + "queue" + std::to_string(i), &q_is_new_create, datas[i].get_pmem_users(), i)) {
+        return;
+      }
+
+      if (!q_is_new_create && qs[i].need_rollback()) {
+        qs[i].tail_commit();
+      }
+
+      qs[i].reset_thread_states();
     }
     
-    printf("Init success\n");
-
-    id_r = new Index(disk_path + "id", data, &q);
-    uid_r = new Index(disk_path + "uid", data, &q);
-    sala_r = new Index(disk_path + "salary", data, &q);
-
-    if (!q_is_new_create && q.need_rollback()) {
-      q.tail_commit(cmt_work, tail_cmt_work);
-    }
-
-    q.reset_thread_states();
-
     consumers = new std::thread[MAX_NR_CONSUMER];
     for (int i = 0; i < MAX_NR_CONSUMER; i++) {
       consumers[i] = std::thread([this]{
         init_consumer_id();
-        while (q.pop(cmt_work))
+        consumer_q = &qs[consumer_id];
+        while (consumer_q->pop())
           ;
       });
     }
   }
-
 
   void write(const User *user) {
     if (unlikely(!have_producer_id())) {
@@ -90,12 +90,16 @@ public:
     }
 
     DEBUG_PRINTF(LOG, "write %ld %ld %ld %ld\n", user->id, std::hash<std::string>()(std::string(user->name, 128)), std::hash<std::string>()(std::string(user->user_id, 128)), user->salary);
-    size_t offset = q.push(user);
-    id_r->put(user->id, offset);
-    uid_r->put(std::hash<UserString>()(*(UserString *)(user->user_id)), offset);
-    sala_r->put(user->salary, offset);
 
-    data->put_flag(offset);
+    uint32_t qid = user->id % MAX_NR_CONSUMER;
+    uint32_t index = qs[qid].push(user);
+    size_t encoded_index = (qid << 28) | index; 
+
+    id_r->put(user->id, encoded_index);
+    uid_r->put(std::hash<UserString>()(*(UserString *)(user->user_id)), encoded_index);
+    sala_r->put(user->salary, encoded_index);
+
+    datas[qid].put_flag(index);
   }
 
   std::string column_str(int column)
@@ -148,11 +152,11 @@ public:
 
 
 private:
-  Data *data;
+  Data *datas;
   Index *id_r;
   Index *uid_r;
   // salary need multi-index
   Index *sala_r;
-  UserQueue q;
+  UserQueue *qs;
   std::thread *consumers;
 };

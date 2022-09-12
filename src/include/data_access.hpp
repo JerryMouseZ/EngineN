@@ -9,10 +9,15 @@ extern thread_local User race_data;
 
 class DataAccess {
 public:
-  DataAccess(Data *data, UserQueue *q)
-    : data(data), q(q) {}
+  DataAccess(Data *datas, UserQueue *qs)
+    : datas(datas), qs(qs) {}
 
-  const User *read(uint32_t index) {
+  const User *read(uint32_t encoded_index) {
+    uint32_t qid = encoded_index >> 28;
+    uint32_t index = encoded_index & ((1 << 28) - 1);
+    auto data = &datas[qid];
+    auto q = &qs[qid];
+
     if (!data->get_flag(index))
       return nullptr;
     index -= 1;
@@ -26,7 +31,7 @@ public:
     std::atomic_thread_fence(std::memory_order_release);
 
     if (index >= q->min_uncommitted_data_index()) {
-      printf("Read from write buffer: index = %u\n", index);
+      printf("Read from write buffer: qid = %u, index = %u\n", qid, index);
       return &race_data;
     }
     
@@ -34,6 +39,6 @@ public:
   }
 
 private:
-    Data *data;
-    UserQueue *q;
+    Data *datas;
+    UserQueue *qs;
 };
