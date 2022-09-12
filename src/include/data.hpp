@@ -47,6 +47,11 @@ using UserArray = CommitArray<User, QCMT_ALIGN>;
 using location_type = std::atomic<size_t>;
 constexpr size_t ENTRY_LEN = sizeof(User);
 
+constexpr size_t NR_USER = 52 * 1000000;
+constexpr size_t EACH_NR_USER = ROUND_DIV(NR_USER, MAX_NR_CONSUMER);
+constexpr size_t EACH_NR_USER_ARRAY = (EACH_NR_USER + UserArray::N_DATA - 1) / UserArray::N_DATA;
+constexpr size_t EACH_DATA_FILE_LEN = EACH_NR_USER_ARRAY * UserArray::DALIGN;
+
 /* static inline size_t get_index(size_t offset) { */
 /*   return (offset - START) / sizeof(User); */
 /* } */
@@ -58,16 +63,15 @@ class DataFlag{
 private:
   volatile uint8_t *ptr;
 public:
-  static const int DATA_NUM = 60 * 1000000;
   DataFlag() : ptr(nullptr) {}
   ~DataFlag() {
     if (ptr) {
-      munmap((void *)ptr, DATA_NUM);
+      munmap((void *)ptr, EACH_NR_USER);
     }
   }
 
   void Open(const std::string &filename) {
-    ptr = reinterpret_cast<volatile uint8_t *>(map_file(filename.c_str(), DATA_NUM, nullptr));
+    ptr = reinterpret_cast<volatile uint8_t *>(map_file(filename.c_str(), EACH_NR_USER, nullptr));
   }
 
   void set_flag(uint32_t index) {
@@ -86,16 +90,12 @@ public:
  * ---------------------
  * User users[DATA_NUM]
  */
-constexpr size_t NR_USER = 52 * 1000000;
-constexpr size_t NR_USER_ARRAY = (NR_USER + UserArray::N_DATA - 1) / UserArray::N_DATA;
-constexpr size_t DATA_FILE_LEN = NR_USER_ARRAY * UserArray::DALIGN;
-
 class Data
 {
 public:
   Data() {}
   ~Data() {
-    pmem_unmap(pmem_ptr, DATA_FILE_LEN);
+    pmem_unmap(pmem_ptr, EACH_DATA_FILE_LEN);
   }
 
   void open(const std::string &fdata, const std::string &fcache, const std::string &fflag) {
@@ -107,14 +107,14 @@ public:
       new_create = true;
     }
 
-    pmem_ptr = reinterpret_cast<char *>(pmem_map_file(fdata.c_str(), DATA_FILE_LEN, PMEM_FILE_CREATE, 0666, &map_len, &is_pmem));
+    pmem_ptr = reinterpret_cast<char *>(pmem_map_file(fdata.c_str(), EACH_DATA_FILE_LEN, PMEM_FILE_CREATE, 0666, &map_len, &is_pmem));
     DEBUG_PRINTF(pmem_ptr, "%s open mmaped failed", fdata.c_str());
     pmem_users = (UserArray *)pmem_ptr;
 
 
     if (new_create) {
       // 其实会自动置零的，这里相当于是一个populate
-      pmem_memset_nodrain(pmem_ptr, 0, DATA_FILE_LEN);
+      pmem_memset_nodrain(pmem_ptr, 0, EACH_DATA_FILE_LEN);
     } 
 
     flags = new DataFlag();

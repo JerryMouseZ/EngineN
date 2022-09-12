@@ -215,8 +215,8 @@ private:
 class Index
 {
 public:
-  Index(const std::string &path, Data *data, UserQueue *q)
-    : accessor(data, q) {
+  Index(const std::string &path, Data *datas, UserQueue *qs)
+    : accessor(datas, qs) {
     std::string hash_file = path + ".hash";
     std::string over_file = path + ".over";
 
@@ -296,4 +296,3 @@ private:
   OverflowIndex *overflowindex;
   DataAccess accessor;
 };
-
