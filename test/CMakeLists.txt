@@ -22,11 +22,8 @@ target_link_libraries(test_engine pmem pthread)
 # add_executable(test_engine_read test_engine_read.cpp ../src/interface.cpp)
 # target_link_libraries(test_engine_read pmem)
 
-# add_executable(test_queue test_queue.cpp ../src/thread_data.cpp)
-# target_link_libraries(test_queue pthread)
-
-# add_executable(test_multiqueue test_multiqueue.cpp ../src/thread_data.cpp)
-# target_link_libraries(test_multiqueue pthread)
+add_executable(test_multiqueue test_multiqueue.cpp ../src/thread_data.cpp)
+target_link_libraries(test_multiqueue pthread pmem)
 
 # add_executable(test_entry test/test_entry.cpp)
 # target_link_libraries(test_entry pmem pmemobj pthread OpenMP::OpenMP_CXX)
