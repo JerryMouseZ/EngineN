@@ -31,7 +31,7 @@ public:
     std::atomic_thread_fence(std::memory_order_release);
 
     if (index >= q->min_uncommitted_data_index()) {
-      printf("Read from write buffer: qid = %u, index = %u\n", qid, index);
+      DEBUG_PRINTF(QDEBUG, "Read from write buffer: qid = %u, index = %u\n", qid, index);
       return &race_data;
     }
     

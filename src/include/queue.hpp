@@ -227,7 +227,10 @@ public:
     }
 
     void pop_at(T *dst, uint64_t index) {
-        memcpy(dst, &data[index & QMASK], sizeof(T));
+        uint64_t caid = index / CMT_BATCH_CNT;
+        uint64_t in_ca_pos = index % CMT_BATCH_CNT;
+        uint64_t ca_pos = caid & QMASK;
+        memcpy(dst, &data[ca_pos].data[in_ca_pos], sizeof(T));
     }
 
     void reset_thread_states() {
