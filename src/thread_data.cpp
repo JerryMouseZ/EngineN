@@ -2,6 +2,7 @@
 #include "include/data.hpp"
 #include "include/util.hpp"
 #include "include/data_access.hpp"
+#include "include/time.hpp"
 
 std::atomic<int> nr_producer = {0};
 std::atomic<int> nr_cosumer = {0};
@@ -10,6 +11,7 @@ thread_local int consumer_id = -1;
 
 thread_local User race_data;
 thread_local UserQueue *consumer_q = nullptr;
+thread_local time_point_t time_record_start_point;
 
 bool have_producer_id() {
     return producer_id >= 0;

@@ -8,6 +8,7 @@
 #include "thread_id.hpp"
 #include "commit_array.hpp"
 #include "util.hpp"
+#include "time.hpp"
 
 // 测试性能，需要调参
 constexpr uint64_t QBITS = 14;
@@ -36,7 +37,7 @@ public:
     static constexpr uint64_t QMETA_SIZE = ROUND_UP(UNALIGNED_META_SIZE, CMT_ALIGN);
 
     LocklessQueue() 
-        : producers_exit(false) {
+        : producers_exit(false), consumer_sleep_elapse(new duration_t(0)) {
 
         pthread_mutex_init(&mtx, NULL);
         pthread_cond_init(&cond_var, NULL);
@@ -252,11 +253,17 @@ public:
                 "\t\tproducer: %lu\n"
                 "\tAvg yield:\n"
                 "\t\tproducer: %lu\n"
-                "\t\tconsumer: %lu\n\n",
+                "\t\tconsumer: %lu\n"
+                "\tConsumer sleep total elapse: %lfms\n\n",
                 qid,
                 total_producer_yield_cnts, 
                 total_producer_yield_cnts / MAX_NR_PRODUCER,
-                consumer_yield_cnt.value);
+                consumer_yield_cnt.value,
+                consumer_sleep_elapse->count() * 1000);
+    }
+
+    ~LocklessQueue() {
+        delete consumer_sleep_elapse;
     }
 
 private:
@@ -294,9 +301,15 @@ private:
 
     void consumer_yield_thread() {
         pthread_mutex_lock(&mtx);
+
+        start_time_record();
+
         consumer_maybe_waiting = true;
         pthread_cond_wait(&cond_var, &mtx);
         consumer_maybe_waiting = false;
+
+        end_time_record(consumer_sleep_elapse);
+
         pthread_mutex_unlock(&mtx);
         consumer_yield_cnt.value++;
     }
@@ -309,9 +322,10 @@ public:
     volatile uint64_t *last_head;
     DataArray *data;
     DataArray *pmem_data;
+    duration_t *consumer_sleep_elapse;    
     uint32_t id;
     volatile bool producers_exit;
-    char pad1[11];
+    char pad1[3];
     /* cacheline end */
 
     /* per-thread write data, cache-aligned */
