@@ -4,11 +4,15 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <string>
+#include <utility>
 #include <vector>
+#include <algorithm>
 #include "log.hpp"
 
 #include "index.hpp"
 #include "data.hpp"
+#include "cs.hpp"
 
 class Engine
 {
@@ -18,6 +22,7 @@ public:
 
 
   ~Engine() {
+    delete conn;
     delete log;
     delete data;
     delete id_r;
@@ -38,6 +43,40 @@ public:
     uid_r = new Index(disk_path + "uid", log);
     sala_r = new Index(disk_path + "salary", log);
   }
+  
+  using info_type = std::pair<std::string, int>;
+  // 创建listen socket，尝试和别的机器建立两条连接
+  void connect(const char *host_info, const char *const *peer_host_info, size_t peer_host_info_num) {
+    std::vector<info_type> infos;
+    const char *split_index = strstr(host_info, ":");
+    int host_ip_len = split_index - host_info;
+    std::string host_ip = std::string(host_info, host_ip_len);
+    int host_port = atoi(split_index + 1);
+    fprintf(stderr, "host info : %s %d\n", host_ip.c_str(), host_port);
+    infos.emplace_back(info_type(host_ip, host_port));
+    
+    // peer ips
+    for (int i = 0; i < peer_host_info_num; ++i) {
+      const char *split_index = strstr(peer_host_info[i], ":");
+      int ip_len = split_index - peer_host_info[i];
+      std::string ip = std::string(peer_host_info[i], ip_len);
+      int port = atoi(split_index + 1);
+      infos.emplace_back(info_type(ip, port)); 
+    }
+
+    std::sort(infos.begin(), infos.end(), [](const info_type &a, const info_type &b){ return a.first < b.first; });
+    int my_index = -1;
+    for (int i = 0; i < peer_host_info_num + 1; ++i) {
+      if (infos[i].first == host_ip) {
+        my_index = i;
+        break;
+      }
+    }
+    
+    conn = new Connector();
+    conn->connect(infos, peer_host_info_num + 1, my_index);
+    exit(-1);
+  }
 
 
   void write(const User *user) {
@@ -49,27 +88,6 @@ public:
     sala_r->put(user->salary, offset);
 
     data->put_flag(offset);
-  }
-
-  std::string column_str(int column)
-  {
-    switch(column) {
-    case Id:
-      return "ID";
-      break;
-    case Userid:
-      return "UID";
-      break;
-    case Name:
-      return "Name";
-      break;
-    case Salary:
-      return "Salary";
-      break;
-    default:
-      DEBUG_PRINTF(LOG, "column error");
-    }
-    return "";
   }
 
   size_t read(int32_t select_column,
@@ -99,6 +117,29 @@ public:
     return result;
   }
 
+private:
+  static std::string column_str(int column)
+  {
+    switch(column) {
+    case Id:
+      return "ID";
+      break;
+    case Userid:
+      return "UID";
+      break;
+    case Name:
+      return "Name";
+      break;
+    case Salary:
+      return "Salary";
+      break;
+    default:
+      DEBUG_PRINTF(LOG, "column error");
+    }
+    return "";
+  }
+
+
 
 private:
   Data *data;
@@ -107,4 +148,5 @@ private:
   // salary need multi-index
   Index *sala_r;
   CircularFifo *log;
+  Connector *conn;
 };
