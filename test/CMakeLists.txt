@@ -3,7 +3,7 @@ project("interface")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(OpenMP)
-add_compile_options(-g -O3)
+add_compile_options(-g -O3 -Wno-address-of-packed-member)
 
 include_directories(../src)
 

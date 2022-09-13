@@ -27,7 +27,7 @@
 #define QINFO 1
 #define QDEBUG 1
 
-// #define TIME_RECORD
+#define TIME_RECORD
 
 #define START 64
 
