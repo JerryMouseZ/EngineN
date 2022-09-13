@@ -13,6 +13,7 @@ add_subdirectory(liburing)
 add_library(interface
 SHARED
         src/interface.cpp
+        src/commicator.cpp
 )
 
 target_link_libraries(interface uring)
