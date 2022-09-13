@@ -3,9 +3,10 @@ project("interface")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(OpenMP)
-add_compile_options(-O3)
+# add_compile_options(-O3)
 
 include_directories(../src)
+include_directories(../liburing/src/include)
 
 add_executable(test_multi ./test_multi.cpp ../src/interface.cpp)
 target_link_libraries(test_multi pmem pthread)
@@ -15,6 +16,9 @@ target_link_libraries(test_engine pmem pthread)
 
 add_executable(init init.cpp ../src/interface.cpp)
 target_link_libraries(init pmem pthread)
+
+add_executable(test_connect test_connect.cpp ../src/interface.cpp)
+target_link_libraries(test_connect pmem pthread)
 
 add_executable(test_data test_data.cpp)
 target_link_libraries(test_data pmem pthread)
