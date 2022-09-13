@@ -25,6 +25,12 @@ target_link_libraries(test_engine pmem pthread)
 add_executable(test_multiqueue test_multiqueue.cpp ../src/thread_data.cpp)
 target_link_libraries(test_multiqueue pthread pmem)
 
+add_executable(test_kill test_kill.cpp ../src/interface.cpp ../src/thread_data.cpp)
+target_link_libraries(test_kill pmem pthread)
+
+add_executable(test_read_write_interleave test_read_write_interleave.cpp ../src/interface.cpp ../src/thread_data.cpp)
+target_link_libraries(test_read_write_interleave pmem pthread)
+
 # add_executable(test_entry test/test_entry.cpp)
 # target_link_libraries(test_entry pmem pmemobj pthread OpenMP::OpenMP_CXX)
 
