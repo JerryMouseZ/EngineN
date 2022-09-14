@@ -8,40 +8,89 @@
 #include <utility>
 #include <vector>
 #include <algorithm>
-#include "log.hpp"
+#include <thread>
+#include "queue.hpp"
 
 #include "index.hpp"
 #include "data.hpp"
 #include "cs.hpp"
 
+extern thread_local UserQueue *consumer_q;
+
 class Engine
 {
 public:
-  Engine(): data(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr) {
+  Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr), consumers(nullptr) {
+    qs = static_cast<UserQueue *>(mmap(0, MAX_NR_CONSUMER * sizeof(UserQueue), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
+    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+      new (&qs[i])UserQueue;
+    }
+    DEBUG_PRINTF(qs, "Fail to mmap consumer queues\n");
   }
 
-
   ~Engine() {
+    
+    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+      qs[i].notify_producers_exit();
+    }
+
+    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+        if (consumers[i].joinable()) {
+            consumers[i].join();
+        }
+    }
+
+    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+      qs[i].tail_commit();
+    }
+
+    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+      qs[i].statistics(i);
+      qs[i].~LocklessQueue();
+    }
+
     delete conn;
-    delete log;
-    delete data;
+    delete[] datas;
     delete id_r;
     delete uid_r;
     delete sala_r;
   }
 
-
   void open(std::string aep_path, std::string disk_path) {
     std::string data_prefix = aep_path;
     if (data_prefix[data_prefix.size() - 1] != '/')
       data_prefix.push_back('/');
-    data = new Data();
-    data->open(data_prefix + "user.data", disk_path + "cache", disk_path + "flag");
-    log = new CircularFifo(disk_path + "log", data);
+    datas = new Data[MAX_NR_CONSUMER];
+    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+      datas[i].open(data_prefix + "user.data" + std::to_string(i), disk_path + "cache", disk_path + "flag" + std::to_string(i));
+    }
 
-    id_r = new Index(disk_path + "id", log);
-    uid_r = new Index(disk_path + "uid", log);
-    sala_r = new Index(disk_path + "salary", log);
+    id_r = new Index(disk_path + "id", datas, qs);
+    uid_r = new Index(disk_path + "uid", datas, qs);
+    sala_r = new Index(disk_path + "salary", datas, qs);
+
+    bool q_is_new_create;
+    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+      if (qs[i].open(disk_path + "queue" + std::to_string(i), &q_is_new_create, datas[i].get_pmem_users(), i)) {
+        return;
+      }
+
+      if (!q_is_new_create && qs[i].need_rollback()) {
+        qs[i].tail_commit();
+      }
+
+      qs[i].reset_thread_states();
+    }
+    
+    consumers = new std::thread[MAX_NR_CONSUMER];
+    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+      consumers[i] = std::thread([this]{
+        init_consumer_id();
+        consumer_q = &qs[consumer_id];
+        while (consumer_q->pop())
+          ;
+      });
+    }
   }
   
   using info_type = std::pair<std::string, int>;
@@ -78,16 +127,22 @@ public:
     exit(-1);
   }
 
-
   void write(const User *user) {
-    DEBUG_PRINTF(LOG, "write %ld %ld %ld %ld\n", user->id, std::hash<std::string>()(std::string(user->name, 128)), std::hash<std::string>()(std::string(user->user_id, 128)), user->salary);
-    size_t offset = log->push(*user);
-    /* uint64_t offset = data->data_write(*user); */
-    id_r->put(user->id, offset);
-    uid_r->put(std::hash<UserString>()(*(UserString *)(user->user_id)), offset);
-    sala_r->put(user->salary, offset);
+    if (unlikely(!have_producer_id())) {
+      init_producer_id();
+    }
 
-    data->put_flag(offset);
+    DEBUG_PRINTF(LOG, "write %ld %ld %ld %ld\n", user->id, std::hash<std::string>()(std::string(user->name, 128)), std::hash<std::string>()(std::string(user->user_id, 128)), user->salary);
+
+    uint32_t qid = user->id % MAX_NR_CONSUMER;
+    uint32_t index = qs[qid].push(user);
+    size_t encoded_index = (qid << 28) | index; 
+
+    id_r->put(user->id, encoded_index);
+    uid_r->put(std::hash<UserString>()(*(UserString *)(user->user_id)), encoded_index);
+    sala_r->put(user->salary, encoded_index);
+
+    datas[qid].put_flag(index);
   }
 
   size_t read(int32_t select_column,
@@ -142,11 +197,12 @@ private:
 
 
 private:
-  Data *data;
+  Data *datas;
   Index *id_r;
   Index *uid_r;
   // salary need multi-index
   Index *sala_r;
-  CircularFifo *log;
   Connector *conn;
+  UserQueue *qs;
+  std::thread *consumers;
 };

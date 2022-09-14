@@ -14,6 +14,7 @@ add_library(interface
 SHARED
         src/interface.cpp
         src/comm.cpp
+        src/thread_data.cpp
 )
 
 target_link_libraries(interface uring)

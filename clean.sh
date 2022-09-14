@@ -1,3 +1,3 @@
 #!/bin/bash
-rm -f /mnt/aep/*
-rm -f /mnt/disk/*
+rm -f /mnt/aep/node*/*
+rm -f /mnt/disk/node*/*
