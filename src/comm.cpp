@@ -1,8 +1,12 @@
 #include "include/comm.h"
 #include "liburing.h"
 #include <cstring>
+#include <ctime>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <string>
+#include <unistd.h>
+#include <vector>
 
 void fatal_error(const char *syscall) {
   perror(syscall);
@@ -53,7 +57,7 @@ int add_accept_request(io_uring &ring, int server_socket, struct sockaddr_in *cl
 }
 
 
-int add_connect_request(io_uring &ring, const char *ip, int port) {
+int Connect(const char *ip, int port) {
   int sock = socket(PF_INET, SOCK_STREAM, 0);
   if (sock == -1) {
     fatal_error("socket() error");
@@ -67,9 +71,10 @@ int add_connect_request(io_uring &ring, const char *ip, int port) {
     fatal_error("invalid ip");
   }
 
-  struct io_uring_sqe *sqe = io_uring_get_sqe(&ring);
-  io_uring_prep_connect(sqe, sock, (sockaddr *) &server_addr, sizeof(server_addr));
-  io_uring_submit(&ring);
+  int ret = connect(sock, (sockaddr *) &server_addr, sizeof(server_addr));
+  while (ret != 0) {
+    ret = connect(sock, (sockaddr *) &server_addr, sizeof(server_addr));
+  }
   return sock;
 }
 
@@ -87,4 +92,24 @@ int add_write_request(io_uring &ring, int client_socket, char *buffer, size_t le
   io_uring_prep_send(sqe, client_socket, buffer, len, 0);
   io_uring_submit(&ring);
   return 0;
+}
+
+using info_type = std::pair<std::string, int>;
+void listener(int listen_fd, int recv_fds[], std::vector<info_type> *infos) {
+  sockaddr_in client_addr;
+  socklen_t client_addr_len;
+  int num = 0;
+  while (num < 3) {
+    int client_fd = accept(listen_fd, (sockaddr *)&client_addr, &client_addr_len);
+    if (client_fd < 0)
+      continue;
+    for (int j = 0; j < 4; ++j) {
+      sockaddr_in addr;
+      inet_pton(AF_INET, (*infos)[j].first.c_str(), &addr.sin_addr);
+      if (memcmp(&addr, &client_addr, sizeof(sockaddr_in)) == 0) {
+        recv_fds[j] = client_fd;
+      }
+    }
+    num++;
+  }
 }

@@ -17,7 +17,7 @@ int setup_listening_socket(const char *ip, int port);
 
 int add_accept_request(io_uring &ring, int server_socket, struct sockaddr_in *client_addr, socklen_t *client_addr_len);
 
-int add_connect_request(io_uring &ring, const char *ip, int port);
+int Connect(const char *ip, int port);
 
 int add_write_request(io_uring &ring, int client_socket, char *buffer, size_t len);
 
