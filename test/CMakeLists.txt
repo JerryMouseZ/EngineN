@@ -3,27 +3,36 @@ project("interface")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(OpenMP)
-add_compile_options(-O3)
+add_compile_options(-g -O3 -Wno-address-of-packed-member)
 
 include_directories(../src)
 
-add_executable(test_multi ./test_multi.cpp ../src/interface.cpp)
-target_link_libraries(test_multi pmem pthread)
+# add_executable(test_multi ./test_multi.cpp ../src/interface.cpp)
+# target_link_libraries(test_multi pmem pthread)
 
-add_executable(test_engine test_engine.cpp ../src/interface.cpp)
+add_executable(test_engine test_engine.cpp ../src/interface.cpp ../src/thread_data.cpp)
 target_link_libraries(test_engine pmem pthread)
 
-add_executable(init init.cpp ../src/interface.cpp)
+add_executable(init init.cpp ../src/interface.cpp ../src/thread_data.cpp)
 target_link_libraries(init pmem pthread)
 
-add_executable(test_data test_data.cpp)
-target_link_libraries(test_data pmem pthread)
+# add_executable(test_data test_data.cpp)
+# target_link_libraries(test_data pmem pthread)
 
-add_executable(test_log test_log.cpp)
-target_link_libraries(test_log pmem pthread)
+# add_executable(test_log test_log.cpp)
+# target_link_libraries(test_log pmem pthread)
 
-add_executable(test_engine_read test_engine_read.cpp ../src/interface.cpp)
-target_link_libraries(test_engine_read pmem)
+# add_executable(test_engine_read test_engine_read.cpp ../src/interface.cpp)
+# target_link_libraries(test_engine_read pmem)
+
+add_executable(test_multiqueue test_multiqueue.cpp ../src/thread_data.cpp)
+target_link_libraries(test_multiqueue pthread pmem)
+
+add_executable(test_kill test_kill.cpp ../src/interface.cpp ../src/thread_data.cpp)
+target_link_libraries(test_kill pmem pthread)
+
+add_executable(test_read_write_interleave test_read_write_interleave.cpp ../src/interface.cpp ../src/thread_data.cpp)
+target_link_libraries(test_read_write_interleave pmem pthread)
 
 # add_executable(test_entry test/test_entry.cpp)
 # target_link_libraries(test_entry pmem pmemobj pthread OpenMP::OpenMP_CXX)

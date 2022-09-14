@@ -25,12 +25,20 @@ public:
     *_head = _tail->load(std::memory_order_acquire);
   }
 
+<<<<<<< HEAD
   CircularFifo(const std::string &filename, Data *data) : _tail(0), _head(0), done_count(0){
     char *map_ptr = reinterpret_cast<char *>(map_file(filename.c_str(), Capacity * sizeof(User) + 64 + Capacity));
     _head = reinterpret_cast<std::atomic<uint_fast32_t> *>(map_ptr);
     _tail = reinterpret_cast<std::atomic<uint_fast32_t> *>(map_ptr + 8);
     is_readable = reinterpret_cast<volatile uint8_t *>(map_ptr + 64);
     _array = reinterpret_cast<User *>(map_ptr + 64 + Capacity);
+=======
+  CircularFifo(const std::string &filename, Data *data) : _tail(0), _head(0), pop_count(0){
+    char *map_ptr = reinterpret_cast<char *>(map_file(filename.c_str(), Capacity * sizeof(User) + 64, nullptr));
+    _head = reinterpret_cast<std::atomic<size_t> *>(map_ptr);
+    _tail = reinterpret_cast<std::atomic<size_t> *>(map_ptr + 8);
+    _array = reinterpret_cast<User *>(map_ptr + 64);
+>>>>>>> log-dev
     this->data = data;
     this->pmem_users = data->get_pmem_users();
     tail_commit(); // 把上一次退出没提交完的提交完
