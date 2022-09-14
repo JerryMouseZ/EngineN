@@ -68,7 +68,7 @@ public:
       for (int j = 0; j < 4; ++j) {
         if (j == host_index)
           continue;
-        inet_pton(AF_INET, infos[j].first.c_str(), &addr);
+        inet_pton(AF_INET, infos[j].first.c_str(), &addr.sin_addr);
         if (memcmp(&addr, &client_addrs[i], sizeof(sockaddr_in)) == 0) {
           recv_fds[j] = client_fds[i];
         }
