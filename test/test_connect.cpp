@@ -1,14 +1,34 @@
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include "../inc/interface.h"
 
-int main()
-{
-  char *peer_info[] {
+char *infos[] {
     "192.168.1.39:9000",
     "192.168.1.38:9000",
-    "192.168.1.40:9000"
-  };
-  void *context = engine_init("192.168.1.41:9000", peer_info, 3, "/mnt/aep/", "/mnt/disk/");
+    "192.168.1.40:9000",
+    "192.168.1.41:9000"
+};
+
+int main(int argc, char **argv)
+{
+  if (argc != 2) {
+    fprintf(stderr, "usage %s num_node\n", argv[0]);
+    exit(1);
+  }
+
+  int index = atoi(argv[1]);
+  char *peer_info[3] = {nullptr};
+  int base = 0;
+  for (int i = 0; i < 4; ++i) {
+    if (i != index) {
+      peer_info[base++] = infos[i];
+    }
+  }
+  char aep_path[16], disk_path[16];
+  sprintf(aep_path, "/mnt/aep/node%d", index);
+  sprintf(disk_path, "/mnt/disk/node%d", index);
+  void *context = engine_init(infos[index], peer_info, 3, aep_path, disk_path);
   engine_deinit(context);
 }
 
