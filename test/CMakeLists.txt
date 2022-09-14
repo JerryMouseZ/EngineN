@@ -5,30 +5,53 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(OpenMP)
 # add_compile_options(-O3)
 add_subdirectory(liburing)
+add_compile_options(-g -O3 -Wno-address-of-packed-member)
 
 include_directories(../src)
 include_directories(../liburing/src/include)
 
-add_executable(test_multi ./test_multi.cpp ../src/interface.cpp ../src/comm.cpp)
-target_link_libraries(test_multi pmem pthread uring)
+# add_executable(test_multi ./test_multi.cpp ../src/interface.cpp ../src/comm.cpp)
+# target_link_libraries(test_multi pmem pthread uring)
 
-add_executable(test_engine test_engine.cpp ../src/interface.cpp ../src/comm.cpp)
+add_executable(test_engine test_engine.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp)
 target_link_libraries(test_engine pmem pthread uring)
 
-add_executable(init init.cpp ../src/interface.cpp ../src/comm.cpp)
+add_executable(init init.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp)
 target_link_libraries(init pmem pthread uring)
 
-add_executable(test_connect test_connect.cpp ../src/interface.cpp ../src/comm.cpp)
+add_executable(test_connect test_connect.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp)
 target_link_libraries(test_connect pmem pthread uring)
 
-add_executable(test_data test_data.cpp ../src/comm.cpp)
-target_link_libraries(test_data pmem pthread uring)
+# add_executable(test_data test_data.cpp ../src/comm.cpp)
+# target_link_libraries(test_data pmem pthread uring)
 
-add_executable(test_log test_log.cpp ../src/comm.cpp)
-target_link_libraries(test_log pmem pthread uring)
+# add_executable(test_log test_log.cpp ../src/comm.cpp)
+# target_link_libraries(test_log pmem pthread uring)
 
-add_executable(test_engine_read test_engine_read.cpp ../src/interface.cpp ../src/comm.cpp)
-target_link_libraries(test_engine_read pmem uring)
+# add_executable(test_engine_read test_engine_read.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp)
+# target_link_libraries(test_engine_read pmem uring)
+
+# add_executable(test_multi ./test_multi.cpp ../src/interface.cpp)
+# target_link_libraries(test_multi pmem pthread)
+
+
+# add_executable(test_data test_data.cpp)
+# target_link_libraries(test_data pmem pthread)
+
+# add_executable(test_log test_log.cpp)
+# target_link_libraries(test_log pmem pthread)
+
+# add_executable(test_engine_read test_engine_read.cpp ../src/interface.cpp)
+# target_link_libraries(test_engine_read pmem)
+
+# add_executable(test_multiqueue test_multiqueue.cpp ../src/thread_data.cpp)
+# target_link_libraries(test_multiqueue pthread pmem)
+
+# add_executable(test_kill test_kill.cpp ../src/interface.cpp ../src/thread_data.cpp)
+# target_link_libraries(test_kill pmem pthread)
+
+# add_executable(test_read_write_interleave test_read_write_interleave.cpp ../src/interface.cpp ../src/thread_data.cpp)
+# target_link_libraries(test_read_write_interleave pmem pthread)
 
 # add_executable(test_entry test/test_entry.cpp)
 # target_link_libraries(test_entry pmem pmemobj pthread OpenMP::OpenMP_CXX)

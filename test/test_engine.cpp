@@ -25,11 +25,7 @@ enum Column{Id=0, Userid, Name, Salary};
 void test_engine_write(size_t num)
 {
   auto rng = std::default_random_engine {};
-  std::vector<long> iters(num);
-  for (int i = 0; i < num; ++i)
-    iters[i] = i;
   /* std::shuffle(iters.begin(), iters.end(), rng); */
-
 
   void *context = engine_init(nullptr, nullptr, 0, "/mnt/aep/", "/mnt/disk/");
   assert(num % 50 == 0);
@@ -41,12 +37,12 @@ void test_engine_write(size_t num)
       for (long i = data_begin; i < data_end; ++i) {
         TestUser user;
         memset(&user, 0, sizeof(TestUser));
-        user.id = iters[i];
+        user.id = i;
         memset(user.name, 0, 128);
         memset(user.user_id, 0, 128);
-        strcpy(user.name, std::to_string(iters[i]).c_str());
-        strcpy(user.user_id, std::to_string(iters[i]).c_str());
-        user.salary = iters[i] / 4;
+        strcpy(user.name, std::to_string(i).c_str());
+        strcpy(user.user_id, std::to_string(i).c_str());
+        user.salary = i / 4;
         engine_write(context, &user, sizeof(user));
       }
     });
@@ -59,13 +55,17 @@ void test_engine_write(size_t num)
   engine_deinit(context);
 }
 
+void print_user(const TestUser &user) {
+  printf("User:\n");
+  printf("  Id: %lu\n", user.id);
+  printf("  Uid: %s\n", user.user_id);
+  printf("  Name: %s\n", user.name);
+  printf("  Salary: %lu\n", user.salary);
+}
 
 void test_engine_read(size_t num)
 {
   auto rng = std::default_random_engine {};
-  std::vector<long> iters(num);
-  for (int i = 0; i < num; ++i)
-    iters[i] = i;
   /* std::shuffle(iters.begin(), iters.end(), rng); */
 
 
@@ -77,34 +77,40 @@ void test_engine_read(size_t num)
     threads[tid] = new std::thread([=]{
       for (long i = tid * per_thread; i < (tid + 1) * per_thread; ++i) {
         TestUser user;
-        memset(&user, 0, sizeof(user));
-        int ret = engine_read(context, Userid, Id, &iters[i], sizeof(user.id), (void *)user.user_id);
-        if (ret == 0)
-          fprintf(stderr, "Line %d  %ld\n", __LINE__, iters[i]);
-        assert(ret);
-        if(std::to_string(iters[i]) != user.user_id)
-          fprintf(stderr, "Line %d  %ld\n", __LINE__, iters[i]);
-        assert(std::to_string(iters[i]) == user.user_id);
 
+        // Select Uid from ... where Id
+        memset(&user, 0, sizeof(user));
+        int ret = engine_read(context, Userid, Id, &i, sizeof(user.id), (void *)user.user_id);
+        if (ret == 0)
+          fprintf(stderr, "Line %d  %ld\n", __LINE__, i);
+        assert(ret);
+        if(std::to_string(i) != user.user_id) {
+          fprintf(stderr, "Line %d  %ld\n", __LINE__, i);
+          print_user(user);
+        }
+        assert(std::to_string(i) == user.user_id);
+
+        // Select Id from ... where Uid
         memset(&user, 0, sizeof(user));
         char uid_buffer[128] = {0};
-        std::string i2string = std::to_string(iters[i]);
+        std::string i2string = std::to_string(i);
         strncpy(uid_buffer, i2string.c_str(), i2string.size());
         ret = engine_read(context, Id, Userid, uid_buffer, 128, &user.id);
         if (ret == 0)
-          fprintf(stderr, "Line %d  %ld\n", __LINE__, iters[i]);
+          fprintf(stderr, "Line %d  %ld\n", __LINE__, i);
         assert(ret);
-        if(iters[i] != user.id) {
-          fprintf(stderr, "Line %d  %ld\n", __LINE__, iters[i]);
+        if(i != user.id) {
+          fprintf(stderr, "Line %d  %ld\n", __LINE__, i);
         }
-        assert(iters[i] == user.id);
+        assert(i == user.id);
 
+        // Select Id from ... where Salary
         memset(&user, 0, sizeof(user));
-        long salary = iters[i] / 4;
+        long salary = i / 4;
         int64_t ids[4];
         ret = engine_read(context, Id, Salary, &salary, sizeof(salary), ids);
         if (ret != 4) {
-          fprintf(stderr, "Line %d %ld %d\n", __LINE__, iters[i], ret);
+          fprintf(stderr, "Line %d %ld %d\n", __LINE__, i, ret);
         }
         assert(ret == 4);
       }

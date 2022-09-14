@@ -8,29 +8,13 @@
 #include <libpmem.h>
 #include <unistd.h>
 #include <assert.h>
-#include <sys/mman.h>
-#include <fcntl.h>
 #include <thread>
 
+#include "util.hpp"
+#include "config.hpp"
+#include "commit_array.hpp"
+
 enum UserColumn{Id=0, Userid, Name, Salary};
-
-#define DEBUG
-#ifdef DEBUG
-#define DEBUG_PRINTF(condition, ...) \
-  do { \
-    if(!(condition)) \
-    { \
-      fprintf(stderr,__VA_ARGS__); \
-    } \
-  } while(0)
-#else
-#define DEBUG_PRINTF(...) (void)0
-#endif
-
-// close log
-#define LOG 1
-
-#define START 64
 
 class UserString {
 public:
@@ -51,7 +35,6 @@ struct std::hash<UserString>
   }
 };
 
-
 struct User{
   int64_t id = 0;
   char user_id[128] = {};
@@ -60,59 +43,14 @@ struct User{
 };
 
 
+using UserArray = CommitArray<User, QCMT_ALIGN>;
 using location_type = std::atomic<size_t>;
-const size_t ENTRY_LEN = sizeof(User);
+constexpr size_t ENTRY_LEN = sizeof(User);
 
-static inline void prefault(char *ptr, size_t len)
-{
-  volatile long *reader = new long;
-  std::thread *threads[8];
-  size_t per_thread = len / 8;
-  for (int i = 0; i < 8; ++i) {
-    threads[i] = new std::thread([=]{
-      for (size_t j = i * per_thread; j < (i + 1) * per_thread  && j < len; j += 4096) {
-        __sync_fetch_and_add(reader, ptr[j]);
-        __builtin_prefetch(ptr + 4096 * 2, 1, 0);
-      }
-    });
-  }
-
-  for (int i = 0; i < 8; ++i) {
-    threads[i]->join();
-    delete threads[i];
-  }
-  delete reader;
-}
-
-static inline void *map_file(const char *path, size_t len)
-{
-  bool hash_create = false;
-  if (access(path, F_OK)) {
-    hash_create = true;
-  }
-
-  int fd = open(path, O_CREAT | O_RDWR, 0777);
-  DEBUG_PRINTF(fd, "%s open error", path);
-  if (hash_create) {
-    int ret = posix_fallocate(fd, 0, len);
-    DEBUG_PRINTF(ret >= 0, "%s ftruncate\n", path);
-  }
-
-  char *ptr = reinterpret_cast<char*>(mmap(0, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
-  DEBUG_PRINTF(ptr, "%s mmaped error\n", path);
-
-  if (hash_create) {
-    // 其实会自动置零，这里相当于一个prefault
-    memset(ptr, 0, len);
-  } else {
-    // prefault
-    prefault(ptr, len);
-  }
-
-  /* madvise(ptr, len, MADV_HUGEPAGE); */
-  close(fd);
-  return ptr;
-}
+constexpr size_t NR_USER = 52 * 1000000;
+constexpr size_t EACH_NR_USER = ROUND_DIV(NR_USER, MAX_NR_CONSUMER);
+constexpr size_t EACH_NR_USER_ARRAY = (EACH_NR_USER + UserArray::N_DATA - 1) / UserArray::N_DATA;
+constexpr size_t EACH_DATA_FILE_LEN = EACH_NR_USER_ARRAY * UserArray::DALIGN;
 
 /* static inline size_t get_index(size_t offset) { */
 /*   return (offset - START) / sizeof(User); */
@@ -125,16 +63,15 @@ class DataFlag{
 private:
   volatile uint8_t *ptr;
 public:
-  static const int DATA_NUM = 60 * 1000000;
   DataFlag() : ptr(nullptr) {}
   ~DataFlag() {
     if (ptr) {
-      munmap((void *)ptr, DATA_NUM);
+      munmap((void *)ptr, EACH_NR_USER);
     }
   }
 
   void Open(const std::string &filename) {
-    ptr = reinterpret_cast<volatile uint8_t *>(map_file(filename.c_str(), DATA_NUM));
+    ptr = reinterpret_cast<volatile uint8_t *>(map_file(filename.c_str(), EACH_NR_USER, nullptr));
   }
 
   void set_flag(uint32_t index) {
@@ -153,14 +90,12 @@ public:
  * ---------------------
  * User users[DATA_NUM]
  */
-const size_t DATA_LEN = ENTRY_LEN * 52 * 1000000;
-const size_t CACHE_LEN = START;
 class Data
 {
 public:
   Data() {}
   ~Data() {
-    pmem_unmap(pmem_ptr, DATA_LEN);
+    pmem_unmap(pmem_ptr, EACH_DATA_FILE_LEN);
   }
 
   void open(const std::string &fdata, const std::string &fcache, const std::string &fflag) {
@@ -172,21 +107,16 @@ public:
       new_create = true;
     }
 
-    pmem_ptr = reinterpret_cast<char *>(pmem_map_file(fdata.c_str(), DATA_LEN, PMEM_FILE_CREATE, 0666, &map_len, &is_pmem));
+    pmem_ptr = reinterpret_cast<char *>(pmem_map_file(fdata.c_str(), EACH_DATA_FILE_LEN, PMEM_FILE_CREATE, 0666, &map_len, &is_pmem));
     DEBUG_PRINTF(pmem_ptr, "%s open mmaped failed", fdata.c_str());
-    pmem_users = (User *)pmem_ptr;
+    pmem_users = (UserArray *)pmem_ptr;
 
 
     if (new_create) {
       // 其实会自动置零的，这里相当于是一个populate
-      pmem_memset_nodrain(pmem_ptr, 0, DATA_LEN);
-      char *cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN));
-      next_location = reinterpret_cast<std::atomic<size_t> *>(cache_ptr);
-      *next_location = 1;
+      pmem_memset_nodrain(pmem_ptr, 0, EACH_DATA_FILE_LEN);
     } else {
-      char *cache_ptr = reinterpret_cast<char *>(map_file(fcache.c_str(), CACHE_LEN));
-      next_location = reinterpret_cast<std::atomic<size_t> *>(cache_ptr);
-      prefault(pmem_ptr, DATA_LEN);
+      prefault(pmem_ptr, EACH_DATA_FILE_LEN);
     }
 
     flags = new DataFlag();
@@ -196,29 +126,10 @@ public:
   // data read and data write
   const User *data_read(uint32_t index) {
     // 让log来检查，这里就不重复检查了
-    User *user;
-    index -= 1;
-    return pmem_users + index;
+    uint64_t ca_pos = index / UserArray::N_DATA;
+    uint64_t inner_ca_pos = index % UserArray::N_DATA;
+    return &pmem_users[ca_pos].data[inner_ca_pos];
   }
-
-  uint32_t data_write(const User &user) {
-    // maybe cache here
-    uint32_t write_index = next_location->fetch_add(1);
-    if (write_index >= 56000000) {
-      // file size overflow
-      fprintf(stderr, "data file overflow!\n");
-      assert(0);
-    }
-
-    // prefetch write
-    // 可以留到flag一起drain
-    uint32_t index = write_index - 1;
-    pmem_memcpy_persist(pmem_users + index, &user, sizeof(User));
-    if ((index + 1) % 15 == 0)
-      __builtin_prefetch(pmem_users + index + 15, 1, 0);
-    return write_index;
-  }
-
 
   void put_flag(uint32_t index) {
     flags->set_flag(index);
@@ -228,12 +139,12 @@ public:
     return flags->get_flag(index);
   }
 
-  User *get_pmem_users() {
+  UserArray *get_pmem_users() {
     return pmem_users;
   }
+
 private:
   char *pmem_ptr = nullptr;
-  User *pmem_users = nullptr;
-  std::atomic<size_t> *next_location = nullptr;
+  UserArray *pmem_users = nullptr;
   DataFlag *flags;
 };
