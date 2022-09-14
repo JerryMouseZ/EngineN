@@ -8,8 +8,12 @@
 #include <unistd.h>
 #include <vector>
 #include <string>
+#include <thread>
 #include "comm.h"
 #include "liburing/io_uring.h"
+
+using info_type = std::pair<std::string, int>;
+void listener(int listen_fd, int *recv_fds, std::vector<info_type> *infos);
 
 class Connector {
 public:
@@ -20,7 +24,6 @@ public:
   }
 
 
-  using info_type = std::pair<std::string, int>;
   void connect(std::vector<info_type> &infos, int num, int host_index) {
     this->host_index = host_index;
     io_uring_queue_init(QUEUE_DEPTH, &send_ring, 0);
@@ -29,67 +32,20 @@ public:
     sockaddr_in client_addrs[3];
     socklen_t client_addr_lens[3];
     // 添加3个accept请求
-    for (int i = 0; i < 3; ++i) {
-      add_accept_request(recv_ring, listen_fd, &client_addrs[i], &client_addr_lens[i]);
-    }
-    // 等待其它节点也开始listen
-    sleep(1);
-    
+    std::thread listen_thread(listener, listen_fd, recv_fds, &infos);
     // 向其它节点发送连接请求
     for (int i = 0; i < 4; ++i) {
       if (i != host_index) {
-        send_fds[i] = add_connect_request(send_ring, infos[i].first.c_str(), infos[i].second);
-      }
-    }
-    
-    int client_fds[3];
-    // 处理其它节点的连接请求
-    for (int i = 0; i < 4; ++i) {
-      if (i == host_index)
-        continue;
-      io_uring_cqe *cqe;
-      int ret = io_uring_wait_cqe(&recv_ring, &cqe);
-      if (ret < 0) {
-        fprintf(stderr, "io_uring_wait_cqe error\n");
-        exit(1);
-      }
-
-      // client fd会在cqe的res中
-      client_fds[i] = cqe->res;
-      if (client_fds[i] < 0) {
-        fprintf(stderr, "accept failed\n");
-      }
-      io_uring_cqe_seen(&recv_ring, cqe);
-    }
-    
-    // 给接受的连接请求排序，保证fd在它的相应序号上
-    sockaddr_in addr;
-    for (int i = 0; i < 3; ++i) {
-      for (int j = 0; j < 4; ++j) {
-        if (j == host_index)
-          continue;
-        inet_pton(AF_INET, infos[j].first.c_str(), &addr.sin_addr);
-        if (memcmp(&addr, &client_addrs[i], sizeof(sockaddr_in)) == 0) {
-          recv_fds[j] = client_fds[i];
+        send_fds[i] = Connect(infos[i].first.c_str(), infos[i].second);
+        while (send_fds[i] < 0) {
+          fprintf(stderr, "connect to %s failed\n", infos[i].first.c_str());
+          send_fds[i] = Connect(infos[i].first.c_str(), infos[i].second);
         }
+        fprintf(stderr, "connect to %s success\n", infos[i].first.c_str());
       }
-    }
-    
-    for (int i = 0; i < 4; ++i) {
-      if (i == host_index)
-        continue;
-      io_uring_cqe *cqe;
-      int ret = io_uring_wait_cqe(&send_ring, &cqe);
-      if (ret < 0) {
-        fprintf(stderr, "io_uring_wait_cqe error\n");
-        exit(1);
-      }
-      if (cqe->res < 0) {
-        fprintf(stderr, "connect to %s failed\n", infos[i].first.c_str());
-      }
-      io_uring_cqe_seen(&recv_ring, cqe);
     }
 
+    listen_thread.join();
     fprintf(stderr, "connection done\n");
   }
 
