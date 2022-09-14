@@ -95,14 +95,16 @@ int add_write_request(io_uring &ring, int client_socket, char *buffer, size_t le
 }
 
 using info_type = std::pair<std::string, int>;
-void listener(int listen_fd, int recv_fds[], std::vector<info_type> *infos) {
+void listener(int listen_fd, int recv_fds[], std::vector<info_type> *infos, volatile bool *flag, int *data_recv_fd) {
   sockaddr_in client_addr;
   socklen_t client_addr_len;
   int num = 0;
   while (num < 3) {
     int client_fd = accept(listen_fd, (sockaddr *)&client_addr, &client_addr_len);
-    if (client_fd < 0)
+    if (client_fd < 0) {
+      usleep(50);
       continue;
+    }
     for (int j = 0; j < 4; ++j) {
       sockaddr_in addr;
       inet_pton(AF_INET, (*infos)[j].first.c_str(), &addr.sin_addr);
@@ -111,5 +113,18 @@ void listener(int listen_fd, int recv_fds[], std::vector<info_type> *infos) {
       }
     }
     num++;
+  }
+  
+  while (*flag == false) {
+    usleep(50);
+  }
+
+  while (1) {
+    *data_recv_fd = accept(listen_fd, (sockaddr *)&client_addr, &client_addr_len);
+    if (*data_recv_fd < 0) {
+      usleep(50);
+      continue;
+    }
+    break;
   }
 }
