@@ -124,7 +124,6 @@ public:
     
     conn = new Connector();
     conn->connect(infos, peer_host_info_num + 1, my_index);
-    exit(-1);
   }
 
   void write(const User *user) {
@@ -141,7 +140,8 @@ public:
     id_r->put(user->id, encoded_index);
     uid_r->put(std::hash<UserString>()(*(UserString *)(user->user_id)), encoded_index);
     sala_r->put(user->salary, encoded_index);
-
+    
+    // 发送到备份节点
     datas[qid].put_flag(index);
   }
 
