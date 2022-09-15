@@ -1,5 +1,6 @@
 #include "include/engine.hpp"
 #include "include/data.hpp"
+#include <cstddef>
 
 Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr), consumers(nullptr) {
   qs = static_cast<UserQueue *>(mmap(0, MAX_NR_CONSUMER * sizeof(UserQueue), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
@@ -77,6 +78,9 @@ using info_type = std::pair<std::string, int>;
 
 // 创建listen socket，尝试和别的机器建立两条连接
 void Engine::connect(const char *host_info, const char *const *peer_host_info, size_t peer_host_info_num) {
+  conn = new Connector();
+  if (host_info == NULL || peer_host_info == NULL)
+    return;
   std::vector<info_type> infos;
   const char *split_index = strstr(host_info, ":");
   int host_ip_len = split_index - host_info;
@@ -103,7 +107,6 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
     }
   }
 
-  conn = new Connector();
   conn->connect(infos, peer_host_info_num + 1, my_index);
 }
 
