@@ -74,6 +74,7 @@ int Connect(const char *ip, int port) {
   int ret = connect(sock, (sockaddr *) &server_addr, sizeof(server_addr));
   while (ret != 0) {
     ret = connect(sock, (sockaddr *) &server_addr, sizeof(server_addr));
+    usleep(500);
   }
   return sock;
 }
