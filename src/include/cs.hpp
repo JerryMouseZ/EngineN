@@ -48,8 +48,7 @@ public:
     listen_thread.join();
     fprintf(stderr, "connection done\n");
   }
-
-
+  
 private:
   // 两两备份数据，0向1备份，2向3备份
   int get_backup_index() {
