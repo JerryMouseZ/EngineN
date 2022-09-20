@@ -36,6 +36,8 @@ public:
               int32_t where_column, const void *column_key, size_t column_key_len, void *res);
   
 
+  size_t send_query(uint8_t select_column, uint8_t where_column, const void *column_key, void *res);
+
 private:
   static std::string column_str(int column);
   void connect(std::vector<info_type> &infos, int num, int host_index);
