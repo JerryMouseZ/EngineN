@@ -13,7 +13,8 @@
 
 #include "index.hpp"
 #include "data.hpp"
-#include "cs.hpp"
+#include <liburing.h>
+#include "comm.h"
 
 extern thread_local UserQueue *consumer_q;
 
@@ -37,7 +38,9 @@ public:
 
 private:
   static std::string column_str(int column);
-
+  void connect(std::vector<info_type> &infos, int num, int host_index);
+  int get_backup_index();
+  int get_request_index();
 
 private:
   Data *datas;
@@ -45,7 +48,17 @@ private:
   Index *uid_r;
   // salary need multi-index
   Index *sala_r;
-  Connector *conn;
   UserQueue *qs;
   std::thread *consumers;
+
+  // for connection
+  io_uring send_ring;
+  io_uring recv_ring;
+  int host_index;
+  int listen_fd;
+  bool alive[4];
+  int send_fds[4];
+  int recv_fds[4];
+  int data_fd;
+  int data_recv_fd;
 };

@@ -10,6 +10,9 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <unordered_map>
+#include <string>
+#include <vector>
 
 #define QUEUE_DEPTH 4096
 
@@ -21,4 +24,6 @@ int Connect(const char *ip, int port);
 
 int add_write_request(io_uring &ring, int client_socket, char *buffer, size_t len);
 
+using info_type = std::pair<std::string, int>;
+void listener(int listen_fd, int *recv_fds, std::vector<info_type> *infos, volatile bool *flag, int *data_recv_fd);
 #endif
