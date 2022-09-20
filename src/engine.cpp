@@ -30,7 +30,6 @@ Engine::~Engine() {
     qs[i].~LocklessQueue();
   }
 
-  delete conn;
   delete[] datas;
   delete id_r;
   delete uid_r;
@@ -78,7 +77,6 @@ using info_type = std::pair<std::string, int>;
 
 // 创建listen socket，尝试和别的机器建立两条连接
 void Engine::connect(const char *host_info, const char *const *peer_host_info, size_t peer_host_info_num) {
-  conn = new Connector();
   if (host_info == NULL || peer_host_info == NULL)
     return;
   std::vector<info_type> infos;
@@ -107,7 +105,7 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
     }
   }
 
-  conn->connect(infos, peer_host_info_num + 1, my_index);
+  connect(infos, peer_host_info_num + 1, my_index);
 }
 
 void Engine::write(const User *user) {
@@ -175,4 +173,60 @@ std::string Engine::column_str(int column)
     DEBUG_PRINTF(LOG, "column error");
   }
   return "";
+}
+
+void Engine::connect(std::vector<info_type> &infos, int num, int host_index) {
+  this->host_index = host_index;
+  io_uring_queue_init(QUEUE_DEPTH, &send_ring, 0);
+  io_uring_queue_init(QUEUE_DEPTH, &recv_ring, 0);
+  volatile bool flag = false;
+  listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
+  sockaddr_in client_addrs[3];
+  socklen_t client_addr_lens[3];
+  // 添加3个accept请求
+  std::thread listen_thread(listener, listen_fd, recv_fds, &infos, &flag, &data_recv_fd);
+  // 向其它节点发送连接请求
+  for (int i = 0; i < 4; ++i) {
+    if (i != host_index) {
+      send_fds[i] = Connect(infos[i].first.c_str(), infos[i].second);
+      fprintf(stderr, "connect to %s success\n", infos[i].first.c_str());
+    }
+  }
+
+  flag = true;
+  data_fd = Connect(infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
+  // 建立同步数据的连接
+  listen_thread.join();
+  fprintf(stderr, "connection done\n");
+}
+
+int Engine::get_backup_index() {
+  switch(host_index) {
+  case 0:
+    return 1;
+  case 1:
+    return 0;
+  case 2:
+    return 3;
+  case 3:
+    return 2;
+  }
+  fprintf(stderr, "error host index %d\n", host_index);
+  return -1;
+}
+
+// 因为两两有备份，所以只需要向另外一组请求即可。这里做一个负载均衡，使得请求能平均分布到4台机器上
+int Engine::get_request_index() {
+  switch(host_index) {
+  case 0:
+    return 2;
+  case 1:
+    return 3;
+  case 2:
+    return 1;
+  case 3:
+    return 0;
+  }
+  fprintf(stderr, "error host index %d\n", host_index);
+  return -1;
 }
