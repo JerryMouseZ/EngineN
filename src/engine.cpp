@@ -1,6 +1,8 @@
 #include "include/engine.hpp"
 #include "include/data.hpp"
 #include <cstddef>
+#include <cstdint>
+#include <pthread.h>
 
 Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr), consumers(nullptr) {
   qs = static_cast<UserQueue *>(mmap(0, MAX_NR_CONSUMER * sizeof(UserQueue), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
@@ -92,6 +94,24 @@ void Engine::write(const User *user) {
   datas[qid].put_flag(index);
 }
 
+struct query{
+  pthread_mutex_t mutex;
+  pthread_cond_t cond;
+  void *res;
+  uint64_t unique_id; // 这个是给对端确认的，对面原样发回来就知道
+  uint8_t select_column;
+  uint8_t where_column;
+  void *column_key;
+};
+
+
+size_t Engine::send_query(uint8_t select_column, uint8_t where_column, const void *column_key, void *res) {
+  // 用一个队列装request
+
+  // cond wait
+  return 0;
+}
+
 size_t Engine::read(int32_t select_column,
                     int32_t where_column, const void *column_key, size_t column_key_len, void *res) {
   size_t result = 0;
@@ -115,6 +135,11 @@ size_t Engine::read(int32_t select_column,
     break;
   default:
     DEBUG_PRINTF(LOG, "column error");
+  }
+
+  if (result == 0) {
+    // send query
+    return send_query(select_column, where_column, column_key, res);
   }
   return result;
 }
@@ -161,7 +186,7 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
     int port = atoi(split_index + 1);
     infos.emplace_back(info_type(ip, port)); 
   }
-  
+
   // 按ip地址排序
   std::sort(infos.begin(), infos.end(), [](const info_type &a, const info_type &b){ return a.first < b.first; });
   int my_index = -1;
@@ -178,8 +203,8 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
 
 void Engine::connect(std::vector<info_type> &infos, int num, int host_index) {
   this->host_index = host_index;
-  io_uring_queue_init(QUEUE_DEPTH, &send_ring, 0);
-  io_uring_queue_init(QUEUE_DEPTH, &recv_ring, 0);
+  /* io_uring_queue_init(QUEUE_DEPTH, &send_ring, 0); */
+  /* io_uring_queue_init(QUEUE_DEPTH, &recv_ring, 0); */
   volatile bool flag = false;
   listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
   sockaddr_in client_addrs[3];

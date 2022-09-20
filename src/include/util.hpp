@@ -2,6 +2,10 @@
 
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <thread>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
 
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
@@ -63,7 +67,7 @@ static void *map_file(const char *path, size_t len, bool *is_new_create)
   DEBUG_PRINTF(fd, "%s open error", path);
   if (hash_create) {
     int ret = posix_fallocate(fd, 0, len);
-    DEBUG_PRINTF(ret >= 0, "%s ftruncate\n", path);
+    DEBUG_PRINTF(ret >= 0, "%s posix_fallocate\n", path);
   }
 
   char *ptr = reinterpret_cast<char*>(mmap(0, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));

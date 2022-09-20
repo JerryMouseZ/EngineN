@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 
 template <typename T, uint64_t ALIGN>
 struct __attribute__((packed)) CommitArray {

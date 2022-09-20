@@ -4,6 +4,8 @@
 #include <sched.h>
 #include <unistd.h>
 #include <libpmem.h>
+#include <pthread.h>
+#include <string>
 
 #include "thread_id.hpp"
 #include "commit_array.hpp"
