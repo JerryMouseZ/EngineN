@@ -57,7 +57,7 @@ int add_accept_request(io_uring &ring, int server_socket, struct sockaddr_in *cl
 }
 
 
-int Connect(const char *ip, int port) {
+int connect_to_server(const char *ip, int port) {
   int sock = socket(PF_INET, SOCK_STREAM, 0);
   if (sock == -1) {
     fatal_error("socket() error");
@@ -117,7 +117,7 @@ void listener(int listen_fd, int recv_fds[], std::vector<info_type> *infos, vola
   }
   
   while (*flag == false) {
-    usleep(50);
+    usleep(500);
   }
 
   while (1) {
