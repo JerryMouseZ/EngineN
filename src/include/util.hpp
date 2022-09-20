@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <thread>
@@ -88,5 +89,10 @@ static void *map_file(const char *path, size_t len, bool *is_new_create)
     *is_new_create = hash_create;    
   }
 
+  return ptr;
+}
+
+static void *map_anonymouse(size_t len) {
+  char *ptr = reinterpret_cast<char*>(mmap(0, len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_POPULATE, -1, 0));
   return ptr;
 }

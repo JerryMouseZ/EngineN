@@ -94,3 +94,14 @@ private:
   UserArray *pmem_users = nullptr;
   DataFlag *flags;
 };
+
+struct query{
+  pthread_mutex_t mutex;
+  pthread_cond_t cond;
+  void *res;
+  uint64_t unique_id; // 这个是给对端确认的，对面原样发回来就知道
+  uint8_t select_column;
+  uint8_t where_column;
+  void *column_key;
+};
+
