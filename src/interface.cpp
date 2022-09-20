@@ -14,8 +14,9 @@ void* engine_init(const char* host_info, const char* const* peer_host_info, size
                   const char* aep_dir, const char* disk_dir) {
   gettimeofday(&begin, NULL);
   Engine *engine = new Engine();
-  engine->connect(host_info, peer_host_info, peer_host_info_num);
   engine->open(aep_dir, disk_dir);
+  // 应该初始化磁盘好了再去连接
+  engine->connect(host_info, peer_host_info, peer_host_info_num);
   gettimeofday(&end, NULL);
   DEBUG_PRINTF(0, "init time %lf s\n", (end.tv_usec - begin.tv_usec) / (double) (1000000) + end.tv_sec - begin.tv_sec);
   return engine;

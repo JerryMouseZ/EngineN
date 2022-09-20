@@ -73,41 +73,6 @@ void Engine::open(std::string aep_path, std::string disk_path) {
   }
 }
 
-using info_type = std::pair<std::string, int>;
-
-// 创建listen socket，尝试和别的机器建立两条连接
-void Engine::connect(const char *host_info, const char *const *peer_host_info, size_t peer_host_info_num) {
-  if (host_info == NULL || peer_host_info == NULL)
-    return;
-  std::vector<info_type> infos;
-  const char *split_index = strstr(host_info, ":");
-  int host_ip_len = split_index - host_info;
-  std::string host_ip = std::string(host_info, host_ip_len);
-  int host_port = atoi(split_index + 1);
-  fprintf(stderr, "host info : %s %d\n", host_ip.c_str(), host_port);
-  infos.emplace_back(info_type(host_ip, host_port));
-
-  // peer ips
-  for (int i = 0; i < peer_host_info_num; ++i) {
-    const char *split_index = strstr(peer_host_info[i], ":");
-    int ip_len = split_index - peer_host_info[i];
-    std::string ip = std::string(peer_host_info[i], ip_len);
-    int port = atoi(split_index + 1);
-    infos.emplace_back(info_type(ip, port)); 
-  }
-
-  std::sort(infos.begin(), infos.end(), [](const info_type &a, const info_type &b){ return a.first < b.first; });
-  int my_index = -1;
-  for (int i = 0; i < peer_host_info_num + 1; ++i) {
-    if (infos[i].first == host_ip) {
-      my_index = i;
-      break;
-    }
-  }
-
-  connect(infos, peer_host_info_num + 1, my_index);
-}
-
 void Engine::write(const User *user) {
   if (unlikely(!have_producer_id())) {
     init_producer_id();
@@ -175,6 +140,42 @@ std::string Engine::column_str(int column)
   return "";
 }
 
+
+// 创建listen socket，尝试和别的机器建立两条连接
+void Engine::connect(const char *host_info, const char *const *peer_host_info, size_t peer_host_info_num) {
+  if (host_info == NULL || peer_host_info == NULL)
+    return;
+  std::vector<info_type> infos;
+  const char *split_index = strstr(host_info, ":");
+  int host_ip_len = split_index - host_info;
+  std::string host_ip = std::string(host_info, host_ip_len);
+  int host_port = atoi(split_index + 1);
+  fprintf(stderr, "host info : %s %d\n", host_ip.c_str(), host_port);
+  infos.emplace_back(info_type(host_ip, host_port));
+
+  // peer ips
+  for (int i = 0; i < peer_host_info_num; ++i) {
+    const char *split_index = strstr(peer_host_info[i], ":");
+    int ip_len = split_index - peer_host_info[i];
+    std::string ip = std::string(peer_host_info[i], ip_len);
+    int port = atoi(split_index + 1);
+    infos.emplace_back(info_type(ip, port)); 
+  }
+  
+  // 按ip地址排序
+  std::sort(infos.begin(), infos.end(), [](const info_type &a, const info_type &b){ return a.first < b.first; });
+  int my_index = -1;
+  for (int i = 0; i < peer_host_info_num + 1; ++i) {
+    if (infos[i].first == host_ip) {
+      my_index = i;
+      break;
+    }
+  }
+
+  connect(infos, peer_host_info_num + 1, my_index);
+}
+
+
 void Engine::connect(std::vector<info_type> &infos, int num, int host_index) {
   this->host_index = host_index;
   io_uring_queue_init(QUEUE_DEPTH, &send_ring, 0);
@@ -188,13 +189,13 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index) {
   // 向其它节点发送连接请求
   for (int i = 0; i < 4; ++i) {
     if (i != host_index) {
-      send_fds[i] = Connect(infos[i].first.c_str(), infos[i].second);
+      send_fds[i] = connect_to_server(infos[i].first.c_str(), infos[i].second);
       fprintf(stderr, "connect to %s success\n", infos[i].first.c_str());
     }
   }
 
   flag = true;
-  data_fd = Connect(infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
+  data_fd = connect_to_server(infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
   // 建立同步数据的连接
   listen_thread.join();
   fprintf(stderr, "connection done\n");
