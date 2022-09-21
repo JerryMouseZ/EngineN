@@ -1,6 +1,6 @@
 #ifndef SR_H
 #define SR_H
-#include "include/data.hpp"
+#include "include/comm.h"
 #include "include/util.hpp"
 #include <atomic>
 #include <cassert>
@@ -13,40 +13,55 @@
 #include <sys/mman.h>
 #include <thread>
 
-template<class T, int Capacity>
+template<int Capacity>
 class CircularFifo{
 public:
   CircularFifo() : _tail(0), _head(0) {
-    char *map_ptr = reinterpret_cast<char *>(map_anonymouse(Capacity * sizeof(T) + 64 + Capacity));
+    char *map_ptr = reinterpret_cast<char *>(map_anonymouse(Capacity * (sizeof(data_request) + sizeof(send_entry)) + 64 + Capacity));
     _head = reinterpret_cast<std::atomic<uint64_t> *>(map_ptr);
     _tail = reinterpret_cast<std::atomic<uint64_t> *>(map_ptr + 8);
     _send = reinterpret_cast<std::atomic<uint64_t> *>(map_ptr + 16);
     is_readable = reinterpret_cast<volatile uint8_t *>(map_ptr + 64);
-    _array = reinterpret_cast<T *>(map_ptr + 64 + Capacity);
+    _array = reinterpret_cast<data_request *>(map_ptr + 64 + Capacity);
+    // meta data
+    _meta = reinterpret_cast<send_entry *>(map_ptr + 64 + Capacity + Capacity * sizeof(data_request));
     pthread_mutex_init(&mtx, NULL);
     pthread_cond_init(&cond_var, NULL);
     exited = false;
   }
 
   ~CircularFifo() {
-    munmap((void *)_head, Capacity * sizeof(T) + 64 + Capacity);
+    munmap((void *)_head, Capacity * (sizeof(data_request) + sizeof(send_entry))+ 64 + Capacity);
   }
 
-  size_t push(const T& item)
+  size_t push(uint8_t select_column, uint8_t where_column, const void *key, size_t key_len, void *res)
   {
     size_t current_tail = _tail->fetch_add(1, std::memory_order_acquire);
     while (current_tail - _head->load(std::memory_order_acquire) >= Capacity) {
       producer_yield_thread();
     }
+    
+    data_request &data = _array[current_tail % Capacity];
+    data.fifo_id = current_tail + 1;
+    data.select_column = select_column;
+    data.where_column = where_column;
+    memcpy(data.key, key, key_len);
+    
+    send_entry &meta = _meta[current_tail % Capacity];
+    memset(&meta, 0, sizeof(send_entry));
+    meta.res = res;
 
-    _array[current_tail % Capacity] = item;
     std::atomic_thread_fence(std::memory_order_release);
     is_readable[current_tail % Capacity] = 1;
     if (current_tail % (Capacity >> 5) == 0) {
       try_wake_consumer();
     }
-
+    
     return current_tail + 1;
+  }
+  
+  send_entry* get_meta(size_t index) {
+    return &_meta[(index - 1) % Capacity];
   }
 
   bool check_readable(int index, int num) {
@@ -65,7 +80,8 @@ public:
     }
     return true;
   }
-  
+
+
   void exit() {
     exited = true;
     try_wake_consumer();
@@ -73,7 +89,7 @@ public:
 
 
   // 在pop就不要任何检查了
-  T* prepare_send(int num)
+  data_request* prepare_send(int num, send_entry *meta)
   {
     size_t index = _send->load(std::memory_order_relaxed);
     while (index + num > _tail->load(std::memory_order_acquire)) {
@@ -81,7 +97,7 @@ public:
       if (exited)
         return nullptr;
     }
-    
+
     // 这里有边界条件，就是可能最后几个请求会等特别久，但是又没有tail_commit
     int sched_count = 0;
     // 等num个全部写完
@@ -92,11 +108,12 @@ public:
         return nullptr;
       }
     }
-    
+
     // 现在还不能invalid，要等到收到了数据以后
     /* memset((void *)&is_readable[index % Capacity], 0, num); */
     _send->store(index + num, std::memory_order_release);
-    return _array[index % Capacity];
+    meta = &_meta[index % Capacity];
+    return &_array[index % Capacity];
   }
 
   void invalidate(int index) {
@@ -153,7 +170,8 @@ private:
   std::atomic<uint64_t> *_head;
   std::atomic<uint64_t> *_send;
   volatile uint8_t *is_readable;
-  T *_array;
+  data_request *_array;
+  send_entry *_meta;
   volatile bool exited;
 
   pthread_mutex_t mtx;

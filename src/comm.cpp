@@ -80,17 +80,19 @@ int connect_to_server(const char *ip, int port) {
 }
 
 
-int add_read_request(io_uring &ring, int client_socket, char *buffer, size_t len) {
+int add_read_request(io_uring &ring, int client_socket, void *buffer, size_t len, __u64 udata) {
   struct io_uring_sqe *sqe = io_uring_get_sqe(&ring);
   io_uring_prep_recv(sqe, client_socket, buffer, len, 0);
+  io_uring_sqe_set_data64(sqe, udata);
   io_uring_submit(&ring);
   return 0;
 }
 
 
-int add_write_request(io_uring &ring, int client_socket, char *buffer, size_t len) {
+int add_write_request(io_uring &ring, int client_socket, void *buffer, size_t len, __u64 udata) {
   struct io_uring_sqe *sqe = io_uring_get_sqe(&ring);
-  io_uring_prep_send(sqe, client_socket, buffer, len, 0);
+  io_uring_prep_send(sqe, client_socket, buffer, len, MSG_NOSIGNAL);
+  io_uring_sqe_set_data64(sqe, udata);
   io_uring_submit(&ring);
   return 0;
 }
@@ -129,3 +131,19 @@ void listener(int listen_fd, int recv_fds[], std::vector<info_type> *infos, vola
     break;
   }
 }
+
+static inline io_uring_cqe *wait_cqe_fast(struct io_uring *ring)
+{
+	struct io_uring_cqe *cqe;
+	unsigned head;
+	int ret;
+
+	io_uring_for_each_cqe(ring, head, cqe)
+		return cqe;
+
+	ret = io_uring_wait_cqe(ring, &cqe);
+	if (ret)
+		fprintf(stderr, "wait cqe %d\n", ret);
+	return cqe;
+}
+

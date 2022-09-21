@@ -15,6 +15,7 @@
 #include "data.hpp"
 #include <liburing.h>
 #include "comm.h"
+#include "send_recv.hpp"
 
 extern thread_local UserQueue *consumer_q;
 
@@ -32,17 +33,25 @@ public:
   void write(const User *user);
 
 
-  size_t read(int32_t select_column,
+  size_t local_read(int32_t select_column,
               int32_t where_column, const void *column_key, size_t column_key_len, void *res);
   
+  size_t read(int32_t select_column,
+              int32_t where_column, const void *column_key, size_t column_key_len, void *res);
 
-  size_t send_query(uint8_t select_column, uint8_t where_column, const void *column_key, void *res);
+  size_t remote_read(uint8_t select_column, uint8_t where_column, const void *column_key, size_t key_len, void *res);
 
 private:
   static std::string column_str(int column);
   void connect(std::vector<info_type> &infos, int num, int host_index);
   int get_backup_index();
   int get_request_index();
+
+  void request_sender();
+
+  void res_recvier();
+
+  void request_handler();
 
 private:
   Data *datas;
@@ -54,8 +63,8 @@ private:
   std::thread *consumers;
 
   // for connection
-  io_uring send_ring;
-  io_uring recv_ring;
+  io_uring send_request_ring;
+  io_uring recv_response_ring;
   int host_index;
   int listen_fd;
   bool alive[4];
@@ -63,4 +72,5 @@ private:
   int recv_fds[4];
   int data_fd;
   int data_recv_fd;
+  CircularFifo<4096> *send_fifo;
 };
