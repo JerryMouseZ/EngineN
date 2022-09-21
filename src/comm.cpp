@@ -3,10 +3,12 @@
 #include <cstring>
 #include <ctime>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <string>
 #include <unistd.h>
 #include <vector>
+#include <assert.h>
 
 void fatal_error(const char *syscall) {
   perror(syscall);
@@ -23,9 +25,7 @@ int setup_listening_socket(const char *ip, int port) {
   }
 
   int enable = 1;
-  if (setsockopt(sock,
-                 SOL_SOCKET, SO_REUSEADDR,
-                 &enable, sizeof(int)) < 0)
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
     fatal_error("setsockopt(SO_REUSEADDR)");
 
   memset(&srv_addr, 0, sizeof(srv_addr));
@@ -63,6 +63,11 @@ int connect_to_server(const char *ip, int port) {
     fatal_error("socket() error");
   }
 
+  // set nodelay
+  int enable = 1;
+  int ret = setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable));
+  assert(ret != -1);
+
   struct sockaddr_in server_addr;
   memset(&server_addr, 0, sizeof(server_addr));
   server_addr.sin_family = AF_INET;
@@ -71,7 +76,7 @@ int connect_to_server(const char *ip, int port) {
     fatal_error("invalid ip");
   }
 
-  int ret = connect(sock, (sockaddr *) &server_addr, sizeof(server_addr));
+  ret = connect(sock, (sockaddr *) &server_addr, sizeof(server_addr));
   while (ret != 0) {
     ret = connect(sock, (sockaddr *) &server_addr, sizeof(server_addr));
     usleep(500);

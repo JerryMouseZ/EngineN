@@ -45,12 +45,18 @@ struct send_entry{
   void *res;
   bool has_come;
   int ret;
+  int socket;
 };
 
 struct response_header{
   uint32_t fifo_id;
   uint16_t res_len;
   uint32_t ret;
+};
+
+struct response_buffer{
+  response_header header;
+  char body[1024];
 };
 
 #endif
