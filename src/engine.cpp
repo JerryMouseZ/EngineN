@@ -1,7 +1,12 @@
 #include "include/engine.hpp"
+#include "include/comm.h"
 #include "include/data.hpp"
+#include "include/send_recv.hpp"
+#include "liburing.h"
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <pthread.h>
 
 Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr), consumers(nullptr) {
@@ -73,6 +78,7 @@ void Engine::open(std::string aep_path, std::string disk_path) {
                                ;
                                });
   }
+  send_fifo = new CircularFifo<1<<12>();
 }
 
 void Engine::write(const User *user) {
@@ -95,14 +101,133 @@ void Engine::write(const User *user) {
 }
 
 
-size_t Engine::send_query(uint8_t select_column, uint8_t where_column, const void *column_key, void *res) {
+size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const void *column_key, size_t column_key_len, void *res) {
   // 用一个队列装request
-
+  size_t id = send_fifo->push(select_column, where_column, column_key, column_key_len, res);
+  send_entry *entry = send_fifo->get_meta(id);
   // cond wait
-  return 0;
+  pthread_mutex_lock(&entry->mutex);
+  while (!entry->has_come) {
+    pthread_cond_wait(&entry->cond, &entry->mutex);
+  }
+  pthread_mutex_unlock(&entry->mutex);
+  size_t ret = entry->ret;
+  send_fifo->invalidate(id);
+  return ret;
 }
 
-size_t Engine::read(int32_t select_column,
+void Engine::request_sender(){
+  data_request *reqv;
+  send_entry *metav;
+  io_uring_cqe *cqe;
+  unsigned head;
+  int ret;
+  int send_req_index;
+  while (1) {
+    // 30大概是4020，能凑4096
+    reqv = send_fifo->prepare_send(30, metav);
+    // send to io_uring
+    if (reqv == nullptr) {
+      int count = 0;
+      while (count < 30) {
+        reqv = send_fifo->prepare_send(1, metav);
+        if (reqv == nullptr)
+          continue;
+        count++;
+        send_req_index = get_request_index();
+        if (send_req_index < 0)
+          return;
+        add_write_request(send_request_ring, send_fds[send_req_index], reqv, sizeof(data_request));
+      }
+    }
+    add_write_request(send_request_ring, send_fds[send_req_index], reqv, 30 * sizeof(data_request));
+    // poll cqe
+    
+    io_uring_for_each_cqe(&send_request_ring, head, cqe) {
+      if (cqe->res <= 0) {
+        // send error
+        // retry send
+      }
+      io_uring_cqe_seen(&send_request_ring, cqe);
+    }
+  }
+}
+
+struct recv_cqe_data{
+  int type;
+  int fd;
+};
+
+void Engine::res_recvier() {
+  io_uring_cqe *cqe;
+  /* char buffer[1024]; */
+  response_header header;
+  send_entry *entry;
+  int req_fd_index = get_request_index();
+  // 如果两个request node都挂了，其实不需要发request了
+  if (req_fd_index < 0)
+    return;
+  add_read_request(recv_response_ring, send_fds[req_fd_index], &header, sizeof(response_header), send_fds[req_fd_index]);
+  while (1) {
+    // can be replace with fast wait cqe
+    int ret = io_uring_wait_cqe(&recv_response_ring, &cqe);
+    if (ret < 0) {
+      fprintf(stderr, "io_uring error %d\n", __LINE__);
+      break;
+    }
+
+    // socket close
+    if (cqe->res <= 0) {
+      // socket return
+      int socket = cqe->user_data & 0xffffffff;
+      for (int i = 0; i < 4; ++i) {
+        if (send_fds[i] == socket) {
+          if (alive[i]) {
+            alive[i] = false;
+            close(send_fds[i]);
+          }
+          break;
+        }
+      }
+      continue;
+    }
+
+    int type = (cqe->user_data >> 32);
+    if (type == 0) {
+      entry = send_fifo->get_meta(header.fifo_id);
+      req_fd_index = get_request_index();
+      if (req_fd_index < 0)
+        return;
+      add_read_request(recv_response_ring, send_fds[req_fd_index], entry->res, header.res_len, (1L << 32) | send_fds[req_fd_index]);
+      // header
+    } else if(type == 1) {
+      // body
+      // 设置返回值以及标记，唤醒等待线程
+      entry->ret = header.ret;
+      entry->has_come = 1;
+      pthread_mutex_lock(&entry->mutex);
+      pthread_cond_signal(&entry->cond);
+      pthread_mutex_unlock(&entry->mutex);
+      req_fd_index = get_request_index();
+      if (req_fd_index < 0) {
+        return;
+      }
+      add_read_request(recv_response_ring, send_fds[req_fd_index], &header, sizeof(response_header), send_fds[req_fd_index]);
+    } else{
+      // error
+      assert(0);
+    }
+    io_uring_cqe_seen(&recv_response_ring, cqe);
+  }
+}
+
+
+void Engine::request_handler(){
+
+}
+
+
+size_t Engine::local_read(int32_t select_column,
                     int32_t where_column, const void *column_key, size_t column_key_len, void *res) {
   size_t result = 0;
   switch(where_column) {
@@ -126,13 +251,19 @@ size_t Engine::read(int32_t select_column,
   default:
     DEBUG_PRINTF(LOG, "column error");
   }
+  return result;
+}
 
+size_t Engine::read(int32_t select_column,
+                    int32_t where_column, const void *column_key, size_t column_key_len, void *res) {
+  size_t result = 0;
+  result = local_read(select_column, where_column, column_key, column_key_len, res);
   if (result == 0) {
-    // send query
-    return send_query(select_column, where_column, column_key, res);
+    return remote_read(select_column, where_column, column_key, column_key_len, res);
   }
   return result;
 }
+
 
 std::string Engine::column_str(int column)
 {
@@ -193,8 +324,6 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
 
 void Engine::connect(std::vector<info_type> &infos, int num, int host_index) {
   this->host_index = host_index;
-  /* io_uring_queue_init(QUEUE_DEPTH, &send_ring, 0); */
-  /* io_uring_queue_init(QUEUE_DEPTH, &recv_ring, 0); */
   volatile bool flag = false;
   listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
   sockaddr_in client_addrs[3];
@@ -214,6 +343,8 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index) {
   // 建立同步数据的连接
   listen_thread.join();
   fprintf(stderr, "connection done\n");
+  io_uring_queue_init(QUEUE_DEPTH, &send_request_ring, 0);
+  io_uring_queue_init(QUEUE_DEPTH, &recv_response_ring, 0);
 }
 
 int Engine::get_backup_index() {
@@ -235,14 +366,29 @@ int Engine::get_backup_index() {
 int Engine::get_request_index() {
   switch(host_index) {
   case 0:
-    return 2;
+    if (alive[2])
+      return 2;
+    if (alive[3])
+      return 3;
+    break;
   case 1:
-    return 3;
+    if (alive[3])
+      return 3;
+    if (alive[2])
+      return 2;
+    break;
   case 2:
-    return 1;
+    if (alive[1])
+      return 1;
+    if (alive[0])
+      return 0;
+    break;
   case 3:
-    return 0;
+    if (alive[0])
+      return 0;
+    if (alive[1])
+      return 1;
+    break;
   }
-  fprintf(stderr, "error host index %d\n", host_index);
   return -1;
 }
