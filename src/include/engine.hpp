@@ -46,13 +46,19 @@ private:
   void connect(std::vector<info_type> &infos, int num, int host_index);
   int get_backup_index();
   int get_request_index();
+  int get_another_request_index();
 
   void request_sender();
 
-  void res_recvier();
+  void response_recvier();
 
   void request_handler();
 
+  void poll_send_req_cqe();
+
+  void poll_send_response_cqe();
+
+  void invalidate_fd(int sock);
 private:
   Data *datas;
   Index *id_r;
@@ -65,6 +71,9 @@ private:
   // for connection
   io_uring send_request_ring;
   io_uring recv_response_ring;
+
+  io_uring recv_request_ring;
+  io_uring send_response_ring;
   int host_index;
   int listen_fd;
   bool alive[4];
@@ -72,5 +81,5 @@ private:
   int recv_fds[4];
   int data_fd;
   int data_recv_fd;
-  CircularFifo<4096> *send_fifo;
+  CircularFifo<1<<16> *send_fifo;
 };

@@ -101,7 +101,7 @@ public:
     // 这里有边界条件，就是可能最后几个请求会等特别久，但是又没有tail_commit
     int sched_count = 0;
     // 等num个全部写完
-    while (check_readable(index)) {
+    while (check_readable(index, num)) {
       sched_yield();
       sched_count++;
       if (sched_count > 100) {
