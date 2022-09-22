@@ -384,6 +384,11 @@ void Engine::disconnect() {
   req_sender->join();
   rep_recvier->join();
   req_handler->join();
+  io_uring_queue_exit(&send_request_ring);
+  io_uring_queue_exit(&recv_response_ring);
+
+  io_uring_queue_exit(&recv_request_ring);
+  io_uring_queue_exit(&send_response_ring);
 }
 
 int Engine::get_backup_index() {
