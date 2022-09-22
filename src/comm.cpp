@@ -87,9 +87,10 @@ int connect_to_server(const char *ip, int port) {
 
 int add_read_request(io_uring &ring, int client_socket, void *buffer, size_t len, __u64 udata) {
   struct io_uring_sqe *sqe = io_uring_get_sqe(&ring);
+  assert(sqe);
   io_uring_prep_recv(sqe, client_socket, buffer, len, 0);
   io_uring_sqe_set_data64(sqe, udata);
-  io_uring_submit(&ring);
+  assert(io_uring_submit(&ring) == 1);
   return 0;
 }
 

@@ -444,11 +444,11 @@ int Engine::get_another_request_index() {
     break;
   case 2:
     if (alive[1])
-      return 0;
+      return 1;
     break;
   case 3:
     if (alive[0])
-      return 1;
+      return 0;
     break;
   }
   return -1;
