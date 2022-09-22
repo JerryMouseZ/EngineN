@@ -97,6 +97,21 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
   return ret;
 }
 
+void Engine::term_sending_request() {
+  send_entry *entry;
+  while (1) {
+    entry = send_fifo->pop();
+    if (entry == nullptr)
+      break;
+    // 唤醒等待的线程
+    entry->has_come = 1;
+    entry->ret = 0;
+    pthread_mutex_lock(&entry->mutex);
+    pthread_cond_signal(&entry->cond);
+    pthread_mutex_unlock(&entry->mutex);
+  }
+}
+
 void Engine::poll_send_req_cqe() {
   data_request *reqv = nullptr;
   send_entry *metav = nullptr;
@@ -111,12 +126,14 @@ void Engine::poll_send_req_cqe() {
       metav = send_fifo->get_meta(reqv->fifo_id);
       send_req_index = get_request_index();
       if (send_req_index >= 0) {
+        // 重试发送
         if ((reqv->fifo_id + 1) % 30 == 0)
           add_write_request(send_request_ring, send_fds[send_req_index], reqv, 30 * sizeof(data_request), (__u64)reqv);
         else
           add_write_request(send_request_ring, send_fds[send_req_index], reqv, sizeof(data_request), (__u64)reqv);
       } else {
-        // 唤醒所有线程
+        // 取消重试，返回0
+        term_sending_request();
       }
     }
     io_uring_cqe_seen(&send_request_ring, cqe);
@@ -133,28 +150,33 @@ void Engine::request_sender(){
   while (1) {
     // 30大概是4020，能凑4096
     reqv = send_fifo->prepare_send(30, metav);
+    send_req_index = get_request_index();
+    if (send_req_index < 0) {
+      // stop remote read, wake up threads
+      term_sending_request();
+      return;
+    }
+
     // send to io_uring
     if (reqv == nullptr) {
       int count = 0;
+      int retries = 0;
       while (count < 30) {
         reqv = send_fifo->prepare_send(1, metav);
-        if (reqv == nullptr)
+        if (reqv == nullptr) {
+          // retries次数太多表示send_fifo之后不会再有请求了
+          retries++;
+          if (retries >= 100) {
+            return;
+          }
           continue;
-        count++;
-        send_req_index = get_request_index();
-        if (send_req_index < 0) {
-          // 唤醒等待的线程
-          return;
         }
+        count++;
         add_write_request(send_request_ring, send_fds[send_req_index], reqv, sizeof(data_request), (__u64)reqv);
         metav->socket = send_fds[send_req_index];
       }
     }
-    send_req_index = get_request_index();
-    if (send_req_index < 0) {
-      // 唤醒线程
-      return;
-    }
+
     add_write_request(send_request_ring, send_fds[send_req_index], reqv, 30 * sizeof(data_request), (__u64)reqv);
     metav->socket = send_fds[send_req_index];
     poll_send_req_cqe();
@@ -341,7 +363,7 @@ void Engine::start_handlers() {
   auto req_handler_fn = [&]() {
     request_handler();
   };
-  
+
   // std::thread不能直接运行类的成员函数，用lambda稍微封装一下
   req_sender = new std::thread(req_sender_fn);
   rep_recvier = new std::thread(rep_recver_fn);

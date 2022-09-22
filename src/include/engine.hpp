@@ -43,24 +43,30 @@ public:
 
 private:
   static std::string column_str(int column);
+
   void connect(std::vector<info_type> &infos, int num, int host_index);
+
   int get_backup_index();
+
   int get_request_index();
+
   int get_another_request_index();
+
+  void start_handlers();
 
   void request_sender();
 
   void response_recvier();
 
   void request_handler();
+  
+  void term_sending_request();
 
   void poll_send_req_cqe();
 
   void poll_send_response_cqe();
 
   void invalidate_fd(int sock);
-
-  void start_handlers();
 
   void disconnect();
 

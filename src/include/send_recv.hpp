@@ -133,6 +133,19 @@ public:
     return res;
   }
 
+  send_entry *pop() {
+    size_t index = _head->load(std::memory_order_relaxed);
+    while (check_readable(index, 1) && index < _tail->load(std::memory_order_acquire)) {
+      index += 1;
+    }
+    
+    if (check_readable(index, 1))
+      return nullptr;
+    
+    is_readable[index % Capacity] = 0;
+    return &_meta[index % Capacity];
+  }
+
   void producer_yield_thread() {
     // 如果找到空闲位置了就返回
     if (check_pop())
