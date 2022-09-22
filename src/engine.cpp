@@ -12,7 +12,7 @@
 #include <pthread.h>
 #include <thread>
 
-Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr), consumers(nullptr) {
+Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr), consumers(nullptr), exited(false) {
   qs = static_cast<UserQueue *>(mmap(0, MAX_NR_CONSUMER * sizeof(UserQueue), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     new (&qs[i])UserQueue;
