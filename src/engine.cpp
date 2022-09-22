@@ -21,6 +21,8 @@ Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr)
 }
 
 Engine::~Engine() {
+  // disconnect all socket and handlers
+  disconnect();
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     qs[i].notify_producers_exit();
   }

@@ -11,6 +11,73 @@
 #include <ctime>
 #include <pthread.h>
 #include <thread>
+#include <unistd.h>
+
+
+// 创建listen socket，尝试和别的机器建立两条连接
+void Engine::connect(const char *host_info, const char *const *peer_host_info, size_t peer_host_info_num) {
+  if (host_info == NULL || peer_host_info == NULL)
+    return;
+  std::vector<info_type> infos;
+  const char *split_index = strstr(host_info, ":");
+  int host_ip_len = split_index - host_info;
+  std::string host_ip = std::string(host_info, host_ip_len);
+  int host_port = atoi(split_index + 1);
+  fprintf(stderr, "host info : %s %d\n", host_ip.c_str(), host_port);
+  infos.emplace_back(info_type(host_ip, host_port));
+
+  // peer ips
+  for (int i = 0; i < peer_host_info_num; ++i) {
+    const char *split_index = strstr(peer_host_info[i], ":");
+    int ip_len = split_index - peer_host_info[i];
+    std::string ip = std::string(peer_host_info[i], ip_len);
+    int port = atoi(split_index + 1);
+    infos.emplace_back(info_type(ip, port)); 
+  }
+
+  // 按ip地址排序
+  std::sort(infos.begin(), infos.end(), [](const info_type &a, const info_type &b){ return a.first < b.first; });
+  int my_index = -1;
+  for (int i = 0; i < peer_host_info_num + 1; ++i) {
+    if (infos[i].first == host_ip) {
+      my_index = i;
+      break;
+    }
+  }
+
+  connect(infos, peer_host_info_num + 1, my_index);
+}
+
+
+void Engine::connect(std::vector<info_type> &infos, int num, int host_index) {
+  this->host_index = host_index;
+  volatile bool flag = false;
+  listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
+  sockaddr_in client_addrs[3];
+  socklen_t client_addr_lens[3];
+  // 添加3个accept请求
+  std::thread listen_thread(listener, listen_fd, recv_fds, &infos, &flag, &data_recv_fd);
+  // 向其它节点发送连接请求
+  for (int i = 0; i < 4; ++i) {
+    if (i != host_index) {
+      send_fds[i] = connect_to_server(infos[i].first.c_str(), infos[i].second);
+      fprintf(stderr, "connect to %s success\n", infos[i].first.c_str());
+    }
+  }
+
+  flag = true;
+  data_fd = connect_to_server(infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
+  // 建立同步数据的连接
+  listen_thread.join();
+  close(listen_fd); // 关闭listen socket, 不再接受连接
+  fprintf(stderr, "connection done\n");
+  io_uring_queue_init(QUEUE_DEPTH, &send_request_ring, 0);
+  io_uring_queue_init(QUEUE_DEPTH, &recv_response_ring, 0);
+  io_uring_queue_init(QUEUE_DEPTH, &recv_request_ring, 0);
+  io_uring_queue_init(QUEUE_DEPTH, &send_response_ring, 0);
+  start_handlers();
+}
+
 
 size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const void *column_key, size_t column_key_len, void *res) {
   // 如果远端都关掉了就不要再查了
@@ -262,40 +329,6 @@ void Engine::request_handler(){
 }
 
 
-// 创建listen socket，尝试和别的机器建立两条连接
-void Engine::connect(const char *host_info, const char *const *peer_host_info, size_t peer_host_info_num) {
-  if (host_info == NULL || peer_host_info == NULL)
-    return;
-  std::vector<info_type> infos;
-  const char *split_index = strstr(host_info, ":");
-  int host_ip_len = split_index - host_info;
-  std::string host_ip = std::string(host_info, host_ip_len);
-  int host_port = atoi(split_index + 1);
-  fprintf(stderr, "host info : %s %d\n", host_ip.c_str(), host_port);
-  infos.emplace_back(info_type(host_ip, host_port));
-
-  // peer ips
-  for (int i = 0; i < peer_host_info_num; ++i) {
-    const char *split_index = strstr(peer_host_info[i], ":");
-    int ip_len = split_index - peer_host_info[i];
-    std::string ip = std::string(peer_host_info[i], ip_len);
-    int port = atoi(split_index + 1);
-    infos.emplace_back(info_type(ip, port)); 
-  }
-
-  // 按ip地址排序
-  std::sort(infos.begin(), infos.end(), [](const info_type &a, const info_type &b){ return a.first < b.first; });
-  int my_index = -1;
-  for (int i = 0; i < peer_host_info_num + 1; ++i) {
-    if (infos[i].first == host_ip) {
-      my_index = i;
-      break;
-    }
-  }
-
-  connect(infos, peer_host_info_num + 1, my_index);
-}
-
 void Engine::start_handlers() {
   auto req_sender_fn = [&]() {
     request_sender();
@@ -308,38 +341,25 @@ void Engine::start_handlers() {
   auto req_handler_fn = [&]() {
     request_handler();
   };
-
-  std::thread *req_sender = new std::thread(req_sender_fn);
-  std::thread *rep_recvier = new std::thread(rep_recver_fn);
-  std::thread *req_handler = new std::thread(req_handler_fn);
+  
+  // std::thread不能直接运行类的成员函数，用lambda稍微封装一下
+  req_sender = new std::thread(req_sender_fn);
+  rep_recvier = new std::thread(rep_recver_fn);
+  req_handler = new std::thread(req_handler_fn);
 }
 
-void Engine::connect(std::vector<info_type> &infos, int num, int host_index) {
-  this->host_index = host_index;
-  volatile bool flag = false;
-  listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
-  sockaddr_in client_addrs[3];
-  socklen_t client_addr_lens[3];
-  // 添加3个accept请求
-  std::thread listen_thread(listener, listen_fd, recv_fds, &infos, &flag, &data_recv_fd);
-  // 向其它节点发送连接请求
+void Engine::disconnect() {
   for (int i = 0; i < 4; ++i) {
     if (i != host_index) {
-      send_fds[i] = connect_to_server(infos[i].first.c_str(), infos[i].second);
-      fprintf(stderr, "connect to %s success\n", infos[i].first.c_str());
+      close(send_fds[i]);
+      close(recv_fds[i]);
     }
   }
-
-  flag = true;
-  data_fd = connect_to_server(infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
-  // 建立同步数据的连接
-  listen_thread.join();
-  close(listen_fd); // 关闭listen socket, 不再接受连接
-  fprintf(stderr, "connection done\n");
-  io_uring_queue_init(QUEUE_DEPTH, &send_request_ring, 0);
-  io_uring_queue_init(QUEUE_DEPTH, &recv_response_ring, 0);
-  io_uring_queue_init(QUEUE_DEPTH, &recv_request_ring, 0);
-  io_uring_queue_init(QUEUE_DEPTH, &send_response_ring, 0);
+  close(data_fd);
+  close(data_recv_fd);
+  req_sender->join();
+  rep_recvier->join();
+  req_handler->join();
 }
 
 int Engine::get_backup_index() {
