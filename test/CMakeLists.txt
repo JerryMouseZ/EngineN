@@ -5,7 +5,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(OpenMP)
 # add_compile_options(-O3)
 add_subdirectory(liburing)
-add_compile_options(-g -O3 -Wno-address-of-packed-member)
+# add_compile_options(-g -O3 -Wno-address-of-packed-member)
 
 include_directories(../src)
 include_directories(../liburing/src/include)
@@ -13,13 +13,13 @@ include_directories(../liburing/src/include)
 # add_executable(test_multi ./test_multi.cpp ../src/interface.cpp ../src/comm.cpp)
 # target_link_libraries(test_multi pmem pthread uring)
 
-add_executable(test_engine test_engine.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/engine.cpp ../src/data.cpp)
-target_link_libraries(test_engine pmem pthread uring)
+# add_executable(test_engine test_engine.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/engine.cpp ../src/data.cpp)
+# target_link_libraries(test_engine pmem pthread uring)
 
-add_executable(init init.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/engine.cpp)
-target_link_libraries(init pmem pthread uring)
+# add_executable(init init.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/engine.cpp)
+# target_link_libraries(init pmem pthread uring)
 
-add_executable(test_connect test_connect.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/engine.cpp)
+add_executable(test_connect test_connect.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp )
 target_link_libraries(test_connect pmem pthread uring)
 
 # add_executable(test_data test_data.cpp ../src/comm.cpp)
