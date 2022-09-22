@@ -96,4 +96,5 @@ private:
   std::thread *req_sender;
   std::thread *rep_recvier;
   std::thread *req_handler;
+  volatile bool exited;
 };

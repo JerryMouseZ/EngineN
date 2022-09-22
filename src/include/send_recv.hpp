@@ -84,7 +84,9 @@ public:
 
   void exit() {
     exited = true;
-    try_wake_consumer();
+    pthread_mutex_lock(&mtx);
+    pthread_cond_signal(&cond_var);
+    pthread_mutex_unlock(&mtx);
   }
 
 
@@ -138,10 +140,10 @@ public:
     while (check_readable(index, 1) && index < _tail->load(std::memory_order_acquire)) {
       index += 1;
     }
-    
+
     if (check_readable(index, 1))
       return nullptr;
-    
+
     is_readable[index % Capacity] = 0;
     return &_meta[index % Capacity];
   }

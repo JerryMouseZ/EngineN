@@ -51,22 +51,24 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
 
 void Engine::connect(std::vector<info_type> &infos, int num, int host_index) {
   this->host_index = host_index;
-  volatile bool flag = false;
   listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
-  sockaddr_in client_addrs[3];
-  socklen_t client_addr_lens[3];
+  sockaddr_in client_addr;
+  socklen_t client_addr_len = sizeof(client_addr);
+  char client_addr_str[60];
   // 添加3个accept请求
-  std::thread listen_thread(listener, listen_fd, recv_fds, &infos, &flag, &data_recv_fd);
+  std::thread listen_thread(listener, listen_fd, recv_fds, &infos, &data_recv_fd, get_backup_index());
   // 向其它节点发送连接请求
   for (int i = 0; i < 4; ++i) {
     if (i != host_index) {
-      send_fds[i] = connect_to_server(infos[i].first.c_str(), infos[i].second);
-      fprintf(stderr, "connect to %s success\n", infos[i].first.c_str());
+      send_fds[i] = connect_to_server(infos[host_index].first.c_str(), infos[i].first.c_str(), infos[i].second);
+      getsockname(send_fds[i], (sockaddr *)&client_addr, &client_addr_len);
+      inet_ntop(AF_INET, &client_addr.sin_addr, client_addr_str, sizeof(client_addr_str));
+      DEBUG_PRINTF(0, "%s: connect to %s success as %s:%d\n", 
+                   infos[host_index].first.c_str(), infos[i].first.c_str(), client_addr_str, client_addr.sin_port);
     }
   }
 
-  flag = true;
-  data_fd = connect_to_server(infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
+  data_fd = connect_to_server(infos[host_index].first.c_str(), infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
   // 建立同步数据的连接
   listen_thread.join();
   close(listen_fd); // 关闭listen socket, 不再接受连接
@@ -150,6 +152,8 @@ void Engine::request_sender(){
   while (1) {
     // 30大概是4020，能凑4096
     reqv = send_fifo->prepare_send(30, metav);
+    if (exited)
+      return;
     send_req_index = get_request_index();
     if (send_req_index < 0) {
       // stop remote read, wake up threads
@@ -193,7 +197,6 @@ void Engine::invalidate_fd(int sock) {
     if (send_fds[i] == sock || recv_fds[i] == sock) {
       if (alive[i]) {
         alive[i] = false;
-        close(send_fds[i]);
       }
       break;
     }
@@ -217,21 +220,20 @@ void Engine::response_recvier() {
       fprintf(stderr, "io_uring error %d\n", __LINE__);
       break;
     }
-
+    
     // socket close
     if (cqe->res <= 0) {
       // socket return
       int socket = cqe->user_data & 0xffffffff;
       invalidate_fd(socket);
-      continue;
+      req_fd_index = get_request_index();
+      if (req_fd_index < 0)
+        return;
     }
 
     int type = (cqe->user_data >> 32);
     if (type == 0) {
       entry = send_fifo->get_meta(header.fifo_id);
-      req_fd_index = get_request_index();
-      if (req_fd_index < 0)
-        return;
       add_read_request(recv_response_ring, send_fds[req_fd_index], entry->res, header.res_len, (1L << 32) | send_fds[req_fd_index]);
       // header
     } else if(type == 1) {
@@ -381,6 +383,11 @@ void Engine::disconnect() {
   }
   close(data_fd);
   close(data_recv_fd);
+
+  // wake up request sender
+  exited = true;
+  send_fifo->exit(); // wake up send fifo
+
   req_sender->join();
   rep_recvier->join();
   req_handler->join();

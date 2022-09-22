@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <vector>
 #include <assert.h>
+#include "include/util.hpp"
 
 void fatal_error(const char *syscall) {
   perror(syscall);
@@ -57,11 +58,23 @@ int add_accept_request(io_uring &ring, int server_socket, struct sockaddr_in *cl
 }
 
 
-int connect_to_server(const char *ip, int port) {
+int connect_to_server(const char *this_host_ip, const char *ip, int port) {
   int sock = socket(PF_INET, SOCK_STREAM, 0);
   if (sock == -1) {
     fatal_error("socket() error");
   }
+
+  // bind
+  sockaddr_in client_addr;
+  int client_port = 0;
+  memset(&client_addr, 0, sizeof(client_addr));
+  client_addr.sin_family = AF_INET;
+  client_addr.sin_port = htons(client_port);
+  if (inet_pton(AF_INET, this_host_ip, &client_addr.sin_addr) <= 0) {
+    fatal_error("invalid ip for client");
+  }
+  if (bind(sock, (const struct sockaddr *)&client_addr, sizeof(client_addr)) < 0)
+    fatal_error("bind() for client");
 
   // set nodelay
   int enable = 1;
@@ -104,11 +117,12 @@ int add_write_request(io_uring &ring, int client_socket, void *buffer, size_t le
 }
 
 using info_type = std::pair<std::string, int>;
-void listener(int listen_fd, int recv_fds[], std::vector<info_type> *infos, volatile bool *flag, int *data_recv_fd) {
+void listener(int listen_fd, int recv_fds[], std::vector<info_type> *infos, int *data_recv_fd, int data_peer_index) {
   sockaddr_in client_addr;
-  socklen_t client_addr_len;
-  int num = 0;
-  while (num < 3) {
+  socklen_t client_addr_len = sizeof(sockaddr_in);
+  int num = 0, recv_fd_cnt = 0;
+  bool peer_recv_fd_set = false;
+  while (num < 4) {
     int client_fd = accept(listen_fd, (sockaddr *)&client_addr, &client_addr_len);
     if (client_fd < 0) {
       usleep(50);
@@ -117,39 +131,37 @@ void listener(int listen_fd, int recv_fds[], std::vector<info_type> *infos, vola
     for (int j = 0; j < 4; ++j) {
       sockaddr_in addr;
       inet_pton(AF_INET, (*infos)[j].first.c_str(), &addr.sin_addr);
-      if (memcmp(&addr, &client_addr, sizeof(sockaddr_in)) == 0) {
-        recv_fds[j] = client_fd;
+      if (memcmp(&addr.sin_addr, &client_addr.sin_addr, sizeof(sockaddr_in::sin_addr)) == 0) {
+        if (j == data_peer_index && peer_recv_fd_set) {
+          *data_recv_fd = client_fd;
+          DEBUG_PRINTF(0, "data_recv_fd from %s\n", (*infos)[j].first.c_str());
+        } else {
+          recv_fds[j] = client_fd;
+          DEBUG_PRINTF(0, "recv_fd[%d] from %s\n", recv_fd_cnt, (*infos)[j].first.c_str());
+          recv_fd_cnt++;
+          if (j == data_peer_index) {
+            peer_recv_fd_set = true;
+          }
+        }
       }
     }
     num++;
   }
-  
-  while (*flag == false) {
-    usleep(500);
-  }
-
-  while (1) {
-    *data_recv_fd = accept(listen_fd, (sockaddr *)&client_addr, &client_addr_len);
-    if (*data_recv_fd < 0) {
-      usleep(50);
-      continue;
-    }
-    break;
-  }
 }
+
 
 static inline io_uring_cqe *wait_cqe_fast(struct io_uring *ring)
 {
-	struct io_uring_cqe *cqe;
-	unsigned head;
-	int ret;
+  struct io_uring_cqe *cqe;
+  unsigned head;
+  int ret;
 
-	io_uring_for_each_cqe(ring, head, cqe)
-		return cqe;
+  io_uring_for_each_cqe(ring, head, cqe)
+    return cqe;
 
-	ret = io_uring_wait_cqe(ring, &cqe);
-	if (ret)
-		fprintf(stderr, "wait cqe %d\n", ret);
-	return cqe;
+  ret = io_uring_wait_cqe(ring, &cqe);
+  if (ret)
+    fprintf(stderr, "wait cqe %d\n", ret);
+  return cqe;
 }
 

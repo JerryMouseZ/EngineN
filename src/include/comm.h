@@ -20,7 +20,7 @@ int setup_listening_socket(const char *ip, int port);
 
 int add_accept_request(io_uring &ring, int server_socket, struct sockaddr_in *client_addr, socklen_t *client_addr_len);
 
-int connect_to_server(const char *ip, int port);
+int connect_to_server(const char *this_host_ip, const char *ip, int port);
 
 int add_write_request(io_uring &ring, int client_socket, void *buffer, size_t len, __u64 udata);
 
@@ -29,7 +29,7 @@ int add_read_request(io_uring &ring, int client_socket, void *buffer, size_t len
 static inline io_uring_cqe *wait_cqe_fast(struct io_uring *ring);
 
 using info_type = std::pair<std::string, int>;
-void listener(int listen_fd, int *recv_fds, std::vector<info_type> *infos, volatile bool *flag, int *data_recv_fd);
+void listener(int listen_fd, int *recv_fds, std::vector<info_type> *infos, int *data_recv_fd, int data_peer_index);
 
 struct data_request{
   uint32_t fifo_id;
