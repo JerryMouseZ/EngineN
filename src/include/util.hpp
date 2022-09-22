@@ -14,6 +14,7 @@
 #define ROUND_DIV(x, CONST_N) (((x) + CONST_N - 1) / CONST_N)
 #define ROUND_UP(x, CONST_N) (ROUND_DIV(x, CONST_N) * CONST_N)
 
+// if assert fail print
 #define DEBUG
 #ifdef DEBUG
 #define DEBUG_PRINTF(condition, ...) \
