@@ -215,12 +215,14 @@ void Engine::response_recvier() {
   add_read_request(recv_response_ring, send_fds[req_fd_index], &header, sizeof(response_header), send_fds[req_fd_index]);
   while (1) {
     // can be replace with fast wait cqe
-    int ret = io_uring_wait_cqe(&recv_response_ring, &cqe);
-    if (ret < 0) {
+    cqe = wait_cqe_fast(&recv_response_ring);
+    if (cqe == nullptr) {
       fprintf(stderr, "io_uring error %d\n", __LINE__);
       break;
     }
     
+    if (exited)
+      return;
     // socket close
     if (cqe->res <= 0) {
       // socket return
@@ -307,13 +309,18 @@ void Engine::request_handler(){
 
   io_uring_cqe *cqe;
   while (1) {
-    int ret = io_uring_wait_cqe(&recv_request_ring, &cqe);
-    DEBUG_PRINTF(ret == 0, "io_uring error line %d\n", __LINE__);
-    if (ret < 0)
+    cqe = wait_cqe_fast(&recv_request_ring);
+    DEBUG_PRINTF(cqe, "io_uring error line %d\n", __LINE__);
+    if (cqe == nullptr)
       return;
+    
+    if (exited)
+      return;
+
     if (cqe->res <= 0) {
       invalidate_fd(cqe->user_data);
-    } else {
+    } 
+    else {
       // process data
       uint8_t select_column, where_column;
       uint32_t fifo_id;
@@ -347,7 +354,6 @@ void Engine::request_handler(){
     }
 
     io_uring_cqe_seen(&recv_request_ring, cqe);
-
     poll_send_response_cqe();
     if (!alive[req_fd_index] && !alive[req_another_index])
       break;
@@ -375,6 +381,8 @@ void Engine::start_handlers() {
 }
 
 void Engine::disconnect() {
+  // wake up request sender
+  exited = true;
   for (int i = 0; i < 4; ++i) {
     if (i != host_index) {
       close(send_fds[i]);
@@ -384,8 +392,6 @@ void Engine::disconnect() {
   close(data_fd);
   close(data_recv_fd);
 
-  // wake up request sender
-  exited = true;
   send_fifo->exit(); // wake up send fifo
 
   req_sender->join();

@@ -26,7 +26,7 @@ int add_write_request(io_uring &ring, int client_socket, void *buffer, size_t le
 
 int add_read_request(io_uring &ring, int client_socket, void *buffer, size_t len, __u64 udata);
 
-static inline io_uring_cqe *wait_cqe_fast(struct io_uring *ring);
+io_uring_cqe *wait_cqe_fast(struct io_uring *ring);
 
 using info_type = std::pair<std::string, int>;
 void listener(int listen_fd, int *recv_fds, std::vector<info_type> *infos, int *data_recv_fd, int data_peer_index);

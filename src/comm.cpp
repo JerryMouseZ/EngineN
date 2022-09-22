@@ -150,7 +150,7 @@ void listener(int listen_fd, int recv_fds[], std::vector<info_type> *infos, int 
 }
 
 
-static inline io_uring_cqe *wait_cqe_fast(struct io_uring *ring)
+io_uring_cqe *wait_cqe_fast(struct io_uring *ring)
 {
   struct io_uring_cqe *cqe;
   unsigned head;
@@ -160,8 +160,10 @@ static inline io_uring_cqe *wait_cqe_fast(struct io_uring *ring)
     return cqe;
 
   ret = io_uring_wait_cqe(ring, &cqe);
-  if (ret)
+  if (ret) {
     fprintf(stderr, "wait cqe %d\n", ret);
+    return nullptr;
+  }
   return cqe;
 }
 
