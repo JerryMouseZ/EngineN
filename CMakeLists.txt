@@ -17,6 +17,7 @@ SHARED
         src/thread_data.cpp
         src/data.cpp
         src/engine.cpp
+        src/remote.cpp
 )
 
 target_link_libraries(interface uring)

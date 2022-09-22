@@ -59,6 +59,9 @@ private:
   void poll_send_response_cqe();
 
   void invalidate_fd(int sock);
+
+  void start_handlers();
+
 private:
   Data *datas;
   Index *id_r;
