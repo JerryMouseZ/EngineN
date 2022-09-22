@@ -307,6 +307,8 @@ void Engine::request_handler(){
   while (1) {
     int ret = io_uring_wait_cqe(&recv_request_ring, &cqe);
     DEBUG_PRINTF(ret < 0, "io_uring error line %d\n", __LINE__);
+    if (ret < 0)
+      return;
     if (cqe->res <= 0) {
       invalidate_fd(cqe->user_data);
     } else {
