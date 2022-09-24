@@ -5,11 +5,13 @@
 #include "include/util.hpp"
 #include "liburing.h"
 #include <cassert>
+#include <cerrno>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <ctime>
 #include <pthread.h>
+#include <sys/socket.h>
 #include <thread>
 #include <unistd.h>
 
@@ -68,16 +70,17 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index) {
     }
   }
 
-  data_fd = connect_to_server(infos[host_index].first.c_str(), infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
   // 建立同步数据的连接
-  listen_thread.join();
-  close(listen_fd); // 关闭listen socket, 不再接受连接
   fprintf(stderr, "connection done\n");
   io_uring_queue_init(QUEUE_DEPTH, &send_request_ring, 0);
   io_uring_queue_init(QUEUE_DEPTH, &recv_response_ring, 0);
   io_uring_queue_init(QUEUE_DEPTH, &recv_request_ring, 0);
   io_uring_queue_init(QUEUE_DEPTH, &send_response_ring, 0);
-  start_handlers();
+  start_handlers(); // 先start handlers
+
+  data_fd = connect_to_server(infos[host_index].first.c_str(), infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
+  listen_thread.join();
+  close(listen_fd); // 关闭listen socket, 不再接受连接
 }
 
 
@@ -214,13 +217,15 @@ void Engine::response_recvier() {
     return;
   add_read_request(recv_response_ring, send_fds[req_fd_index], &header, sizeof(response_header), send_fds[req_fd_index]);
   while (1) {
+    DEBUG_PRINTF(0, "waiting at recv reponse uring\n");
     // can be replace with fast wait cqe
     cqe = wait_cqe_fast(&recv_response_ring);
+    DEBUG_PRINTF(0, "waiting recv response ring done\n");
     if (cqe == nullptr) {
-      fprintf(stderr, "io_uring error %d\n", __LINE__);
+      fprintf(stderr, "io_uring error line %d error : %d\n", __LINE__, errno);
       break;
     }
-    
+
     if (exited)
       return;
     // socket close
@@ -309,11 +314,13 @@ void Engine::request_handler(){
 
   io_uring_cqe *cqe;
   while (1) {
+    DEBUG_PRINTF(0, "waiting at request_handler\n");
     cqe = wait_cqe_fast(&recv_request_ring);
-    DEBUG_PRINTF(cqe, "io_uring error line %d\n", __LINE__);
+    DEBUG_PRINTF(0, "waiting request_handler done\n");
+    DEBUG_PRINTF(cqe, "io_uring error line %d error : %d\n", __LINE__, errno);
     if (cqe == nullptr)
       return;
-    
+
     if (exited)
       return;
 
@@ -383,23 +390,24 @@ void Engine::start_handlers() {
 void Engine::disconnect() {
   // wake up request sender
   exited = true;
+  send_fifo->exit(); // wake up send fifo
   for (int i = 0; i < 4; ++i) {
     if (i != host_index) {
       close(send_fds[i]);
+      shutdown(recv_fds[i], SHUT_RDWR);
       close(recv_fds[i]);
     }
   }
   close(data_fd);
   close(data_recv_fd);
 
-  send_fifo->exit(); // wake up send fifo
+  DEBUG_PRINTF(0, "socket close, waiting handlers\n");
 
   req_sender->join();
-  rep_recvier->join();
-  req_handler->join();
   io_uring_queue_exit(&send_request_ring);
+  rep_recvier->join();
   io_uring_queue_exit(&recv_response_ring);
-
+  req_handler->join();
   io_uring_queue_exit(&recv_request_ring);
   io_uring_queue_exit(&send_response_ring);
 }
@@ -435,16 +443,16 @@ int Engine::get_request_index() {
       return 2;
     break;
   case 2:
-    if (alive[0])
-      return 0;
     if (alive[1])
       return 1;
+    if (alive[0])
+      return 0;
     break;
   case 3:
-    if (alive[1])
-      return 1;
     if (alive[0])
       return 0;
+    if (alive[1])
+      return 1;
     break;
   }
   return -1;
@@ -461,12 +469,12 @@ int Engine::get_another_request_index() {
       return 2;
     break;
   case 2:
-    if (alive[1])
-      return 1;
-    break;
-  case 3:
     if (alive[0])
       return 0;
+    break;
+  case 3:
+    if (alive[1])
+      return 1;
     break;
   }
   return -1;
