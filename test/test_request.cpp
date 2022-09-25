@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <ostream>
@@ -61,6 +62,7 @@ void test_engine_read(void *context, int index, size_t num)
   /* for (int tid = 0; tid < 50; ++tid) { */
   /*   threads[tid] = new std::thread([=]{ */
   for (long i = index * num; i < (index + 1) * num; ++i) {
+    fprintf(stderr, "%ld\n", i);
     TestUser user;
     // Select Uid from ... where Id
     memset(&user, 0, sizeof(user));
@@ -139,7 +141,7 @@ int main(int argc, char **argv)
   } else {
     test_engine_read(context, index, num);
     int request_index = engine->get_request_index();
-    test_engine_read(context, index, num);
+    test_engine_read(context, request_index, num);
   }
   engine_deinit(context);
 }
