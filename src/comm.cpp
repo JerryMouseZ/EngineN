@@ -1,5 +1,6 @@
 #include "include/comm.h"
 #include "liburing.h"
+#include <asm-generic/socket.h>
 #include <cstring>
 #include <ctime>
 #include <netinet/in.h>
@@ -20,14 +21,14 @@ int setup_listening_socket(const char *ip, int port) {
   int sock;
   struct sockaddr_in srv_addr;
 
-  sock = socket(PF_INET, SOCK_STREAM, 0);
+  sock = socket(PF_INET, SOCK_STREAM | SOCK_CLOEXEC, IPPROTO_TCP);
   if (sock == -1) {
     fatal_error("socket() error");
   }
 
   int enable = 1;
-  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
-    fatal_error("setsockopt(SO_REUSEADDR)");
+  assert (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) >= 0);
+  assert (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) >= 0);
 
   memset(&srv_addr, 0, sizeof(srv_addr));
   srv_addr.sin_family = AF_INET;
@@ -59,10 +60,8 @@ int add_accept_request(io_uring &ring, int server_socket, struct sockaddr_in *cl
 
 
 int connect_to_server(const char *this_host_ip, const char *ip, int port) {
-  int sock = socket(PF_INET, SOCK_STREAM, 0);
-  if (sock == -1) {
-    fatal_error("socket() error");
-  }
+  int sock = socket(PF_INET, SOCK_STREAM | SOCK_CLOEXEC, IPPROTO_TCP);
+  assert(sock > 0);
 
   // bind
   sockaddr_in client_addr;
@@ -70,30 +69,40 @@ int connect_to_server(const char *this_host_ip, const char *ip, int port) {
   memset(&client_addr, 0, sizeof(client_addr));
   client_addr.sin_family = AF_INET;
   client_addr.sin_port = htons(client_port);
-  if (inet_pton(AF_INET, this_host_ip, &client_addr.sin_addr) <= 0) {
-    fatal_error("invalid ip for client");
-  }
-  if (bind(sock, (const struct sockaddr *)&client_addr, sizeof(client_addr)) < 0)
-    fatal_error("bind() for client");
+  assert (inet_pton(AF_INET, this_host_ip, &client_addr.sin_addr) > 0);
+  assert (bind(sock, (const struct sockaddr *)&client_addr, sizeof(client_addr)) >= 0);
 
   // set nodelay
   int enable = 1;
-  int ret = setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable));
+  int ret;
+  ret = setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable));
   assert(ret != -1);
-
+  
+  // option
+  int32_t flags = fcntl(sock, F_GETFL, 0);
+  assert(flags != -1);
+  flags |= O_NONBLOCK;
+  ret = fcntl(sock, F_SETFL, flags);
+  assert(ret != -1);
+  
+  // connect and retry
   struct sockaddr_in server_addr;
   memset(&server_addr, 0, sizeof(server_addr));
   server_addr.sin_family = AF_INET;
   server_addr.sin_port = htons(port);
-  if (inet_pton(AF_INET, ip, &server_addr.sin_addr) <= 0) {
-    fatal_error("invalid ip");
-  }
-
+  assert (inet_pton(AF_INET, ip, &server_addr.sin_addr) > 0);
   ret = connect(sock, (sockaddr *) &server_addr, sizeof(server_addr));
   while (ret != 0) {
     ret = connect(sock, (sockaddr *) &server_addr, sizeof(server_addr));
     usleep(500);
   }
+
+  // reset blocking
+	flags = fcntl(sock, F_GETFL, 0);
+	assert(flags != -1);
+	flags &= ~O_NONBLOCK;
+	ret = fcntl(sock, F_SETFL, flags);
+	assert(ret != -1);
   return sock;
 }
 
@@ -101,7 +110,7 @@ int connect_to_server(const char *this_host_ip, const char *ip, int port) {
 int add_read_request(io_uring &ring, int client_socket, void *buffer, size_t len, __u64 udata) {
   struct io_uring_sqe *sqe = io_uring_get_sqe(&ring);
   assert(sqe);
-  io_uring_prep_recv(sqe, client_socket, buffer, len, 0);
+  io_uring_prep_recv(sqe, client_socket, buffer, len, MSG_WAITALL);
   io_uring_sqe_set_data64(sqe, udata);
   assert(io_uring_submit(&ring) == 1);
   return 0;
