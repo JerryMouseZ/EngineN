@@ -90,6 +90,11 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
     return 0;
   // 用一个队列装request
   size_t id = send_fifo->push(select_column, where_column, column_key, column_key_len, res);
+  if (where_column == Id || where_column == Salary)
+    fprintf(stderr, "add remote read request [%ld] select %s where %s = %ld\n", id, column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)column_key);
+  else
+    fprintf(stderr, "add send remote read request [%ld] select %s where %s = %s\n", id, column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)column_key);
+
   send_entry *entry = send_fifo->get_meta(id);
   // cond wait
   pthread_mutex_lock(&entry->mutex);
@@ -153,6 +158,7 @@ void Engine::request_sender(){
   int ret;
   int send_req_index;
   while (1) {
+    fprintf(stderr, "waiting for fifo send\n");
     // 30大概是4020，能凑4096
     reqv = send_fifo->prepare_send(30, metav);
     if (exited)
