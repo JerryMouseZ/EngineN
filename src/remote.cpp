@@ -180,11 +180,19 @@ void Engine::request_sender(){
         }
         count++;
         add_write_request(send_request_ring, send_fds[send_req_index], reqv, sizeof(data_request), (__u64)reqv);
+        if (reqv->where_column == Id || reqv->where_column == Salary)
+          fprintf(stderr, "send remote read request [%d] select %s where %s = %ld\n", reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), *(uint64_t *)reqv->key);
+        else
+          fprintf(stderr, "send remote read request [%d] select %s where %s = %s\n", reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), (char *)reqv->key);
         metav->socket = send_fds[send_req_index];
       }
     }
 
     add_write_request(send_request_ring, send_fds[send_req_index], reqv, 30 * sizeof(data_request), (__u64)reqv);
+    if (reqv->where_column == Id || reqv->where_column == Salary)
+      fprintf(stderr, "send remote read request [%d - %d] select %s where %s = %ld\n", reqv->fifo_id, reqv->fifo_id + 30, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), *(uint64_t *)reqv->key);
+    else
+      fprintf(stderr, "send remote read request [%d - %d] select %s where %s = %s\n", reqv->fifo_id, reqv->fifo_id + 30, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), (char *)reqv->key);
     metav->socket = send_fds[send_req_index];
     poll_send_req_cqe();
   }
@@ -248,6 +256,7 @@ void Engine::response_recvier() {
       // 设置返回值以及标记，唤醒等待线程
       entry->ret = header.ret;
       entry->has_come = 1;
+      fprintf(stderr, "receiving read response [%d] ret = %d\n", header.fifo_id, entry->ret);
       pthread_mutex_lock(&entry->mutex);
       pthread_cond_signal(&entry->cond);
       pthread_mutex_unlock(&entry->mutex);
@@ -291,6 +300,7 @@ void Engine::poll_send_response_cqe() {
   // 似乎不用做任何处理，要是不要了就发了
   io_uring_for_each_cqe(&send_response_ring, head, cqe) {
     if (cqe->res <= 0) {
+      fprintf(stderr, "send response error\n");
     }
     io_uring_cqe_seen(&send_request_ring, cqe);
   }
@@ -343,7 +353,10 @@ void Engine::request_handler(){
         key = req[1].key;
         fifo_id = req[1].fifo_id;
       }
-
+      if (where_column == Id || where_column == Salary)
+        fprintf(stderr, "recv request select %s where %s = %ld\n", column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
+      else
+        fprintf(stderr, "recv request select %s where %s = %s\n", column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
       int num = local_read(select_column, where_column, key, 128, res_buffer.body);
       res_buffer.header.fifo_id = fifo_id;
       res_buffer.header.ret = num;
@@ -354,10 +367,12 @@ void Engine::request_handler(){
     // add another read request
     int index = cqe->user_data;
     if (alive[index]) {
-      if (index == req_fd_index)
+      if (index == req_fd_index) {
         add_read_request(recv_request_ring, recv_fds[index], req, sizeof(data_request), index);
-      else
+      }
+      else {
         add_read_request(recv_request_ring, recv_fds[req_another_index], &req[1], sizeof(data_request), req_another_index); // 正常情况下这个请求是不会被用到的
+      }
     }
 
     io_uring_cqe_seen(&recv_request_ring, cqe);
