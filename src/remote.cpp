@@ -58,15 +58,15 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index) {
   socklen_t client_addr_len = sizeof(client_addr);
   char client_addr_str[60];
   // 添加3个accept请求
-  std::thread listen_thread(listener, listen_fd, recv_fds, &infos, &data_recv_fd, get_backup_index());
+  std::thread listen_thread(listener, listen_fd, recv_fds, &infos, &data_recv_fd, get_backup_index(), host_index);
   // 向其它节点发送连接请求
   for (int i = 0; i < 4; ++i) {
     if (i != host_index) {
       send_fds[i] = connect_to_server(infos[host_index].first.c_str(), infos[i].first.c_str(), infos[i].second);
       getsockname(send_fds[i], (sockaddr *)&client_addr, &client_addr_len);
       inet_ntop(AF_INET, &client_addr.sin_addr, client_addr_str, sizeof(client_addr_str));
-      DEBUG_PRINTF(0, "%s: connect to %s success as %s:%d\n", 
-                   infos[host_index].first.c_str(), infos[i].first.c_str(), client_addr_str, client_addr.sin_port);
+      DEBUG_PRINTF(0, "[%d -> %d]%s: connect to %s success as %s:%d\n", 
+                   host_index, i, infos[host_index].first.c_str(), infos[i].first.c_str(), client_addr_str, client_addr.sin_port);
     }
   }
 
@@ -80,7 +80,6 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index) {
 
   data_fd = connect_to_server(infos[host_index].first.c_str(), infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
   listen_thread.join();
-  close(listen_fd); // 关闭listen socket, 不再接受连接
 }
 
 
@@ -193,12 +192,12 @@ void Engine::request_sender(){
     /*     metav->socket = send_fds[send_req_index]; */
     /*   } */
     /* } */
-
     add_write_request(send_request_ring, send_fds[send_req_index], reqv, sizeof(data_request), (__u64)reqv);
     if (reqv->where_column == Id || reqv->where_column == Salary)
       fprintf(stderr, "send remote read request [%d - %d] select %s where %s = %ld\n", reqv->fifo_id, reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), *(uint64_t *)reqv->key);
     else
       fprintf(stderr, "send remote read request [%d - %d] select %s where %s = %s\n", reqv->fifo_id, reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), (char *)reqv->key);
+    __sync_fetch_and_add(&pending_requests[send_req_index], 1);
     metav->socket = send_fds[send_req_index];
     poll_send_req_cqe();
   }
@@ -239,7 +238,7 @@ void Engine::response_recvier() {
       fprintf(stderr, "io_uring error line %d error : %d\n", __LINE__, errno);
       break;
     }
-    
+
     fprintf(stderr, "a response comming\n");
     if (exited)
       return;
@@ -347,6 +346,7 @@ void Engine::request_handler(){
       invalidate_fd(cqe->user_data);
     } 
     else {
+      assert(cqe->res == sizeof(data_request));
       // process data
       uint8_t select_column, where_column;
       uint32_t fifo_id;
@@ -426,6 +426,7 @@ void Engine::disconnect() {
   }
   close(data_fd);
   close(data_recv_fd);
+  close(listen_fd);
 
   DEBUG_PRINTF(0, "socket close, waiting handlers\n");
 
