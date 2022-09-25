@@ -220,6 +220,8 @@ void Engine::invalidate_fd(int sock) {
   }
 }
 
+
+// 有一个问题，就是可能recv和send的不是同一个socket，但是没有关系，我们只负责接收
 void Engine::response_recvier() {
   io_uring_cqe *cqe;
   /* char buffer[1024]; */
@@ -231,15 +233,14 @@ void Engine::response_recvier() {
     return;
   add_read_request(recv_response_ring, send_fds[req_fd_index], &header, sizeof(response_header), send_fds[req_fd_index]);
   while (1) {
-    DEBUG_PRINTF(0, "waiting at recv reponse uring\n");
-    // can be replace with fast wait cqe
     cqe = wait_cqe_fast(&recv_response_ring);
     DEBUG_PRINTF(0, "waiting recv response ring done\n");
     if (cqe == nullptr) {
       fprintf(stderr, "io_uring error line %d error : %d\n", __LINE__, errno);
       break;
     }
-
+    
+    fprintf(stderr, "a response comming\n");
     if (exited)
       return;
     // socket close
@@ -255,6 +256,7 @@ void Engine::response_recvier() {
     int type = (cqe->user_data >> 32);
     if (type == 0) {
       entry = send_fifo->get_meta(header.fifo_id);
+      fprintf(stderr, "receiving response header [%d] ret = %d\n", header.fifo_id, entry->ret);
       add_read_request(recv_response_ring, send_fds[req_fd_index], entry->res, header.res_len, (1L << 32) | send_fds[req_fd_index]);
       // header
     } else if(type == 1) {
@@ -307,6 +309,8 @@ void Engine::poll_send_response_cqe() {
   io_uring_for_each_cqe(&send_response_ring, head, cqe) {
     if (cqe->res <= 0) {
       fprintf(stderr, "send response error %d\n", cqe->res);
+    } else {
+      fprintf(stderr, "send a response done\n");
     }
     io_uring_cqe_seen(&send_request_ring, cqe);
   }
@@ -314,7 +318,6 @@ void Engine::poll_send_response_cqe() {
 
 
 response_buffer res_buffer;
-// 太烦了，我们单线程处理请求吧
 void Engine::request_handler(){
   // 用一个ring来存request，然后可以异步处理，是一个SPMC的模型，那就不能用之前的队列了
   data_request req[2];
@@ -360,14 +363,17 @@ void Engine::request_handler(){
         fifo_id = req[1].fifo_id;
       }
       if (where_column == Id || where_column == Salary)
-        fprintf(stderr, "recv request select %s where %s = %ld\n", column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
+        fprintf(stderr, "recv request from index %lld select %s where %s = %ld\n", cqe->user_data, column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
       else
-        fprintf(stderr, "recv request select %s where %s = %s\n", column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
+        fprintf(stderr, "recv request from index %lld select %s where %s = %s\n", cqe->user_data, column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
       int num = local_read(select_column, where_column, key, 128, res_buffer.body);
       res_buffer.header.fifo_id = fifo_id;
       res_buffer.header.ret = num;
       res_buffer.header.res_len = get_column_len(select_column) * num;
-      add_write_request(send_response_ring, cqe->user_data, &res_buffer, sizeof(response_header) + res_buffer.header.res_len, 0);
+      /* int ret = send(cqe->user_data, &res_buffer, sizeof(response_header) + res_buffer.header.res_len, MSG_NOSIGNAL); */
+      /* assert(ret == sizeof(response_header) + res_buffer.header.res_len); */
+      add_write_request(send_response_ring, send_fds[cqe->user_data], &res_buffer, sizeof(response_header) + res_buffer.header.res_len, 0);
+      fprintf(stderr, "send res ret = %d\n", res_buffer.header.ret);
     }
 
     // add another read request
@@ -414,9 +420,8 @@ void Engine::disconnect() {
   send_fifo->exit(); // wake up send fifo
   for (int i = 0; i < 4; ++i) {
     if (i != host_index) {
-      close(send_fds[i]);
+      shutdown(send_fds[i], SHUT_RDWR);
       shutdown(recv_fds[i], SHUT_RDWR);
-      close(recv_fds[i]);
     }
   }
   close(data_fd);
@@ -425,12 +430,20 @@ void Engine::disconnect() {
   DEBUG_PRINTF(0, "socket close, waiting handlers\n");
 
   req_sender->join();
-  io_uring_queue_exit(&send_request_ring);
   rep_recvier->join();
-  io_uring_queue_exit(&recv_response_ring);
   req_handler->join();
+
+  io_uring_queue_exit(&recv_response_ring);
+  io_uring_queue_exit(&send_request_ring);
   io_uring_queue_exit(&recv_request_ring);
   io_uring_queue_exit(&send_response_ring);
+
+  for (int i = 0; i < 4; ++i) {
+    if (i != host_index) {
+      close(send_fds[i]);
+      close(recv_fds[i]);
+    }
+  }
 }
 
 int Engine::get_backup_index() {
@@ -464,16 +477,16 @@ int Engine::get_request_index() {
       return 2;
     break;
   case 2:
-    if (alive[1])
-      return 1;
     if (alive[0])
       return 0;
+    if (alive[1])
+      return 1;
     break;
   case 3:
-    if (alive[0])
-      return 0;
     if (alive[1])
       return 1;
+    if (alive[0])
+      return 0;
     break;
   }
   return -1;
@@ -490,12 +503,12 @@ int Engine::get_another_request_index() {
       return 2;
     break;
   case 2:
-    if (alive[0])
-      return 0;
-    break;
-  case 3:
     if (alive[1])
       return 1;
+    break;
+  case 3:
+    if (alive[0])
+      return 0;
     break;
   }
   return -1;
