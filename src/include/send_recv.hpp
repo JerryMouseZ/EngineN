@@ -53,13 +53,11 @@ public:
 
     std::atomic_thread_fence(std::memory_order_release);
     is_readable[current_tail % Capacity] = 1;
-    if (current_tail % (Capacity >> 5) == 0) {
-      try_wake_consumer();
-    }
-    
+    try_wake_consumer();
+
     return current_tail + 1;
   }
-  
+
   send_entry* get_meta(size_t index) {
     return &_meta[(index - 1) % Capacity];
   }
@@ -91,7 +89,7 @@ public:
 
 
   // 在pop就不要任何检查了
-  data_request* prepare_send(int num, send_entry *meta)
+  data_request* prepare_send(int num, send_entry **meta)
   {
     size_t index = _send->load(std::memory_order_relaxed);
     while (index + num > _tail->load(std::memory_order_acquire)) {
@@ -114,7 +112,7 @@ public:
     // 现在还不能invalid，要等到收到了数据以后
     /* memset((void *)&is_readable[index % Capacity], 0, num); */
     _send->store(index + num, std::memory_order_release);
-    meta = &_meta[index % Capacity];
+    *meta = &_meta[index % Capacity];
     return &_array[index % Capacity];
   }
 

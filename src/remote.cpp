@@ -160,7 +160,7 @@ void Engine::request_sender(){
   while (1) {
     fprintf(stderr, "waiting for fifo send\n");
     // 30大概是4020，能凑4096
-    reqv = send_fifo->prepare_send(30, metav);
+    reqv = send_fifo->prepare_send(1, &metav); // 读是会阻塞的，如果要等前面的请求完成才有后面的请求的话可能不太行，毕竟read没有tail commit
     if (exited)
       return;
     send_req_index = get_request_index();
@@ -171,34 +171,34 @@ void Engine::request_sender(){
     }
 
     // send to io_uring
-    if (reqv == nullptr) {
-      int count = 0;
-      int retries = 0;
-      while (count < 30) {
-        reqv = send_fifo->prepare_send(1, metav);
-        if (reqv == nullptr) {
-          // retries次数太多表示send_fifo之后不会再有请求了
-          retries++;
-          if (retries >= 100) {
-            return;
-          }
-          continue;
-        }
-        count++;
-        add_write_request(send_request_ring, send_fds[send_req_index], reqv, sizeof(data_request), (__u64)reqv);
-        if (reqv->where_column == Id || reqv->where_column == Salary)
-          fprintf(stderr, "send remote read request [%d] select %s where %s = %ld\n", reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), *(uint64_t *)reqv->key);
-        else
-          fprintf(stderr, "send remote read request [%d] select %s where %s = %s\n", reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), (char *)reqv->key);
-        metav->socket = send_fds[send_req_index];
-      }
-    }
+    /* if (reqv == nullptr) { */
+    /*   int count = 0; */
+    /*   int retries = 0; */
+    /*   while (count < 30) { */
+    /*     reqv = send_fifo->prepare_send(1, metav); */
+    /*     if (reqv == nullptr) { */
+    /*       // retries次数太多表示send_fifo之后不会再有请求了 */
+    /*       retries++; */
+    /*       if (retries >= 100) { */
+    /*         return; */
+    /*       } */
+    /*       continue; */
+    /*     } */
+    /*     count++; */
+    /*     add_write_request(send_request_ring, send_fds[send_req_index], reqv, sizeof(data_request), (__u64)reqv); */
+    /*     if (reqv->where_column == Id || reqv->where_column == Salary) */
+    /*       fprintf(stderr, "send remote read request [%d] select %s where %s = %ld\n", reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), *(uint64_t *)reqv->key); */
+    /*     else */
+    /*       fprintf(stderr, "send remote read request [%d] select %s where %s = %s\n", reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), (char *)reqv->key); */
+    /*     metav->socket = send_fds[send_req_index]; */
+    /*   } */
+    /* } */
 
-    add_write_request(send_request_ring, send_fds[send_req_index], reqv, 30 * sizeof(data_request), (__u64)reqv);
+    add_write_request(send_request_ring, send_fds[send_req_index], reqv, sizeof(data_request), (__u64)reqv);
     if (reqv->where_column == Id || reqv->where_column == Salary)
-      fprintf(stderr, "send remote read request [%d - %d] select %s where %s = %ld\n", reqv->fifo_id, reqv->fifo_id + 30, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), *(uint64_t *)reqv->key);
+      fprintf(stderr, "send remote read request [%d - %d] select %s where %s = %ld\n", reqv->fifo_id, reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), *(uint64_t *)reqv->key);
     else
-      fprintf(stderr, "send remote read request [%d - %d] select %s where %s = %s\n", reqv->fifo_id, reqv->fifo_id + 30, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), (char *)reqv->key);
+      fprintf(stderr, "send remote read request [%d - %d] select %s where %s = %s\n", reqv->fifo_id, reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), (char *)reqv->key);
     metav->socket = send_fds[send_req_index];
     poll_send_req_cqe();
   }
@@ -306,7 +306,7 @@ void Engine::poll_send_response_cqe() {
   // 似乎不用做任何处理，要是不要了就发了
   io_uring_for_each_cqe(&send_response_ring, head, cqe) {
     if (cqe->res <= 0) {
-      fprintf(stderr, "send response error\n");
+      fprintf(stderr, "send response error %d\n", cqe->res);
     }
     io_uring_cqe_seen(&send_request_ring, cqe);
   }
