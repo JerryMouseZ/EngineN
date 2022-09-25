@@ -97,4 +97,6 @@ private:
   std::thread *rep_recvier;
   std::thread *req_handler;
   volatile bool exited;
+
+  size_t pending_requests[4];
 };
