@@ -5,3 +5,4 @@ test_log
 /r0*/
 init
 test_connect
+test_request

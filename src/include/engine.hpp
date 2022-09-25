@@ -41,14 +41,14 @@ public:
 
   size_t remote_read(uint8_t select_column, uint8_t where_column, const void *column_key, size_t key_len, void *res);
 
+  int get_request_index();
+
 private:
   static std::string column_str(int column);
 
   void connect(std::vector<info_type> &infos, int num, int host_index);
 
   int get_backup_index();
-
-  int get_request_index();
 
   int get_another_request_index();
 
