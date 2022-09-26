@@ -22,12 +22,14 @@ public:
 
 enum Column{Id=0, Userid, Name, Salary};
 
-void test_engine_write(size_t num)
+void test_engine_write(int index, size_t num)
 {
-  auto rng = std::default_random_engine {};
-  /* std::shuffle(iters.begin(), iters.end(), rng); */
+  char aep_path[16];
+  char disk_path[16];
+  sprintf(aep_path, "/mnt/aep/node%d", index);
+  sprintf(disk_path, "/mnt/disk/node%d", index);
+  void *context = engine_init(nullptr, nullptr, 0, aep_path, disk_path);
 
-  void *context = engine_init(nullptr, nullptr, 0, "/mnt/aep/", "/mnt/disk/");
   assert(num % 50 == 0);
   long per_thread = num / 50;
   std::thread *threads[50];
@@ -63,13 +65,14 @@ void print_user(const TestUser &user) {
   printf("  Salary: %lu\n", user.salary);
 }
 
-void test_engine_read(size_t num)
+void test_engine_read(int index, size_t num)
 {
-  auto rng = std::default_random_engine {};
-  /* std::shuffle(iters.begin(), iters.end(), rng); */
+  char aep_path[16];
+  char disk_path[16];
+  sprintf(aep_path, "/mnt/aep/node%d", index);
+  sprintf(disk_path, "/mnt/disk/node%d", index);
+  void *context = engine_init(nullptr, nullptr, 0, aep_path, disk_path);
 
-
-  void *context = engine_init(nullptr, nullptr, 0, "/mnt/aep/", "/mnt/disk/");
   assert(num % 50 == 0);
   int per_thread = num / 50;
   std::thread *threads[50];
@@ -186,16 +189,16 @@ void test_engine_read(size_t num)
 
 int main(int argc, char **argv)
 {
-  if (argc < 3) {
-    fprintf(stderr, "usage: %s read/write num\n", argv[0]);
+  if (argc < 4) {
+    fprintf(stderr, "usage: %s [index] [read/write] [num]\n", argv[0]);
     exit(0);
   }
 
-  int num = atol(argv[2]);
-  if (argv[1][0] == 'r') {
-    test_engine_read(num);
-  } else if (argv[1][0] == 'w'){
-    test_engine_write(num);
+  int num = atol(argv[3]);
+  if (argv[2][0] == 'r') {
+    test_engine_read(atoi(argv[1]), num);
+  } else if (argv[2][0] == 'w'){
+    test_engine_write(atoi(argv[1]), num);
   } else {
     /* test_read_write(num); */
   }

@@ -13,8 +13,8 @@ include_directories(../liburing/src/include)
 # add_executable(test_multi ./test_multi.cpp ../src/interface.cpp ../src/comm.cpp)
 # target_link_libraries(test_multi pmem pthread uring)
 
-# add_executable(test_engine test_engine.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/engine.cpp ../src/data.cpp)
-# target_link_libraries(test_engine pmem pthread uring)
+add_executable(test_local test_local.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp)
+target_link_libraries(test_local pmem pthread uring)
 
 # add_executable(init init.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/engine.cpp)
 # target_link_libraries(init pmem pthread uring)

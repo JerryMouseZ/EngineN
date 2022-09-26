@@ -13,6 +13,7 @@
 #include <thread>
 
 Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr), consumers(nullptr), exited(false), pending_requests{0} {
+  host_index = -1;
   qs = static_cast<UserQueue *>(mmap(0, MAX_NR_CONSUMER * sizeof(UserQueue), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     new (&qs[i])UserQueue;
@@ -22,7 +23,8 @@ Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr)
 
 Engine::~Engine() {
   // disconnect all socket and handlers
-  disconnect();
+  if (host_index != -1)
+    disconnect();
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     qs[i].notify_producers_exit();
   }
@@ -52,6 +54,10 @@ void Engine::open(std::string aep_path, std::string disk_path) {
   std::string data_prefix = aep_path;
   if (data_prefix[data_prefix.size() - 1] != '/')
     data_prefix.push_back('/');
+
+  if (disk_path[disk_path.size() - 1] != '/')
+    disk_path.push_back('/');
+
   datas = new Data[MAX_NR_CONSUMER];
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     datas[i].open(data_prefix + "user.data" + std::to_string(i), disk_path + "cache", disk_path + "flag" + std::to_string(i));
