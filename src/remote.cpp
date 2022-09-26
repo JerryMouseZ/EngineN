@@ -88,15 +88,15 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
   // 用一个队列装request
   size_t id = send_fifo->push(select_column, where_column, column_key, column_key_len, res);
   if (where_column == Id || where_column == Salary)
-    fprintf(stderr, "add remote read request [%ld] select %s where %s = %ld\n", id, column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)column_key);
+    DEBUG_PRINTF(LOG, "add remote read request [%ld] select %s where %s = %ld\n", id, column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)column_key);
   else
-    fprintf(stderr, "add send remote read request [%ld] select %s where %s = %s\n", id, column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)column_key);
+    DEBUG_PRINTF(LOG, "add send remote read request [%ld] select %s where %s = %s\n", id, column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)column_key);
 
   send_entry *entry = send_fifo->get_meta(id);
   // cond wait
   pthread_mutex_lock(&entry->mutex);
   while (!entry->has_come) {
-    fprintf(stderr, "waiting at %p\n", &entry->cond);
+    DEBUG_PRINTF(LOG, "waiting at %p\n", &entry->cond);
     pthread_cond_wait(&entry->cond, &entry->mutex);
   }
   pthread_mutex_unlock(&entry->mutex);
@@ -195,11 +195,11 @@ void Engine::response_recvier() {
     // 设置返回值以及标记，唤醒等待线程
     entry->ret = header.ret;
     entry->has_come = 1;
-    fprintf(stderr, "receiving read response [%d] ret = %d\n", header.fifo_id, entry->ret);
+    DEBUG_PRINTF(LOG, "receiving read response [%d] ret = %d\n", header.fifo_id, entry->ret);
     pthread_mutex_lock(&entry->mutex);
     pthread_cond_signal(&entry->cond);
     pthread_mutex_unlock(&entry->mutex);
-    fprintf(stderr, "waking up [%d] %p\n", header.fifo_id, &entry->cond);
+    DEBUG_PRINTF(LOG, "waking up [%d] %p\n", header.fifo_id, &entry->cond);
     req_fd_index = get_request_index();
     if (req_fd_index < 0) {
       return;
@@ -251,9 +251,9 @@ void Engine::request_handler(){
       key = req.key;
       fifo_id = req.fifo_id;
       if (where_column == Id || where_column == Salary)
-        fprintf(stderr, "recv request from index %d select %s where %s = %ld\n", req_fd_index, column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
+        DEBUG_PRINTF(LOG, "recv request from index %d select %s where %s = %ld\n", req_fd_index, column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
       else
-        fprintf(stderr, "recv request from index %d select %s where %s = %s\n", req_fd_index, column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
+        DEBUG_PRINTF(LOG, "recv request from index %d select %s where %s = %s\n", req_fd_index, column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
       int num = local_read(select_column, where_column, key, 128, res_buffer.body);
       res_buffer.header.fifo_id = fifo_id;
       res_buffer.header.ret = num;
@@ -262,7 +262,7 @@ void Engine::request_handler(){
       /* assert(ret == sizeof(response_header) + res_buffer.header.res_len); */
       len = send(recv_fds[req_fd_index], &res_buffer, sizeof(response_header) + res_buffer.header.res_len, MSG_NOSIGNAL);
       assert(len == sizeof(response_header) + res_buffer.header.res_len);
-      fprintf(stderr, "send res ret = %d\n", res_buffer.header.ret);
+      DEBUG_PRINTF(LOG, "send res ret = %d\n", res_buffer.header.ret);
     }
 
     if (!alive[req_fd_index])
