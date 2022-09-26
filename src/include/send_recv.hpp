@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <libpmem.h>
 #include <pthread.h>
@@ -54,7 +55,6 @@ public:
     std::atomic_thread_fence(std::memory_order_release);
     is_readable[current_tail % Capacity] = 1;
     try_wake_consumer();
-
     return current_tail + 1;
   }
 
@@ -71,7 +71,7 @@ public:
         return true;
     }
     // unalign部分用1比较
-    uint8_t *res = (uint8_t *)base;
+    volatile uint8_t *res = (uint8_t *)base;
     for (int i = (num / 8) * 8; i < num; ++i) {
       if (res[i])
         return false;
@@ -104,9 +104,10 @@ public:
     while (check_readable(index, num)) {
       sched_yield();
       sched_count++;
-      if (sched_count > 100) {
-        return nullptr;
-      }
+      /* if (sched_count > 100) { */
+      /*   fprintf(stderr, "schedule too much, return nullptr\n"); */
+      /*   return nullptr; */
+      /* } */
     }
 
     // 现在还不能invalid，要等到收到了数据以后
@@ -124,8 +125,11 @@ public:
   bool check_pop() {
     bool res = false;
     size_t index = _head->load(std::memory_order_relaxed);
-    while (!check_readable(index, 64)) {
-      index += 64;
+    size_t current_tail = _tail->load(std::memory_order_acquire);
+    current_tail -= 8;
+    static const uint64_t zero = 0;
+    while (index < current_tail && memcmp((void *)&is_readable[index % Capacity], &zero, 8) == 0) {
+      index += 8;
       res = true;
     }
     if (res)

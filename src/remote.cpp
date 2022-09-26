@@ -134,6 +134,7 @@ void Engine::request_sender(){
     reqv = send_fifo->prepare_send(1, &metav); // 读是会阻塞的，如果要等前面的请求完成才有后面的请求的话可能不太行，毕竟read没有tail commit
     if (exited)
       return;
+
     send_req_index = get_request_index();
     if (send_req_index < 0) {
       // stop remote read, wake up threads
