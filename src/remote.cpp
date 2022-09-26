@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <ctime>
+#include <fcntl.h>
 #include <pthread.h>
 #include <sys/socket.h>
 #include <thread>
@@ -72,10 +73,6 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index) {
 
   // 建立同步数据的连接
   fprintf(stderr, "connection done\n");
-  io_uring_queue_init(QUEUE_DEPTH, &send_request_ring, 0);
-  io_uring_queue_init(QUEUE_DEPTH, &recv_response_ring, 0);
-  io_uring_queue_init(QUEUE_DEPTH, &recv_request_ring, 0);
-  io_uring_queue_init(QUEUE_DEPTH, &send_response_ring, 0);
   start_handlers(); // 先start handlers
 
   data_fd = connect_to_server(infos[host_index].first.c_str(), infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
@@ -98,6 +95,7 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
   // cond wait
   pthread_mutex_lock(&entry->mutex);
   while (!entry->has_come) {
+    fprintf(stderr, "waiting at %p\n", &entry->cond);
     pthread_cond_wait(&entry->cond, &entry->mutex);
   }
   pthread_mutex_unlock(&entry->mutex);
@@ -121,33 +119,6 @@ void Engine::term_sending_request() {
   }
 }
 
-void Engine::poll_send_req_cqe() {
-  data_request *reqv = nullptr;
-  send_entry *metav = nullptr;
-  io_uring_cqe *cqe = nullptr;
-  unsigned head = -1;
-  int ret = -1;
-  int send_req_index = -1;
-
-  io_uring_for_each_cqe(&send_request_ring, head, cqe) {
-    if (cqe->res <= 0) {
-      reqv = (data_request *)(cqe->user_data);
-      metav = send_fifo->get_meta(reqv->fifo_id);
-      send_req_index = get_request_index();
-      if (send_req_index >= 0) {
-        // 重试发送
-        if ((reqv->fifo_id + 1) % 30 == 0)
-          add_write_request(send_request_ring, send_fds[send_req_index], reqv, 30 * sizeof(data_request), (__u64)reqv);
-        else
-          add_write_request(send_request_ring, send_fds[send_req_index], reqv, sizeof(data_request), (__u64)reqv);
-      } else {
-        // 取消重试，返回0
-        term_sending_request();
-      }
-    }
-    io_uring_cqe_seen(&send_request_ring, cqe);
-  }
-}
 
 void Engine::request_sender(){
   data_request *reqv;
@@ -168,38 +139,14 @@ void Engine::request_sender(){
       term_sending_request();
       return;
     }
-
-    // send to io_uring
-    /* if (reqv == nullptr) { */
-    /*   int count = 0; */
-    /*   int retries = 0; */
-    /*   while (count < 30) { */
-    /*     reqv = send_fifo->prepare_send(1, metav); */
-    /*     if (reqv == nullptr) { */
-    /*       // retries次数太多表示send_fifo之后不会再有请求了 */
-    /*       retries++; */
-    /*       if (retries >= 100) { */
-    /*         return; */
-    /*       } */
-    /*       continue; */
-    /*     } */
-    /*     count++; */
-    /*     add_write_request(send_request_ring, send_fds[send_req_index], reqv, sizeof(data_request), (__u64)reqv); */
-    /*     if (reqv->where_column == Id || reqv->where_column == Salary) */
-    /*       fprintf(stderr, "send remote read request [%d] select %s where %s = %ld\n", reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), *(uint64_t *)reqv->key); */
-    /*     else */
-    /*       fprintf(stderr, "send remote read request [%d] select %s where %s = %s\n", reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), (char *)reqv->key); */
-    /*     metav->socket = send_fds[send_req_index]; */
-    /*   } */
-    /* } */
-    add_write_request(send_request_ring, send_fds[send_req_index], reqv, sizeof(data_request), (__u64)reqv);
+    
+    send(send_fds[send_req_index], reqv, sizeof(data_request), MSG_NOSIGNAL);
     if (reqv->where_column == Id || reqv->where_column == Salary)
       fprintf(stderr, "send remote read request [%d - %d] select %s where %s = %ld\n", reqv->fifo_id, reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), *(uint64_t *)reqv->key);
     else
       fprintf(stderr, "send remote read request [%d - %d] select %s where %s = %s\n", reqv->fifo_id, reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), (char *)reqv->key);
     __sync_fetch_and_add(&pending_requests[send_req_index], 1);
     metav->socket = send_fds[send_req_index];
-    poll_send_req_cqe();
   }
 }
 
@@ -222,61 +169,42 @@ void Engine::invalidate_fd(int sock) {
 
 // 有一个问题，就是可能recv和send的不是同一个socket，但是没有关系，我们只负责接收
 void Engine::response_recvier() {
-  io_uring_cqe *cqe;
-  /* char buffer[1024]; */
   response_header header;
   send_entry *entry;
   int req_fd_index = get_request_index();
   // 如果两个request node都挂了，其实不需要发request了
   if (req_fd_index < 0)
     return;
-  add_read_request(recv_response_ring, send_fds[req_fd_index], &header, sizeof(response_header), send_fds[req_fd_index]);
   while (1) {
-    cqe = wait_cqe_fast(&recv_response_ring);
-    DEBUG_PRINTF(0, "waiting recv response ring done\n");
-    if (cqe == nullptr) {
-      fprintf(stderr, "io_uring error line %d error : %d\n", __LINE__, errno);
-      break;
-    }
-
+    int len = recv(send_fds[req_fd_index], &header, sizeof(response_header), MSG_WAITALL);
     fprintf(stderr, "a response comming\n");
     if (exited)
       return;
     // socket close
-    if (cqe->res <= 0) {
-      // socket return
-      int socket = cqe->user_data & 0xffffffff;
-      invalidate_fd(socket);
-      req_fd_index = get_request_index();
-      if (req_fd_index < 0)
-        return;
+    if (len <= 0) {
+      invalidate_fd(req_fd_index);
     }
+    
+    assert(len == sizeof(response_header));
+    entry = send_fifo->get_meta(header.fifo_id);
+    fprintf(stderr, "receiving response header [%d] ret = %d\n", header.fifo_id, header.ret);
 
-    int type = (cqe->user_data >> 32);
-    if (type == 0) {
-      entry = send_fifo->get_meta(header.fifo_id);
-      fprintf(stderr, "receiving response header [%d] ret = %d\n", header.fifo_id, entry->ret);
-      add_read_request(recv_response_ring, send_fds[req_fd_index], entry->res, header.res_len, (1L << 32) | send_fds[req_fd_index]);
-      // header
-    } else if(type == 1) {
-      // body
-      // 设置返回值以及标记，唤醒等待线程
-      entry->ret = header.ret;
-      entry->has_come = 1;
-      fprintf(stderr, "receiving read response [%d] ret = %d\n", header.fifo_id, entry->ret);
-      pthread_mutex_lock(&entry->mutex);
-      pthread_cond_signal(&entry->cond);
-      pthread_mutex_unlock(&entry->mutex);
-      req_fd_index = get_request_index();
-      if (req_fd_index < 0) {
-        return;
-      }
-      add_read_request(recv_response_ring, send_fds[req_fd_index], &header, sizeof(response_header), send_fds[req_fd_index]);
-    } else{
-      // error
-      assert(0);
+    // recv body
+    len = recv(send_fds[req_fd_index], entry->res, header.res_len, MSG_WAITALL);
+    assert(len == header.res_len);
+    // body
+    // 设置返回值以及标记，唤醒等待线程
+    entry->ret = header.ret;
+    entry->has_come = 1;
+    fprintf(stderr, "receiving read response [%d] ret = %d\n", header.fifo_id, entry->ret);
+    pthread_mutex_lock(&entry->mutex);
+    pthread_cond_signal(&entry->cond);
+    pthread_mutex_unlock(&entry->mutex);
+    fprintf(stderr, "waking up [%d] %p\n", header.fifo_id, &entry->cond);
+    req_fd_index = get_request_index();
+    if (req_fd_index < 0) {
+      return;
     }
-    io_uring_cqe_seen(&recv_response_ring, cqe);
   }
 }
 
@@ -300,96 +228,46 @@ int get_column_len(int column) {
   return -1;
 }
 
-void Engine::poll_send_response_cqe() {
-  io_uring_cqe *cqe = nullptr;
-  unsigned head = -1;
-
-  // 似乎不用做任何处理，要是不要了就发了
-  io_uring_for_each_cqe(&send_response_ring, head, cqe) {
-    if (cqe->res <= 0) {
-      fprintf(stderr, "send response error %d\n", cqe->res);
-    } else {
-      fprintf(stderr, "send a response done\n");
-    }
-    io_uring_cqe_seen(&send_request_ring, cqe);
-  }
-}
-
-
 response_buffer res_buffer;
 void Engine::request_handler(){
   // 用一个ring来存request，然后可以异步处理，是一个SPMC的模型，那就不能用之前的队列了
-  data_request req[2];
+  data_request req;
   int req_fd_index = get_request_index();
-  int req_another_index = get_another_request_index();
-  assert(req_fd_index >= 0);
-  assert(req_another_index >= 0);
-
-  // userdata 用0和1来区分两个节点的请求
-  // 同时读两个节点的请求
-  add_read_request(recv_request_ring, recv_fds[req_fd_index], req, sizeof(data_request), req_fd_index);
-  add_read_request(recv_request_ring, recv_fds[req_another_index], &req[1], sizeof(data_request), req_another_index); // 正常情况下这个请求是不会被用到的
-
-  io_uring_cqe *cqe;
+  int len = 0;
   while (1) {
-    DEBUG_PRINTF(0, "waiting at request_handler\n");
-    cqe = wait_cqe_fast(&recv_request_ring);
-    DEBUG_PRINTF(0, "waiting request_handler done\n");
-    DEBUG_PRINTF(cqe, "io_uring error line %d error : %d\n", __LINE__, errno);
-    if (cqe == nullptr)
-      return;
+    len = recv(recv_fds[req_fd_index], &req, sizeof(data_request), MSG_WAITALL);
 
     if (exited)
       return;
-
-    if (cqe->res <= 0) {
-      invalidate_fd(cqe->user_data);
+    if (len == 0) {
+      invalidate_fd(req_fd_index);
     } 
     else {
-      assert(cqe->res == sizeof(data_request));
+      assert(len == sizeof(data_request));
       // process data
       uint8_t select_column, where_column;
       uint32_t fifo_id;
       void *key;
-      if (cqe->user_data == req_fd_index) {
-        select_column = req[0].select_column;
-        where_column = req[0].where_column;
-        key = req[0].key;
-        fifo_id = req[0].fifo_id;
-      } else {
-        select_column = req[1].select_column;
-        where_column = req[1].where_column;
-        key = req[1].key;
-        fifo_id = req[1].fifo_id;
-      }
+      select_column = req.select_column;
+      where_column = req.where_column;
+      key = req.key;
+      fifo_id = req.fifo_id;
       if (where_column == Id || where_column == Salary)
-        fprintf(stderr, "recv request from index %lld select %s where %s = %ld\n", cqe->user_data, column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
+        fprintf(stderr, "recv request from index %d select %s where %s = %ld\n", req_fd_index, column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
       else
-        fprintf(stderr, "recv request from index %lld select %s where %s = %s\n", cqe->user_data, column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
+        fprintf(stderr, "recv request from index %d select %s where %s = %s\n", req_fd_index, column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
       int num = local_read(select_column, where_column, key, 128, res_buffer.body);
       res_buffer.header.fifo_id = fifo_id;
       res_buffer.header.ret = num;
       res_buffer.header.res_len = get_column_len(select_column) * num;
       /* int ret = send(cqe->user_data, &res_buffer, sizeof(response_header) + res_buffer.header.res_len, MSG_NOSIGNAL); */
       /* assert(ret == sizeof(response_header) + res_buffer.header.res_len); */
-      add_write_request(send_response_ring, send_fds[cqe->user_data], &res_buffer, sizeof(response_header) + res_buffer.header.res_len, 0);
+      len = send(recv_fds[req_fd_index], &res_buffer, sizeof(response_header) + res_buffer.header.res_len, MSG_NOSIGNAL);
+      assert(len == sizeof(response_header) + res_buffer.header.res_len);
       fprintf(stderr, "send res ret = %d\n", res_buffer.header.ret);
     }
 
-    // add another read request
-    int index = cqe->user_data;
-    if (alive[index]) {
-      if (index == req_fd_index) {
-        add_read_request(recv_request_ring, recv_fds[index], req, sizeof(data_request), index);
-      }
-      else {
-        add_read_request(recv_request_ring, recv_fds[req_another_index], &req[1], sizeof(data_request), req_another_index); // 正常情况下这个请求是不会被用到的
-      }
-    }
-
-    io_uring_cqe_seen(&recv_request_ring, cqe);
-    poll_send_response_cqe();
-    if (!alive[req_fd_index] && !alive[req_another_index])
+    if (!alive[req_fd_index])
       break;
   }
 }
@@ -433,11 +311,6 @@ void Engine::disconnect() {
   req_sender->join();
   rep_recvier->join();
   req_handler->join();
-
-  io_uring_queue_exit(&recv_response_ring);
-  io_uring_queue_exit(&send_request_ring);
-  io_uring_queue_exit(&recv_request_ring);
-  io_uring_queue_exit(&send_response_ring);
 
   for (int i = 0; i < 4; ++i) {
     if (i != host_index) {

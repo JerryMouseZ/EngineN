@@ -62,10 +62,6 @@ private:
   
   void term_sending_request();
 
-  void poll_send_req_cqe();
-
-  void poll_send_response_cqe();
-
   void invalidate_fd(int sock);
 
   void disconnect();
@@ -79,12 +75,6 @@ private:
   UserQueue *qs;
   std::thread *consumers;
 
-  // for connection
-  io_uring send_request_ring;
-  io_uring recv_response_ring;
-
-  io_uring recv_request_ring;
-  io_uring send_response_ring;
   int host_index;
   int listen_fd;
   bool alive[4];
