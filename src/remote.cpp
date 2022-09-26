@@ -93,10 +93,11 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
     DEBUG_PRINTF(LOG, "add send remote read request [%ld] select %s where %s = %s\n", id, column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)column_key);
 
   send_entry *entry = send_fifo->get_meta(id);
-  // cond wait
+
+  // TODO: 需要解决没有收到回复导致死锁的问题
   pthread_mutex_lock(&entry->mutex);
   while (!entry->has_come) {
-    DEBUG_PRINTF(LOG, "waiting at %p\n", &entry->cond);
+    DEBUG_PRINTF(0, "waiting at %p\n", &entry->cond);
     pthread_cond_wait(&entry->cond, &entry->mutex);
   }
   pthread_mutex_unlock(&entry->mutex);
@@ -178,7 +179,7 @@ void Engine::response_recvier() {
   if (req_fd_index < 0)
     return;
   while (1) {
-    int len = recv(send_fds[req_fd_index], &header, sizeof(response_header), MSG_WAITALL);
+    int len = recv(send_fds[req_fd_index], &header, sizeof(response_header), 0);
     if (exited)
       return;
     // socket close
@@ -189,17 +190,17 @@ void Engine::response_recvier() {
     
     entry = send_fifo->get_meta(header.fifo_id);
     // recv body
-    len = recv(send_fds[req_fd_index], entry->res, header.res_len, MSG_WAITALL);
+    len = recv(send_fds[req_fd_index], entry->res, header.res_len, 0);
     assert(len == header.res_len);
     // body
     // 设置返回值以及标记，唤醒等待线程
     entry->ret = header.ret;
     entry->has_come = 1;
-    DEBUG_PRINTF(LOG, "receiving read response [%d] ret = %d\n", header.fifo_id, entry->ret);
+    DEBUG_PRINTF(0, "receiving read response [%d] ret = %d\n", header.fifo_id, entry->ret);
     pthread_mutex_lock(&entry->mutex);
     pthread_cond_signal(&entry->cond);
     pthread_mutex_unlock(&entry->mutex);
-    DEBUG_PRINTF(LOG, "waking up [%d] %p\n", header.fifo_id, &entry->cond);
+    DEBUG_PRINTF(0, "waking up [%d] %p\n", header.fifo_id, &entry->cond);
     req_fd_index = get_request_index();
     if (req_fd_index < 0) {
       return;
