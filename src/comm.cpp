@@ -73,12 +73,12 @@ int connect_to_server(const char *this_host_ip, const char *ip, int port) {
   assert (bind(sock, (const struct sockaddr *)&client_addr, sizeof(client_addr)) >= 0);
 
   // set nodelay
-  /* int enable = 1; */
+  int enable = 1;
   int ret;
-  /* ret = setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable)); */
-  /* assert(ret != -1); */
+  ret = setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable));
+  assert(ret != -1);
   
-  // option
+  // set nonblocking
   int32_t flags = fcntl(sock, F_GETFL, 0);
   assert(flags != -1);
   flags |= O_NONBLOCK;
@@ -137,6 +137,14 @@ void listener(int listen_fd, int recv_fds[], std::vector<info_type> *infos, int 
       usleep(50);
       continue;
     }
+
+    // set nodelay
+    int enable = 1;
+    int ret;
+    ret = setsockopt(client_fd, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable));
+    assert(ret != -1);
+
+
     for (int j = 0; j < 4; ++j) {
       sockaddr_in addr;
       inet_pton(AF_INET, (*infos)[j].first.c_str(), &addr.sin_addr);
