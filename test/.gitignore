@@ -6,3 +6,4 @@ test_log
 init
 test_connect
 test_request
+test_local
