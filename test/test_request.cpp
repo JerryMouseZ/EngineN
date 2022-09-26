@@ -8,6 +8,7 @@
 #include "../inc/interface.h"
 #include "../src/include/engine.hpp"
 #include <assert.h>
+#include <unistd.h>
 
 char ips[4][32] {
     "192.168.1.38:",
@@ -142,6 +143,9 @@ int main(int argc, char **argv)
     test_engine_read(context, index, num);
     int request_index = engine->get_request_index();
     test_engine_read(context, request_index, num);
+
+    // waitint for other read done
+    sleep(20);
   }
   engine_deinit(context);
 }

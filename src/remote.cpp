@@ -73,6 +73,8 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index) {
 
   // 建立同步数据的连接
   fprintf(stderr, "connection done\n");
+  for (int i = 0; i < 4; ++i)
+    alive[i] = true;
   start_handlers(); // 先start handlers
 
   data_fd = connect_to_server(infos[host_index].first.c_str(), infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
@@ -177,15 +179,14 @@ void Engine::response_recvier() {
     return;
   while (1) {
     int len = recv(send_fds[req_fd_index], &header, sizeof(response_header), MSG_WAITALL);
-    fprintf(stderr, "a response comming\n");
     if (exited)
       return;
     // socket close
     if (len <= 0) {
       invalidate_fd(req_fd_index);
+      return;
     }
     
-    assert(len == sizeof(response_header));
     entry = send_fifo->get_meta(header.fifo_id);
     fprintf(stderr, "receiving response header [%d] ret = %d\n", header.fifo_id, header.ret);
 
@@ -236,7 +237,6 @@ void Engine::request_handler(){
   int len = 0;
   while (1) {
     len = recv(recv_fds[req_fd_index], &req, sizeof(data_request), MSG_WAITALL);
-
     if (exited)
       return;
     if (len == 0) {
