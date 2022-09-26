@@ -66,13 +66,12 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index) {
       send_fds[i] = connect_to_server(infos[host_index].first.c_str(), infos[i].first.c_str(), infos[i].second);
       getsockname(send_fds[i], (sockaddr *)&client_addr, &client_addr_len);
       inet_ntop(AF_INET, &client_addr.sin_addr, client_addr_str, sizeof(client_addr_str));
-      DEBUG_PRINTF(0, "[%d -> %d]%s: connect to %s success as %s:%d\n", 
+      DEBUG_PRINTF(LOG, "[%d -> %d]%s: connect to %s success as %s:%d\n", 
                    host_index, i, infos[host_index].first.c_str(), infos[i].first.c_str(), client_addr_str, client_addr.sin_port);
     }
   }
 
   // 建立同步数据的连接
-  fprintf(stderr, "connection done\n");
   for (int i = 0; i < 4; ++i)
     alive[i] = true;
   start_handlers(); // 先start handlers
@@ -130,7 +129,7 @@ void Engine::request_sender(){
   int ret;
   int send_req_index;
   while (1) {
-    fprintf(stderr, "waiting for fifo send\n");
+    DEBUG_PRINTF(LOG, "waiting for fifo send\n");
     // 30大概是4020，能凑4096
     reqv = send_fifo->prepare_send(1, &metav); // 读是会阻塞的，如果要等前面的请求完成才有后面的请求的话可能不太行，毕竟read没有tail commit
     if (exited)
@@ -144,9 +143,9 @@ void Engine::request_sender(){
     
     send(send_fds[send_req_index], reqv, sizeof(data_request), MSG_NOSIGNAL);
     if (reqv->where_column == Id || reqv->where_column == Salary)
-      fprintf(stderr, "send remote read request [%d - %d] select %s where %s = %ld\n", reqv->fifo_id, reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), *(uint64_t *)reqv->key);
+      DEBUG_PRINTF(LOG, "send remote read request [%d - %d] select %s where %s = %ld\n", reqv->fifo_id, reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), *(uint64_t *)reqv->key);
     else
-      fprintf(stderr, "send remote read request [%d - %d] select %s where %s = %s\n", reqv->fifo_id, reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), (char *)reqv->key);
+      DEBUG_PRINTF(LOG, "send remote read request [%d - %d] select %s where %s = %s\n", reqv->fifo_id, reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), (char *)reqv->key);
     __sync_fetch_and_add(&pending_requests[send_req_index], 1);
     metav->socket = send_fds[send_req_index];
   }
@@ -188,8 +187,6 @@ void Engine::response_recvier() {
     }
     
     entry = send_fifo->get_meta(header.fifo_id);
-    fprintf(stderr, "receiving response header [%d] ret = %d\n", header.fifo_id, header.ret);
-
     // recv body
     len = recv(send_fds[req_fd_index], entry->res, header.res_len, MSG_WAITALL);
     assert(len == header.res_len);
