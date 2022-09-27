@@ -97,7 +97,7 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
   // TODO: 需要解决没有收到回复导致死锁的问题
   pthread_mutex_lock(&entry->mutex);
   while (!entry->has_come) {
-    DEBUG_PRINTF(0, "waiting at %p\n", &entry->cond);
+    DEBUG_PRINTF(LOG, "waiting at %p\n", &entry->cond);
     pthread_cond_wait(&entry->cond, &entry->mutex);
   }
   pthread_mutex_unlock(&entry->mutex);
@@ -196,11 +196,11 @@ void Engine::response_recvier() {
     // 设置返回值以及标记，唤醒等待线程
     entry->ret = header.ret;
     entry->has_come = 1;
-    DEBUG_PRINTF(0, "receiving read response [%d] ret = %d\n", header.fifo_id, entry->ret);
+    DEBUG_PRINTF(LOG, "receiving read response [%d] ret = %d\n", header.fifo_id, entry->ret);
     pthread_mutex_lock(&entry->mutex);
     pthread_cond_signal(&entry->cond);
     pthread_mutex_unlock(&entry->mutex);
-    DEBUG_PRINTF(0, "waking up [%d] %p\n", header.fifo_id, &entry->cond);
+    DEBUG_PRINTF(LOG, "waking up [%d] %p\n", header.fifo_id, &entry->cond);
     req_fd_index = get_request_index();
     if (req_fd_index < 0) {
       return;
@@ -305,7 +305,7 @@ void Engine::disconnect() {
   close(data_recv_fd);
   close(listen_fd);
 
-  DEBUG_PRINTF(0, "socket close, waiting handlers\n");
+  DEBUG_PRINTF(LOG, "socket close, waiting handlers\n");
 
   req_sender->join();
   rep_recvier->join();

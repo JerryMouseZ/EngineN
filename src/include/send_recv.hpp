@@ -151,18 +151,9 @@ public:
   }
 
   void producer_yield_thread() {
-    // 如果找到空闲位置了就返回
     if (check_pop())
       return;
-    pthread_mutex_lock(&mtx);
-    if (!first) {
-      first = true;
-      pthread_cond_signal(&cond_var);
-      first = false;
-    } else {
-      sched_yield();
-    }
-    pthread_mutex_unlock(&mtx);
+    sched_yield();
   }
 
   void try_wake_consumer() {
@@ -174,11 +165,16 @@ public:
   }
 
   void consumer_yield_thread() {
-    pthread_mutex_lock(&mtx);
-    consumer_maybe_waiting = true;
-    pthread_cond_wait(&cond_var, &mtx);
-    consumer_maybe_waiting = false;
-    pthread_mutex_unlock(&mtx);
+    if (!first) {
+      first = true;
+      pthread_mutex_lock(&mtx);
+      consumer_maybe_waiting = true;
+      pthread_cond_wait(&cond_var, &mtx);
+      consumer_maybe_waiting = false;
+      pthread_mutex_unlock(&mtx);
+    } else {
+      sched_yield();
+    }
   }
 
 
