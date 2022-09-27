@@ -28,83 +28,84 @@ public:
 
 void test_engine_write(void *context, int index, size_t num)
 {
-  /* assert(num % 50 == 0); */
-  /* long per_thread = num / 50; */
-  /* std::thread *threads[50]; */
-  /* for (long tid = 0; tid < 50; ++tid) { */
-  /* threads[tid] = new std::thread([=]{ */
-  /* long data_begin = tid * per_thread, data_end = (tid + 1) * per_thread; */
-  for (long i = index * num; i < (index + 1) * num; ++i) {
-    TestUser user;
-    memset(&user, 0, sizeof(TestUser));
-    user.id = i;
-    memset(user.name, 0, 128);
-    memset(user.user_id, 0, 128);
-    strcpy(user.name, std::to_string(i).c_str());
-    strcpy(user.user_id, std::to_string(i).c_str());
-    user.salary = i / 4;
-    engine_write(context, &user, sizeof(user));
+  assert(num % 50 == 0);
+  long per_thread = num / 50;
+  std::thread *threads[50];
+  for (long tid = 0; tid < 50; ++tid) {
+    threads[tid] = new std::thread([=]{
+      long data_begin = tid * per_thread, data_end = (tid + 1) * per_thread;
+      for (long i = data_begin + tid * per_thread; i < data_begin + (tid + 1) * per_thread; ++i) {
+        TestUser user;
+        memset(&user, 0, sizeof(TestUser));
+        user.id = i;
+        memset(user.name, 0, 128);
+        memset(user.user_id, 0, 128);
+        strcpy(user.name, std::to_string(i).c_str());
+        strcpy(user.user_id, std::to_string(i).c_str());
+        user.salary = i / 4;
+        engine_write(context, &user, sizeof(user));
+      }
+    });
   }
-  /* }); */
-  /* } */
 
-  /* for (int tid = 0; tid < 50; tid++) { */
-  /* threads[tid]->join(); */
-  /* delete threads[tid]; */
-  /* } */
+  for (int tid = 0; tid < 50; tid++) {
+    threads[tid]->join();
+    delete threads[tid];
+  }
 }
 
 // both for local or remote
 void test_engine_read(void *context, int index, size_t num)
 {
-  /* assert(num % 50 == 0); */
-  /* int per_thread = num / 50; */
-  /* std::thread *threads[50]; */
-  /* for (int tid = 0; tid < 50; ++tid) { */
-  /*   threads[tid] = new std::thread([=]{ */
-  for (long i = index * num; i < (index + 1) * num; ++i) {
-    TestUser user;
-    // Select Uid from ... where Id
-    memset(&user, 0, sizeof(user));
-    int ret = engine_read(context, Userid, Id, &i, sizeof(user.id), (void *)user.user_id);
-    if (ret == 0)
-      fprintf(stderr, "Line %d  %ld\n", __LINE__, i);
-    assert(ret);
-    if(std::to_string(i) != user.user_id) {
-      fprintf(stderr, "Line %d  %ld\n", __LINE__, i);
-    }
-    assert(std::to_string(i) == user.user_id);
-
-    // Select Id from ... where Uid
-    memset(&user, 0, sizeof(user));
-    char uid_buffer[128] = {0};
-    std::string i2string = std::to_string(i);
-    strncpy(uid_buffer, i2string.c_str(), i2string.size());
-    ret = engine_read(context, Id, Userid, uid_buffer, 128, &user.id);
-    if (ret == 0)
-      fprintf(stderr, "Line %d  %ld\n", __LINE__, i);
-    assert(ret);
-    if(i != user.id) {
-      fprintf(stderr, "Line %d  %ld\n", __LINE__, i);
-    }
-    assert(i == user.id);
-
-    // Select Id from ... where Salary
-    memset(&user, 0, sizeof(user));
-    long salary = i / 4;
-    int64_t ids[4];
-    ret = engine_read(context, Id, Salary, &salary, sizeof(salary), ids);
-    if (ret != 4) {
-      fprintf(stderr, "Line %d %ld %d\n", __LINE__, i, ret);
-    }
-    assert(ret == 4);
+  assert(num % 50 == 0);
+  int per_thread = num / 50;
+  std::thread *threads[50];
+  long begin = index * num, end = (index + 1) * num;
+  for (int tid = 0; tid < 50; ++tid) {
+    threads[tid] = new std::thread([=]{
+      for (long i = begin + tid * per_thread; i < begin + (tid + 1) * per_thread; ++i) {
+        TestUser user;
+        // Select Uid from ... where Id
+        memset(&user, 0, sizeof(user));
+        int ret = engine_read(context, Userid, Id, &i, sizeof(user.id), (void *)user.user_id);
+        if (ret == 0)
+          fprintf(stderr, "Line %d  %ld\n", __LINE__, i);
+        assert(ret);
+        if(std::to_string(i) != user.user_id) {
+          fprintf(stderr, "Line %d  %ld\n", __LINE__, i);
+        }
+        assert(std::to_string(i) == user.user_id);
+    
+        // Select Id from ... where Uid
+        memset(&user, 0, sizeof(user));
+        char uid_buffer[128] = {0};
+        std::string i2string = std::to_string(i);
+        strncpy(uid_buffer, i2string.c_str(), i2string.size());
+        ret = engine_read(context, Id, Userid, uid_buffer, 128, &user.id);
+        if (ret == 0)
+          fprintf(stderr, "Line %d  %ld\n", __LINE__, i);
+        assert(ret);
+        if(i != user.id) {
+          fprintf(stderr, "Line %d  %ld\n", __LINE__, i);
+        }
+        assert(i == user.id);
+    
+        // Select Id from ... where Salary
+        memset(&user, 0, sizeof(user));
+        long salary = i / 4;
+        int64_t ids[4];
+        ret = engine_read(context, Id, Salary, &salary, sizeof(salary), ids);
+        if (ret != 4) {
+          fprintf(stderr, "Line %d %ld %d\n", __LINE__, i, ret);
+        }
+        assert(ret == 4);
+      }
+    });
   }
-  /* }); */
-  /* } */
-  /* for (int tid = 0; tid < 50; tid++) { */
-  /*   threads[tid]->join(); */
-  /*   delete threads[tid]; */
-  /* } */
+  for (int tid = 0; tid < 50; tid++) {
+    threads[tid]->join();
+    delete threads[tid];
+  }
 }
 
 
