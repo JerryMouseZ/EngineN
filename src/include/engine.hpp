@@ -19,6 +19,14 @@
 
 extern thread_local UserQueue *consumer_q;
 
+struct DataTransMeta {
+  uint32_t ca_start;
+  uint32_t ca_cnt;
+  uint32_t user_start;
+  uint32_t user_cnt;
+};
+
+
 class Engine
 {
 public:
@@ -45,6 +53,8 @@ public:
 
   int get_request_index();
 
+  void do_peer_data_sync();
+
 private:
   static std::string column_str(int column);
 
@@ -68,17 +78,37 @@ private:
 
   void disconnect();
 
+  // for backup
+  void do_send_meta(const TransControl &ctrl);
+  void do_recv_meta(TransControl &ctrl);
+  void do_send_data(const ArrayTransControl &ctrl);
+  void do_recv_data(ArrayTransControl &ctrl);
+  void do_send_resp(const TransControl &ctrl);
+  void do_recv_resp(TransControl &ctrl);
+  bool finish_recv_meta(const DataTransMeta *recv_meta, ArrayTransControl &recv_data_ctrl);
+  void finish_recv_data(const DataTransMeta *recv_meta);
+  void finish_recv_resp(uint32_t *newest_remote_next);
+
+
 private:
   Data *datas;
-  Data *rdata;
-
+  Data *remote_datas;
+  
+  // indexes
   Index *id_r;
   Index *uid_r;
-  // salary need multi-index
   Index *sala_r;
+
+  // remote indexes
+  Index *remote_id_r;
+  Index *remote_uid_r;
+  Index *remote_sala_r;
+ 
+  // write buffer
   UserQueue *qs;
   std::thread *consumers;
-
+  
+  io_uring data_ring;
   int host_index;
   int listen_fd;
   bool alive[4];
@@ -91,4 +121,5 @@ private:
   std::thread *rep_recvier;
   std::thread *req_handler;
   volatile bool exited;
+  RemoteState remote_state;
 };

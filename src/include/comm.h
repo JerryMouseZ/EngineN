@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 
+extern const char *this_host_info;
 #define QUEUE_DEPTH 4096
 
 int setup_listening_socket(const char *ip, int port);
@@ -59,4 +60,12 @@ struct response_buffer{
   char body[1024];
 };
 
+extern const char *this_host_info;
+extern char this_host_ip[60];
+extern int my_index;
+extern int data_peer_index;
+extern int req_send_index;
+extern int req_recv_index;
+extern int req_weak_send_index;
+extern int req_weak_recv_index;
 #endif

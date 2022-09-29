@@ -61,12 +61,10 @@ void Engine::open(std::string aep_path, std::string disk_path) {
 
   datas = new Data[MAX_NR_CONSUMER];
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
-    datas[i].open(aep_path + "user.data" + std::to_string(i), disk_path + "fcount" + std::to_string(i), disk_path + "flag" + std::to_string(i));
+    datas[i].open(aep_path + "user.data" + std::to_string(i), disk_path + "flag" + std::to_string(i));
   }
   
   // remote data
-  rdata = new Data();
-  rdata->open(aep_path + "user.rdata", disk_path + "user.fcount", disk_path + "rflag");
 
   id_r = new Index(disk_path + "id", datas, qs);
   uid_r = new Index(disk_path + "uid", datas, qs);
@@ -95,6 +93,19 @@ void Engine::open(std::string aep_path, std::string disk_path) {
                                });
   }
   send_fifo = new CircularFifo<1<<16>();
+  
+  // for remote
+  bool remote_state_is_new_create;
+  remote_state.open(disk_path + "remote_state", &remote_state_is_new_create);
+
+  remote_datas = new Data[MAX_NR_CONSUMER];
+  for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+    remote_datas[i].open(aep_path + "user.remote_data" + std::to_string(i), disk_path + "remote_flag" + std::to_string(i));
+  }
+
+  remote_id_r = new Index(disk_path + "remote_id", remote_datas, nullptr);
+  remote_uid_r = new Index(disk_path + "remote_uid", remote_datas, nullptr);
+  remote_sala_r = new Index(disk_path + "remote_salary", remote_datas, nullptr);
 }
 
 void Engine::write(const User *user) {

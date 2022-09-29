@@ -21,6 +21,7 @@
 void Engine::connect(const char *host_info, const char *const *peer_host_info, size_t peer_host_info_num) {
   if (host_info == NULL || peer_host_info == NULL)
     return;
+  this_host_info = host_info;
   std::vector<info_type> infos;
   const char *split_index = strstr(host_info, ":");
   int host_ip_len = split_index - host_info;
@@ -54,6 +55,7 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
 
 void Engine::connect(std::vector<info_type> &infos, int num, int host_index) {
   this->host_index = host_index;
+  io_uring_queue_init(QUEUE_DEPTH, &data_ring, 0);
   listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
   sockaddr_in client_addr;
   socklen_t client_addr_len = sizeof(client_addr);
@@ -78,6 +80,9 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index) {
 
   data_fd = connect_to_server(infos[host_index].first.c_str(), infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
   listen_thread.join();
+
+  // move to after connect
+  do_peer_data_sync();
 }
 
 
@@ -316,6 +321,7 @@ void Engine::disconnect() {
       close(recv_fds[i]);
     }
   }
+  io_uring_queue_exit(&data_ring);
 }
 
 int Engine::get_backup_index() {
