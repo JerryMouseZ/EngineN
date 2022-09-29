@@ -1,5 +1,6 @@
 #include "include/engine.hpp"
 #include "include/comm.h"
+#include "include/config.hpp"
 #include "include/data.hpp"
 #include "include/send_recv.hpp"
 #include "include/util.hpp"
@@ -51,17 +52,20 @@ Engine::~Engine() {
 }
 
 void Engine::open(std::string aep_path, std::string disk_path) {
-  std::string data_prefix = aep_path;
-  if (data_prefix[data_prefix.size() - 1] != '/')
-    data_prefix.push_back('/');
+  if (aep_path[aep_path.size() - 1] != '/')
+    aep_path.push_back('/');
 
   if (disk_path[disk_path.size() - 1] != '/')
     disk_path.push_back('/');
 
   datas = new Data[MAX_NR_CONSUMER];
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
-    datas[i].open(data_prefix + "user.data" + std::to_string(i), disk_path + "cache", disk_path + "flag" + std::to_string(i));
+    datas[i].open(aep_path + "user.data" + std::to_string(i), disk_path + "flag" + std::to_string(i));
   }
+  
+  // remote data
+  rdata = new Data();
+  rdata->open(aep_path + "user.rdata", disk_path + "rflag");
 
   id_r = new Index(disk_path + "id", datas, qs);
   uid_r = new Index(disk_path + "uid", datas, qs);
