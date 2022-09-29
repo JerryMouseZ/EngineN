@@ -13,17 +13,20 @@ include_directories(../liburing/src/include)
 # add_executable(test_multi ./test_multi.cpp ../src/interface.cpp ../src/comm.cpp)
 # target_link_libraries(test_multi pmem pthread uring)
 
-add_executable(test_local test_local.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp)
+add_executable(test_local test_local.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
 target_link_libraries(test_local pmem pthread uring)
 
 # add_executable(init init.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/engine.cpp)
 # target_link_libraries(init pmem pthread uring)
 
-add_executable(test_connect test_connect.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp )
+add_executable(test_connect test_connect.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
 target_link_libraries(test_connect pmem pthread uring)
 
-add_executable(test_request test_request.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp )
+add_executable(test_request test_request.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
 target_link_libraries(test_request pmem pthread uring)
+
+add_executable(test_backup test_backup.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
+target_link_libraries(test_backup pmem pthread uring)
 # add_executable(test_data test_data.cpp ../src/comm.cpp)
 # target_link_libraries(test_data pmem pthread uring)
 

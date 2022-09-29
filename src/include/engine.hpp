@@ -33,7 +33,7 @@ public:
   Engine();
   ~Engine();
 
-  void open(std::string aep_path, std::string disk_path);
+  bool open(std::string aep_path, std::string disk_path);
   
   void write(const User *user);
 
@@ -45,7 +45,7 @@ public:
 
   // for remote
   // 创建listen socket，尝试和别的机器建立两条连接
-  void connect(const char *host_info, const char *const *peer_host_info, size_t peer_host_info_num);
+  void connect(const char *host_info, const char *const *peer_host_info, size_t peer_host_info_num, bool is_new_create);
 
   void do_sync();
 
@@ -53,14 +53,14 @@ public:
 
   int get_request_index();
 
+  int get_backup_index();
+
   void do_peer_data_sync();
 
 private:
   static std::string column_str(int column);
 
-  void connect(std::vector<info_type> &infos, int num, int host_index);
-
-  int get_backup_index();
+  void connect(std::vector<info_type> &infos, int num, int host_index, bool is_new_create);
 
   int get_another_request_index();
 

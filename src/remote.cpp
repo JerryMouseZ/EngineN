@@ -18,7 +18,7 @@
 
 
 // 创建listen socket，尝试和别的机器建立两条连接
-void Engine::connect(const char *host_info, const char *const *peer_host_info, size_t peer_host_info_num) {
+void Engine::connect(const char *host_info, const char *const *peer_host_info, size_t peer_host_info_num, bool is_new_create) {
   if (host_info == NULL || peer_host_info == NULL)
     return;
   this_host_info = host_info;
@@ -49,11 +49,11 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
     }
   }
 
-  connect(infos, peer_host_info_num + 1, my_index);
+  connect(infos, peer_host_info_num + 1, my_index, is_new_create);
 }
 
 
-void Engine::connect(std::vector<info_type> &infos, int num, int host_index) {
+void Engine::connect(std::vector<info_type> &infos, int num, int host_index, bool is_new_create) {
   this->host_index = host_index;
   io_uring_queue_init(QUEUE_DEPTH, &data_ring, 0);
   listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
@@ -82,7 +82,8 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index) {
   listen_thread.join();
 
   // move to after connect
-  do_peer_data_sync();
+  if (!is_new_create)
+    do_peer_data_sync();
 }
 
 
