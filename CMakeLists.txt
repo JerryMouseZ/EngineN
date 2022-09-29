@@ -15,6 +15,7 @@ SHARED
         src/interface.cpp
         src/comm.cpp
         src/thread_data.cpp
+        src/sync_data.cpp
         src/data.cpp
         src/engine.cpp
         src/remote.cpp

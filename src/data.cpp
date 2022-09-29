@@ -33,7 +33,7 @@ Data::~Data() {
   pmem_unmap(pmem_ptr, EACH_DATA_FILE_LEN);
 }
 
-void Data::open(const std::string &fdata, const std::string &fcount, const std::string &fflag) {
+void Data::open(const std::string &fdata, const std::string &fflag) {
   size_t map_len;
   int is_pmem;
   bool new_create = false;

@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <thread>
+#include "comm.h"
 
 #include "util.hpp"
 #include "config.hpp"
@@ -81,7 +82,7 @@ class Data
 public:
   Data();
   ~Data();
-  void open(const std::string &fdata, const std::string &fcount, const std::string &fflag);
+  void open(const std::string &fdata, const std::string &fflag);
   // data read and data write
   const User *data_read(uint32_t index);
 
@@ -107,3 +108,52 @@ struct query{
   void *column_key;
 };
 
+
+class RemoteState {
+public:
+  void open(std::string fname, bool *is_new_create);
+
+  volatile uint32_t *get_next_user_index() { return next_user_index; }
+
+private:
+  volatile uint32_t *next_user_index;
+};
+
+struct TransControl {
+  char *src;
+  uint64_t rest;
+  const char *name = nullptr;
+
+  bool update_check_finished(uint64_t cnt) {
+    if (name) {
+      DEBUG_PRINTF(LOG, "%s: %s cnt/rest = %ld/%ld\n", this_host_info, name, cnt, rest);
+    }
+    if (rest == cnt) {
+      return true;
+    }
+    rest -= cnt;
+    src += cnt;
+    return false;
+  }
+};
+
+struct ArrayTransControl {
+  TransControl ctrls[MAX_NR_CONSUMER];
+  const char *name = nullptr;
+  int cur;
+
+  bool update_check_finished(uint64_t cnt) {
+    DEBUG_PRINTF(LOG, "%s: %s [%d] cnt/rest = %ld/%ld\n", this_host_info, name, cur, cnt, ctrls[cur].rest);
+    bool finished = ctrls[cur].update_check_finished(cnt);
+    if (finished) {
+      while (++cur < MAX_NR_CONSUMER) {
+        if (ctrls[cur].rest > 0) {
+          break;
+        }
+      }
+      return cur == MAX_NR_CONSUMER;
+    } else {
+      return false;
+    }
+  }
+};

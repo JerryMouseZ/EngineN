@@ -12,6 +12,7 @@
 #include <assert.h>
 #include "include/util.hpp"
 
+const char *this_host_info = nullptr;
 void fatal_error(const char *syscall) {
   perror(syscall);
   exit(1);
