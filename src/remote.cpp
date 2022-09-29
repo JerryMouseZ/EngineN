@@ -148,7 +148,6 @@ void Engine::request_sender(){
       DEBUG_PRINTF(LOG, "send remote read request [%d - %d] select %s where %s = %ld\n", reqv->fifo_id, reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), *(uint64_t *)reqv->key);
     else
       DEBUG_PRINTF(LOG, "send remote read request [%d - %d] select %s where %s = %s\n", reqv->fifo_id, reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), (char *)reqv->key);
-    __sync_fetch_and_add(&pending_requests[send_req_index], 1);
     metav->socket = send_fds[send_req_index];
   }
 }
