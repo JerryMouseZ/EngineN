@@ -7,3 +7,5 @@ init
 test_connect
 test_request
 test_local
+test_backup
+test_data_sync
