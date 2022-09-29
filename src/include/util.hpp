@@ -95,5 +95,6 @@ static void *map_file(const char *path, size_t len, bool *is_new_create)
 
 static void *map_anonymouse(size_t len) {
   char *ptr = reinterpret_cast<char*>(mmap(0, len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_POPULATE, -1, 0));
+  memset(ptr, 0, len);
   return ptr;
 }

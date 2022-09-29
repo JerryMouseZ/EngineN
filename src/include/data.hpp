@@ -58,6 +58,7 @@ constexpr size_t EACH_DATA_FILE_LEN = EACH_NR_USER_ARRAY * UserArray::DALIGN;
 class DataFlag{
 private:
   volatile uint8_t *ptr;
+  size_t *next_location;
 public:
   DataFlag();
   ~DataFlag();
@@ -80,7 +81,7 @@ class Data
 public:
   Data();
   ~Data();
-  void open(const std::string &fdata, const std::string &fcache, const std::string &fflag);
+  void open(const std::string &fdata, const std::string &fcount, const std::string &fflag);
   // data read and data write
   const User *data_read(uint32_t index);
 
@@ -91,6 +92,7 @@ public:
   UserArray *get_pmem_users();
 private:
   char *pmem_ptr = nullptr;
+  size_t *next_location;
   UserArray *pmem_users = nullptr;
   DataFlag *flags;
 };

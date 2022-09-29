@@ -386,3 +386,7 @@ int Engine::get_another_request_index() {
   }
   return -1;
 }
+
+void Engine::do_sync() {
+  // handshake with remote
+}
