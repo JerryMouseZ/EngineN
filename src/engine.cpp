@@ -52,7 +52,7 @@ Engine::~Engine() {
   delete sala_r;
 }
 
-void Engine::open(std::string aep_path, std::string disk_path) {
+bool Engine::open(std::string aep_path, std::string disk_path) {
   if (aep_path[aep_path.size() - 1] != '/')
     aep_path.push_back('/');
 
@@ -73,7 +73,7 @@ void Engine::open(std::string aep_path, std::string disk_path) {
   bool q_is_new_create;
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     if (qs[i].open(disk_path + "queue" + std::to_string(i), &q_is_new_create, datas[i].get_pmem_users(), i)) {
-      return;
+      return false;
     }
 
     if (!q_is_new_create && qs[i].need_rollback()) {
@@ -106,6 +106,8 @@ void Engine::open(std::string aep_path, std::string disk_path) {
   remote_id_r = new Index(disk_path + "remote_id", remote_datas, nullptr);
   remote_uid_r = new Index(disk_path + "remote_uid", remote_datas, nullptr);
   remote_sala_r = new Index(disk_path + "remote_salary", remote_datas, nullptr);
+
+  return remote_state_is_new_create;
 }
 
 void Engine::write(const User *user) {
