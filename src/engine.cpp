@@ -11,9 +11,10 @@
 #include <cstdio>
 #include <ctime>
 #include <pthread.h>
+#include <string>
 #include <thread>
 
-Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr), consumers(nullptr), exited(false), pending_requests{0} {
+Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr), consumers(nullptr), exited(false){
   host_index = -1;
   qs = static_cast<UserQueue *>(mmap(0, MAX_NR_CONSUMER * sizeof(UserQueue), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
@@ -60,12 +61,12 @@ void Engine::open(std::string aep_path, std::string disk_path) {
 
   datas = new Data[MAX_NR_CONSUMER];
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
-    datas[i].open(aep_path + "user.data" + std::to_string(i), disk_path + "flag" + std::to_string(i));
+    datas[i].open(aep_path + "user.data" + std::to_string(i), disk_path + "fcount" + std::to_string(i), disk_path + "flag" + std::to_string(i));
   }
   
   // remote data
   rdata = new Data();
-  rdata->open(aep_path + "user.rdata", disk_path + "rflag");
+  rdata->open(aep_path + "user.rdata", disk_path + "user.fcount", disk_path + "rflag");
 
   id_r = new Index(disk_path + "id", datas, qs);
   uid_r = new Index(disk_path + "uid", datas, qs);
