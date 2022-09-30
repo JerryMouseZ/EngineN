@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <ctime>
+#include <fcntl.h>
 #include <pthread.h>
 #include <string>
 #include <thread>
@@ -124,7 +125,6 @@ void Engine::write(const User *user) {
   uid_r->put(std::hash<UserString>()(*(UserString *)(user->user_id)), encoded_index);
   sala_r->put(user->salary, encoded_index);
 
-  // 发送到备份节点
   datas[qid].put_flag(index);
 }
 

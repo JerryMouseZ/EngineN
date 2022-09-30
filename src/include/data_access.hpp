@@ -2,6 +2,7 @@
 
 #include "data.hpp"
 #include "queue.hpp"
+#include <cassert>
 
 using UserQueue = LocklessQueue<User, QCMT_ALIGN>;
 
@@ -16,7 +17,7 @@ public:
     uint32_t qid = encoded_index >> 28;
     uint32_t index = encoded_index & ((1 << 28) - 1);
     auto data = &datas[qid];
-
+    
     if (!data->get_flag(index))
       return nullptr;
 

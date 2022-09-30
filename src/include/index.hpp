@@ -158,7 +158,6 @@ public:
 
       if (next_free == ENTRY_NUM) {
         uint64_t maybe_next = next_location->fetch_add(sizeof(Bucket));
-        assert(maybe_next < OVER_NUM * sizeof(Bucket));
         uint32_t index = (maybe_next - 64) / sizeof(Bucket) + 1;
         bucket->bucket_next = index;
         bucket->is_overflow = 1;
@@ -175,7 +174,7 @@ public:
   size_t get(size_t over_offset, size_t hash_val, const void *key, int where_column, int select_column, void *res, bool multi) {
     int count = 0;
     Bucket *bucket = reinterpret_cast<Bucket *>(ptr + over_offset);
-    for (int i = 0; i < bucket->next_free.load(std::memory_order_relaxed); ++i) {
+    for (int i = 0; i < ENTRY_NUM && i < bucket->next_free.load(std::memory_order_acquire); ++i) {
       uint64_t offset = bucket->entries[i];
       const User *tmp = accessor.read(offset);
       /* __builtin_prefetch(tmp, 0, 0); */
@@ -241,7 +240,6 @@ public:
 
       if (next_free == ENTRY_NUM) {
         uint64_t maybe_next = overflowindex->next_location->fetch_add(sizeof(Bucket), std::memory_order_acq_rel);
-        assert(maybe_next < sizeof(Bucket) * OVER_NUM);
         uint32_t index = (maybe_next - 64) / sizeof(Bucket) + 1;
         bucket->bucket_next = index;
         bucket->is_overflow = 1;
@@ -261,7 +259,7 @@ public:
     size_t bucket_location = hash_val & (BUCKET_NUM - 1);
     int count = 0;
     Bucket *bucket = reinterpret_cast<Bucket *>(hash_ptr + bucket_location * sizeof(Bucket));
-    for (int i = 0; i < bucket->next_free.load(std::memory_order_relaxed); ++i) {
+    for (int i = 0; i < ENTRY_NUM && i < bucket->next_free.load(std::memory_order_acquire); ++i) {
       size_t offset = bucket->entries[i];
       const User *tmp = accessor.read(offset);
       /* __builtin_prefetch(tmp, 0, 0); */

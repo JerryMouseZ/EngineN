@@ -75,10 +75,12 @@ void test_engine_read(int index, size_t num)
 
   assert(num % 50 == 0);
   int per_thread = num / 50;
+  fprintf(stderr, "per thread %d\n", per_thread);
   std::thread *threads[50];
   for (int tid = 0; tid < 50; ++tid) {
     threads[tid] = new std::thread([=]{
       long data_begin = index * num + tid * per_thread, data_end = index * num + (tid + 1) * per_thread;
+      fprintf(stderr, "from %ld to %ld\n", data_begin, data_end);
       for (long i = data_begin; i < data_end; ++i) {
         TestUser user;
 
