@@ -89,18 +89,28 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
   if (unlikely(!have_reader_id())) {
     init_reader_id();
   }
-  // 如果远端都关掉了就不要再查了
-  if (get_request_index() == -1)
+  int fd = -1;
+  int current_req_node = -1;
+  if (alive[get_request_index()]) {
+    fd = req_send_fds[reader_id];
+    current_req_node = get_request_index();
+  } else if (alive[get_another_request_index()]) {
+    fd = req_weak_send_fds[reader_id];
+    current_req_node = get_backup_index();
+  } else {
+    // 两个节点都失效了，返回0
     return 0;
-  // 用一个队列装request
+  }
+
   data_request data = data_request();
   data.fifo_id = 0;
   data.select_column = select_column;
   data.where_column = where_column;
   memcpy(data.key, column_key, column_key_len);
-  int len = send_all(req_send_fds[reader_id], &data, sizeof(data), MSG_NOSIGNAL);
+  int len = send_all(fd, &data, sizeof(data), MSG_NOSIGNAL);
   if (len < 0) {
-    fprintf(stderr, "send error : %d, errno : %d\n", len, errno);
+    alive[current_req_node] = false;
+    return remote_read(select_column, where_column, column_key, column_key_len, res);
   }
   assert(len == sizeof(data_request));
 
@@ -110,15 +120,17 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
     DEBUG_PRINTF(LOG, "add send remote read request select %s where %s = %s\n", column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)column_key);
 
   response_header header;
-  len = recv_all(req_send_fds[reader_id], &header, sizeof(header), MSG_WAITALL);
+  len = recv_all(fd, &header, sizeof(header), MSG_WAITALL);
   if (len < 0) {
-    fprintf(stderr, "recv error : %d, error : %d\n", len, errno);
+    alive[current_req_node] = false;
+    return remote_read(select_column, where_column, column_key, column_key_len, res);
   }
   assert(len == sizeof(header));
 
-  len = recv_all(req_send_fds[reader_id], res, header.res_len, MSG_WAITALL);
+  len = recv_all(fd, res, header.res_len, MSG_WAITALL);
   if (len < 0) {
-    fprintf(stderr, "recv error : %d, error : %d\n", len, errno);
+    alive[current_req_node] = false;
+    return remote_read(select_column, where_column, column_key, column_key_len, res);
   }
   assert(len == header.res_len);
   return header.ret;
@@ -246,27 +258,25 @@ int get_column_len(int column) {
 }
 
 response_buffer res_buffer;
-void Engine::request_handler(){
+void Engine::request_handler(int index, int fds[]){
   // 用一个ring来存request，然后可以异步处理，是一个SPMC的模型，那就不能用之前的队列了
   data_request req[50];
   for (int i = 0; i < 50; ++i) {
-    add_read_request(req_recv_ring, req_recv_fds[i], &req[i], sizeof(data_request), i);
+    add_read_request(req_recv_ring, fds[i], &req[i], sizeof(data_request), i);
   }
   io_uring_cqe *cqe;
   while (1) {
     cqe = wait_cqe_fast(&req_recv_ring);
     if (exited)
       return;
-    if (cqe == nullptr) {
-      break;
-    }
-    
+    assert(cqe);
     if (cqe->res <= 0) {
+      alive[index] = false;
       break;
     }
     assert(cqe->res == sizeof(data_request));
     int index = cqe->user_data;
-    add_read_request(req_recv_ring, req_recv_fds[index], &req[index], sizeof(data_request), index);
+    add_read_request(req_recv_ring, fds[index], &req[index], sizeof(data_request), index);
     // process data
     uint8_t select_column, where_column;
     uint32_t fifo_id;
@@ -285,7 +295,7 @@ void Engine::request_handler(){
     res_buffer.header.res_len = get_column_len(select_column) * num;
     /* int ret = send(cqe->user_data, &res_buffer, sizeof(response_header) + res_buffer.header.res_len, MSG_NOSIGNAL); */
     /* assert(ret == sizeof(response_header) + res_buffer.header.res_len); */
-    int len = send(req_recv_fds[index], &res_buffer, sizeof(response_header) + res_buffer.header.res_len, MSG_NOSIGNAL);
+    int len = send(fds[index], &res_buffer, sizeof(response_header) + res_buffer.header.res_len, MSG_NOSIGNAL);
     assert(len == sizeof(response_header) + res_buffer.header.res_len);
     DEBUG_PRINTF(LOG, "send res ret = %d\n", res_buffer.header.ret);
     io_uring_cqe_seen(&req_recv_ring, cqe);
@@ -303,12 +313,17 @@ void Engine::start_handlers() {
   /* }; */
 
   auto req_handler_fn = [&]() {
-    request_handler();
+    request_handler(get_request_index(), req_recv_fds);
+  };
+
+  auto req_weak_handler_fn = [&]() {
+    request_handler(get_another_request_index(), req_weak_recv_fds);
   };
   // std::thread不能直接运行类的成员函数，用lambda稍微封装一下
   /* req_sender = new std::thread(req_sender_fn); */
   /* rep_recvier = new std::thread(rep_recver_fn); */
   req_handler = new std::thread(req_handler_fn);
+  req_weak_handler = new std::thread(req_weak_handler_fn);
 }
 
 void Engine::disconnect() {
@@ -330,6 +345,7 @@ void Engine::disconnect() {
   /* req_sender->join(); */
   /* rep_recvier->join(); */
   req_handler->join();
+  req_weak_handler->join();
 
   for (int i = 0; i < 4; ++i) {
     close(req_send_fds[i]);
