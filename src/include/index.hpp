@@ -175,19 +175,15 @@ public:
   size_t get(size_t over_offset, size_t hash_val, const void *key, int where_column, int select_column, void *res, bool multi) {
     int count = 0;
     Bucket *bucket = reinterpret_cast<Bucket *>(ptr + over_offset);
-    for (int i = 0; i < ENTRY_NUM; ++i) {
+    for (int i = 0; i < bucket->next_free.load(std::memory_order_relaxed); ++i) {
       uint64_t offset = bucket->entries[i];
-      if (offset == 0) {
-        return count;
-      } else {
-        const User *tmp = accessor.read(offset);
-        /* __builtin_prefetch(tmp, 0, 0); */
-        if (tmp && inlinecompare(hash_val, key, tmp, where_column, bucket->extra[i], bucket->inlinekeys[i])) {
-          res = res_copy(tmp, res, select_column);
-          count++;
-          if (!multi)
-            return count;
-        }
+      const User *tmp = accessor.read(offset);
+      /* __builtin_prefetch(tmp, 0, 0); */
+      if (tmp && inlinecompare(hash_val, key, tmp, where_column, bucket->extra[i], bucket->inlinekeys[i])) {
+        res = res_copy(tmp, res, select_column);
+        count++;
+        if (!multi)
+          return count;
       }
     }
 
@@ -217,13 +213,13 @@ class Index
 public:
   Index(const std::string &path, Data *datas, UserQueue *qs)
     : accessor(datas, qs) {
-    std::string hash_file = path + ".hash";
-    std::string over_file = path + ".over";
+      std::string hash_file = path + ".hash";
+      std::string over_file = path + ".over";
 
-    hash_ptr = reinterpret_cast<char *>(map_file(hash_file.c_str(), BUCKET_NUM * sizeof(Bucket), nullptr));
-    madvise(hash_ptr, BUCKET_NUM * sizeof(Bucket), MADV_RANDOM);
-    overflowindex = new OverflowIndex(over_file, accessor);
-  }
+      hash_ptr = reinterpret_cast<char *>(map_file(hash_file.c_str(), BUCKET_NUM * sizeof(Bucket), nullptr));
+      madvise(hash_ptr, BUCKET_NUM * sizeof(Bucket), MADV_RANDOM);
+      overflowindex = new OverflowIndex(over_file, accessor);
+    }
 
   ~Index() {
     if (hash_ptr)
@@ -265,11 +261,8 @@ public:
     size_t bucket_location = hash_val & (BUCKET_NUM - 1);
     int count = 0;
     Bucket *bucket = reinterpret_cast<Bucket *>(hash_ptr + bucket_location * sizeof(Bucket));
-    for (int i = 0; i < ENTRY_NUM; ++i) {
+    for (int i = 0; i < bucket->next_free.load(std::memory_order_relaxed); ++i) {
       size_t offset = bucket->entries[i];
-      if (offset == 0) {
-        return count;
-      }
       const User *tmp = accessor.read(offset);
       /* __builtin_prefetch(tmp, 0, 0); */
       if (tmp && inlinecompare(hash_val, key, tmp, where_column, bucket->extra[i], bucket->inlinekeys[i])) {

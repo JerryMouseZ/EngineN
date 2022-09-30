@@ -21,11 +21,11 @@ void DataFlag::Open(const std::string &filename) {
 }
 
 void DataFlag::set_flag(uint32_t index) {
-  ptr[index - 1] = 1;
+  ptr[index] = 1;
 }
 
 bool DataFlag::get_flag(size_t index) {
-  return ptr[index - 1];
+  return ptr[index];
 }
 
 Data::Data() {}

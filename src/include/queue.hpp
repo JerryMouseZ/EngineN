@@ -102,7 +102,7 @@ public:
             try_wake_consumer();
         }
 
-        return pos + 1;
+        return pos;
     }
 
     bool pop() {
