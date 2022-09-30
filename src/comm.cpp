@@ -185,3 +185,32 @@ io_uring_cqe *wait_cqe_fast(struct io_uring *ring)
   return cqe;
 }
 
+int send_all(int fd, const void *src, size_t n, int flag) {
+  auto rest = n;
+  int sent = 0, ret;
+  while (rest > 0) {
+    ret = send(fd, ((const char *)src) + sent, rest, flag);
+    if (ret < 0) {
+      return ret;
+    }
+    rest -= ret;
+    sent += ret;
+  }
+
+  return n;
+}
+
+int recv_all(int fd, void *dst, size_t n, int flag) {
+  auto rest = n;
+  int recv_cnt = 0, ret;
+  while (rest > 0) {
+    ret = recv(fd, ((char *)dst) + recv_cnt, rest, flag);
+    if (ret < 0) {
+      return ret;
+    }
+    rest -= ret;
+    recv_cnt += ret;
+  }
+
+  return n;
+}

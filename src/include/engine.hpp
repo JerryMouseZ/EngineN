@@ -79,8 +79,6 @@ private:
   void disconnect();
 
   // for backup
-  void do_send_meta(const TransControl &ctrl);
-  void do_recv_meta(TransControl &ctrl);
   void do_send_data(const ArrayTransControl &ctrl);
   void do_recv_data(ArrayTransControl &ctrl);
   void do_send_resp(const TransControl &ctrl);

@@ -17,6 +17,10 @@
 extern const char *this_host_info;
 #define QUEUE_DEPTH 4096
 
+int send_all(int fd, const void *src, size_t n, int flag);
+
+int recv_all(int fd, void *dst, size_t n, int flag);
+
 int setup_listening_socket(const char *ip, int port);
 
 int add_accept_request(io_uring &ring, int server_socket, struct sockaddr_in *client_addr, socklen_t *client_addr_len);
