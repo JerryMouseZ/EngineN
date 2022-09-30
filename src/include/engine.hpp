@@ -73,7 +73,7 @@ private:
 
   /* void response_recvier(); */
 
-  void request_handler();
+  void request_handler(int index, int req_recv_fds[]);
   
   void term_sending_request();
 
@@ -112,7 +112,7 @@ private:
   io_uring req_recv_ring;
   int host_index;
   int listen_fd;
-  bool alive[4];
+  volatile bool alive[4];
   /* int send_fds[4]; */
   /* int recv_fds[4]; */
   int data_fd;
@@ -121,6 +121,7 @@ private:
   /* std::thread *req_sender; */
   /* std::thread *rep_recvier; */
   std::thread *req_handler;
+  std::thread *req_weak_handler;
   volatile bool exited;
   RemoteState remote_state;
 
