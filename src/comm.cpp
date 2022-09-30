@@ -111,7 +111,7 @@ int connect_to_server(const char *this_host_ip, const char *ip, int port) {
 int add_read_request(io_uring &ring, int client_socket, void *buffer, size_t len, __u64 udata) {
   struct io_uring_sqe *sqe = io_uring_get_sqe(&ring);
   assert(sqe);
-  io_uring_prep_recv(sqe, client_socket, buffer, len, 0);
+  io_uring_prep_recv(sqe, client_socket, buffer, len, MSG_WAITALL);
   io_uring_sqe_set_data64(sqe, udata);
   assert(io_uring_submit(&ring) == 1);
   return 0;
@@ -127,12 +127,12 @@ int add_write_request(io_uring &ring, int client_socket, void *buffer, size_t le
 }
 
 using info_type = std::pair<std::string, int>;
-void listener(int listen_fd, int recv_fds[], std::vector<info_type> *infos, int *data_recv_fd, int data_peer_index, int host_index) {
+void listener(int listen_fd, std::vector<info_type> *infos, int *data_recv_fd, int data_peer_index, int host_index, int req_recv_fds[], int req_weak_recv_fds[], int req_recv_index, int req_weak_recv_index) {
   sockaddr_in client_addr;
   socklen_t client_addr_len = sizeof(sockaddr_in);
-  int num = 0, recv_fd_cnt = 0;
-  bool peer_recv_fd_set = false;
-  while (num < 4) {
+  int num = 0, recv_fd_cnt = 0, req_recv_fd_cnt = 0, req_weak_recv_fd_cnt = 0;
+  bool peer_recv_fd_set = false, req_recv_fd_set = false, req_weak_recv_fd_set = false;
+  while (num < 1 + 2 * 50) {
     int client_fd = accept(listen_fd, (sockaddr *)&client_addr, &client_addr_len);
     if (client_fd < 0) {
       usleep(50);
@@ -145,21 +145,24 @@ void listener(int listen_fd, int recv_fds[], std::vector<info_type> *infos, int 
     ret = setsockopt(client_fd, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable));
     assert(ret != -1);
 
-
     for (int j = 0; j < 4; ++j) {
       sockaddr_in addr;
       inet_pton(AF_INET, (*infos)[j].first.c_str(), &addr.sin_addr);
       if (memcmp(&addr.sin_addr, &client_addr.sin_addr, sizeof(sockaddr_in::sin_addr)) == 0) {
-        if (j == data_peer_index && peer_recv_fd_set) {
+        if (j == data_peer_index ) {
           *data_recv_fd = client_fd;
           DEBUG_PRINTF(0, "data_recv_fd from %s\n", (*infos)[j].first.c_str());
-        } else {
-          recv_fds[j] = client_fd;
-          DEBUG_PRINTF(0, "[%d <- %d] recv_fd[%d] from %s\n", host_index, j, recv_fd_cnt, (*infos)[j].first.c_str());
-          recv_fd_cnt++;
-          if (j == data_peer_index) {
-            peer_recv_fd_set = true;
-          }
+        } 
+        else if (j == req_recv_index) {
+          req_recv_fds[req_recv_fd_cnt++] = client_fd;
+          DEBUG_PRINTF(0, "[%d <- %d] req_recv_fd[%d] from %s\n", host_index, j, recv_fd_cnt, (*infos)[j].first.c_str());
+        } 
+        else if (j == req_weak_recv_index) {
+          req_weak_recv_fds[req_weak_recv_fd_cnt++] = client_fd;
+          DEBUG_PRINTF(0, "[%d <- %d] req_weak_recv_fd[%d] from %s\n", host_index, j, recv_fd_cnt, (*infos)[j].first.c_str());
+        } 
+        else {
+          assert(0);
         }
       }
     }

@@ -69,9 +69,9 @@ private:
 
   void start_handlers();
 
-  void request_sender();
+  /* void request_sender(); */
 
-  void response_recvier();
+  /* void response_recvier(); */
 
   void request_handler();
   
@@ -82,10 +82,10 @@ private:
   void disconnect();
 
   // for backup
-  void do_send_data(const ArrayTransControl &ctrl);
-  void do_recv_data(ArrayTransControl &ctrl);
-  void do_send_resp(const TransControl &ctrl);
-  void do_recv_resp(TransControl &ctrl);
+  /* void do_send_data(const ArrayTransControl &ctrl); */
+  /* void do_recv_data(ArrayTransControl &ctrl); */
+  /* void do_send_resp(const TransControl &ctrl); */
+  /* void do_recv_resp(TransControl &ctrl); */
   bool finish_recv_meta(const DataTransMeta *recv_meta, ArrayTransControl &recv_data_ctrl);
   void finish_recv_data(const DataTransMeta *recv_meta);
   void finish_recv_resp(uint32_t *newest_remote_next);
@@ -109,12 +109,12 @@ private:
   UserQueue *qs;
   std::thread *consumers;
   
-  io_uring data_ring;
+  io_uring req_recv_ring;
   int host_index;
   int listen_fd;
   bool alive[4];
-  int send_fds[4];
-  int recv_fds[4];
+  /* int send_fds[4]; */
+  /* int recv_fds[4]; */
   int data_fd;
   int data_recv_fd;
   CircularFifo<1<<16> *send_fifo;
@@ -123,4 +123,9 @@ private:
   std::thread *req_handler;
   volatile bool exited;
   RemoteState remote_state;
+
+  int req_send_fds[50];
+  int req_weak_send_fds[50];
+  int req_recv_fds[50];
+  int req_weak_recv_fds[50];
 };
