@@ -116,10 +116,10 @@ void Engine::write(const User *user) {
   }
 
   DEBUG_PRINTF(LOG, "write %ld %ld %ld %ld\n", user->id, std::hash<std::string>()(std::string(user->name, 128)), std::hash<std::string>()(std::string(user->user_id, 128)), user->salary);
-
+  
   uint32_t qid = user->id % MAX_NR_CONSUMER;
   uint32_t index = qs[qid].push(user);
-  size_t encoded_index = (index << 4) | qid; 
+  size_t encoded_index = (qid << 28) | index;
 
   id_r->put(user->id, encoded_index);
   uid_r->put(std::hash<UserString>()(*(UserString *)(user->user_id)), encoded_index);

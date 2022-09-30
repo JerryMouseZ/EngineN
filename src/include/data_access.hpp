@@ -15,6 +15,7 @@ public:
   const User *read(uint32_t encoded_index) {
     uint32_t qid = encoded_index >> 28;
     uint32_t index = encoded_index & ((1 << 28) - 1);
+
     auto data = &datas[qid];
 
     // for remote
@@ -40,11 +41,11 @@ public:
       DEBUG_PRINTF(QDEBUG, "Read from write buffer: qid = %u, index = %u\n", qid, index);
       return &race_data;
     }
-    
+
     return data->data_read(index);      
   }
 
 private:
-    Data *datas;
-    UserQueue *qs;
+  Data *datas;
+  UserQueue *qs;
 };
