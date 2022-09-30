@@ -118,8 +118,8 @@ private:
   int data_fd;
   int data_recv_fd;
   CircularFifo<1<<16> *send_fifo;
-  std::thread *req_sender;
-  std::thread *rep_recvier;
+  /* std::thread *req_sender; */
+  /* std::thread *rep_recvier; */
   std::thread *req_handler;
   volatile bool exited;
   RemoteState remote_state;

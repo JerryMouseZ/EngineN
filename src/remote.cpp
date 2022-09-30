@@ -327,8 +327,8 @@ void Engine::disconnect() {
 
   DEBUG_PRINTF(LOG, "socket close, waiting handlers\n");
 
-  req_sender->join();
-  rep_recvier->join();
+  /* req_sender->join(); */
+  /* rep_recvier->join(); */
   req_handler->join();
 
   for (int i = 0; i < 4; ++i) {
