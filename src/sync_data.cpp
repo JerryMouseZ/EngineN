@@ -208,23 +208,23 @@ void Engine::do_peer_data_sync() {
   print_elapse("remote mmap sync", sync_flag_time);
 }
 
-void Engine::do_send_data(const ArrayTransControl &ctrl) {
-  auto cc = ctrl.ctrls[ctrl.cur];
-  add_write_request(data_ring, data_fd, cc.src, cc.rest, (__u64)SEND_DATA);
-}
+/* void Engine::do_send_data(const ArrayTransControl &ctrl) { */
+/*   auto cc = ctrl.ctrls[ctrl.cur]; */
+/*   add_write_request(data_ring, data_fd, cc.src, cc.rest, (__u64)SEND_DATA); */
+/* } */
 
-void Engine::do_recv_data(ArrayTransControl &ctrl) {
-  auto cc = ctrl.ctrls[ctrl.cur];
-  add_read_request(data_ring, data_recv_fd, cc.src, cc.rest, (__u64)RECV_DATA);
-}
+/* void Engine::do_recv_data(ArrayTransControl &ctrl) { */
+/*   auto cc = ctrl.ctrls[ctrl.cur]; */
+/*   add_read_request(data_ring, data_recv_fd, cc.src, cc.rest, (__u64)RECV_DATA); */
+/* } */
 
-void Engine::do_send_resp(const TransControl &ctrl) {
-  add_write_request(data_ring, data_fd, ctrl.src, ctrl.rest, (__u64)SEND_RESP);
-}
+/* void Engine::do_send_resp(const TransControl &ctrl) { */
+/*   add_write_request(data_ring, data_fd, ctrl.src, ctrl.rest, (__u64)SEND_RESP); */
+/* } */
 
-void Engine::do_recv_resp(TransControl &ctrl) {
-  add_read_request(data_ring, data_recv_fd, ctrl.src, ctrl.rest, (__u64)RECV_RESP);
-}
+/* void Engine::do_recv_resp(TransControl &ctrl) { */
+/*   add_read_request(data_ring, data_recv_fd, ctrl.src, ctrl.rest, (__u64)RECV_RESP); */
+/* } */
 
 bool Engine::finish_recv_meta(const DataTransMeta *recv_meta, ArrayTransControl &recv_data_ctrl) {
   bool recv_nothing = true;
@@ -256,9 +256,9 @@ void Engine::finish_recv_data(const DataTransMeta *recv_metas) {
       remote_uid_r->put(std::hash<UserString>()(*(UserString *)(user->user_id)), encoded_index);
       remote_sala_r->put(user->salary, encoded_index);
       remote_data.put_flag(i);
-      char uid[128];
-      assert(remote_id_r->get(&user->id, Id, Userid, uid, false) == 1);
-      assert(std::string(uid) == std::string(user->user_id));
+      /* char uid[128]; */
+      /* assert(remote_id_r->get(&user->id, Id, Userid, uid, false) == 1); */
+      /* assert(std::string(uid) == std::string(user->user_id)); */
       /* int64_t key; */
       /* assert(remote_id_r->get(user->user_id, Userid, Id, &key, false) == 1); */
       /* assert(key == user->id); */
@@ -278,5 +278,4 @@ void Engine::finish_recv_resp(uint32_t *newest_remote_next) {
     }
     remote_next_user_index[i] = head_value;
   }
-
 }

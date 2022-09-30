@@ -169,8 +169,8 @@ size_t Engine::read(int32_t select_column,
                     int32_t where_column, const void *column_key, size_t column_key_len, void *res) {
   size_t result = 0;
   result = local_read(select_column, where_column, column_key, column_key_len, res);
-  /* if (result == 0 || where_column == Salary) { */
-  if (result == 0) {
+  if (result == 0 || where_column == Salary) {
+  /* if (result == 0) { */
     res = (char *) res + result * key_len[select_column];
     result += remote_read(select_column, where_column, column_key, column_key_len, res);
   }
