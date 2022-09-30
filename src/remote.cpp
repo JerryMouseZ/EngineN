@@ -77,15 +77,18 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index, boo
     req_weak_send_fds[i] = connect_to_server(infos[host_index].first.c_str(), infos[get_another_request_index()].first.c_str(), infos[get_another_request_index()].second);
   }
 
-  start_handlers(); // 先start handlers
   listen_thread.join();
   // move to after connect
   if (!is_new_create)
     do_peer_data_sync();
+  start_handlers(); // 先start handlers
 }
 
 
 size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const void *column_key, size_t column_key_len, void *res) {
+  if (unlikely(!have_reader_id())) {
+    init_reader_id();
+  }
   // 如果远端都关掉了就不要再查了
   if (get_request_index() == -1)
     return 0;
@@ -95,17 +98,28 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
   data.select_column = select_column;
   data.where_column = where_column;
   memcpy(data.key, column_key, column_key_len);
+  int len = send_all(req_send_fds[reader_id], &data, sizeof(data), MSG_NOSIGNAL);
+  if (len < 0) {
+    fprintf(stderr, "send error : %d, errno : %d\n", len, errno);
+  }
+  assert(len == sizeof(data_request));
 
   if (where_column == Id || where_column == Salary)
     DEBUG_PRINTF(LOG, "add remote read request select %s where %s = %ld\n", column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)column_key);
   else
     DEBUG_PRINTF(LOG, "add send remote read request select %s where %s = %s\n", column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)column_key);
-  
+
   response_header header;
-  int len = recv_all(req_send_fds[reader_id], &header, sizeof(header), MSG_WAITALL);
+  len = recv_all(req_send_fds[reader_id], &header, sizeof(header), MSG_WAITALL);
+  if (len < 0) {
+    fprintf(stderr, "recv error : %d, error : %d\n", len, errno);
+  }
   assert(len == sizeof(header));
 
   len = recv_all(req_send_fds[reader_id], res, header.res_len, MSG_WAITALL);
+  if (len < 0) {
+    fprintf(stderr, "recv error : %d, error : %d\n", len, errno);
+  }
   assert(len == header.res_len);
   return header.ret;
 }
@@ -342,29 +356,13 @@ int Engine::get_backup_index() {
 int Engine::get_request_index() {
   switch(host_index) {
   case 0:
-    if (alive[2])
-      return 2;
-    if (alive[3])
-      return 3;
-    break;
+    return 2;
   case 1:
-    if (alive[3])
-      return 3;
-    if (alive[2])
-      return 2;
-    break;
+    return 3;
   case 2:
-    if (alive[0])
-      return 0;
-    if (alive[1])
-      return 1;
-    break;
+    return 0;
   case 3:
-    if (alive[1])
-      return 1;
-    if (alive[0])
-      return 0;
-    break;
+    return 1;
   }
   return -1;
 }
@@ -372,21 +370,13 @@ int Engine::get_request_index() {
 int Engine::get_another_request_index() {
   switch(host_index) {
   case 0:
-    if (alive[3])
-      return 3;
-    break;
+    return 3;
   case 1:
-    if (alive[2])
-      return 2;
-    break;
+    return 2;
   case 2:
-    if (alive[1])
-      return 1;
-    break;
+    return 1;
   case 3:
-    if (alive[0])
-      return 0;
-    break;
+    return 0;
   }
   return -1;
 }

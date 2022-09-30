@@ -130,8 +130,7 @@ using info_type = std::pair<std::string, int>;
 void listener(int listen_fd, std::vector<info_type> *infos, int *data_recv_fd, int data_peer_index, int host_index, int req_recv_fds[], int req_weak_recv_fds[], int req_recv_index, int req_weak_recv_index) {
   sockaddr_in client_addr;
   socklen_t client_addr_len = sizeof(sockaddr_in);
-  int num = 0, recv_fd_cnt = 0, req_recv_fd_cnt = 0, req_weak_recv_fd_cnt = 0;
-  bool peer_recv_fd_set = false, req_recv_fd_set = false, req_weak_recv_fd_set = false;
+  int num = 0, req_recv_fd_cnt = 0, req_weak_recv_fd_cnt = 0;
   while (num < 1 + 2 * 50) {
     int client_fd = accept(listen_fd, (sockaddr *)&client_addr, &client_addr_len);
     if (client_fd < 0) {
@@ -155,11 +154,11 @@ void listener(int listen_fd, std::vector<info_type> *infos, int *data_recv_fd, i
         } 
         else if (j == req_recv_index) {
           req_recv_fds[req_recv_fd_cnt++] = client_fd;
-          DEBUG_PRINTF(0, "[%d <- %d] req_recv_fd[%d] from %s\n", host_index, j, recv_fd_cnt, (*infos)[j].first.c_str());
+          DEBUG_PRINTF(0, "[%d <- %d] req_recv_fd[%d] from %s\n", host_index, j, req_recv_fd_cnt, (*infos)[j].first.c_str());
         } 
         else if (j == req_weak_recv_index) {
           req_weak_recv_fds[req_weak_recv_fd_cnt++] = client_fd;
-          DEBUG_PRINTF(0, "[%d <- %d] req_weak_recv_fd[%d] from %s\n", host_index, j, recv_fd_cnt, (*infos)[j].first.c_str());
+          DEBUG_PRINTF(0, "[%d <- %d] req_weak_recv_fd[%d] from %s\n", host_index, j, req_weak_recv_fd_cnt, (*infos)[j].first.c_str());
         } 
         else {
           assert(0);
