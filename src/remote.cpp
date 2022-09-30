@@ -260,7 +260,10 @@ void Engine::request_handler(){
     if (cqe == nullptr) {
       break;
     }
-
+    
+    if (cqe->res <= 0) {
+      break;
+    }
     assert(cqe->res == sizeof(data_request));
     int index = cqe->user_data;
     add_read_request(req_recv_ring, req_recv_fds[index], &req[index], sizeof(data_request), index);
