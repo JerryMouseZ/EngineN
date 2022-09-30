@@ -62,7 +62,7 @@ void test_engine_read(void *context, int index, size_t num)
   int per_thread = num / 50;
   std::thread *threads[50];
   for (int tid = 0; tid < 50; ++tid) {
-    /* threads[tid] = new std::thread([=]{ */
+    threads[tid] = new std::thread([=]{
       long data_begin = index * num + tid * per_thread, data_end = index * num + (tid + 1) * per_thread;
       for (long i = data_begin; i < data_end; ++i) {
         TestUser user;
@@ -101,12 +101,12 @@ void test_engine_read(void *context, int index, size_t num)
         }
         assert(ret == 4);
       }
-    /* }); */
+    });
   }
-  /* for (int tid = 0; tid < 50; tid++) { */
-  /*   threads[tid]->join(); */
-  /*   delete threads[tid]; */
-  /* } */
+  for (int tid = 0; tid < 50; tid++) {
+    threads[tid]->join();
+    delete threads[tid];
+  }
 }
 
 
