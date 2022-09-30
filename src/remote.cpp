@@ -57,6 +57,7 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
 void Engine::connect(std::vector<info_type> &infos, int num, int host_index, bool is_new_create) {
   this->host_index = host_index;
   io_uring_queue_init(QUEUE_DEPTH, &req_recv_ring, 0);
+  io_uring_queue_init(QUEUE_DEPTH, &req_weak_recv_ring, 0);
   listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
   sockaddr_in client_addr;
   socklen_t client_addr_len = sizeof(client_addr);
@@ -258,15 +259,15 @@ int get_column_len(int column) {
 }
 
 response_buffer res_buffer;
-void Engine::request_handler(int index, int fds[]){
+void Engine::request_handler(int index, int fds[], io_uring &ring){
   // 用一个ring来存request，然后可以异步处理，是一个SPMC的模型，那就不能用之前的队列了
   data_request req[50];
   for (int i = 0; i < 50; ++i) {
-    add_read_request(req_recv_ring, fds[i], &req[i], sizeof(data_request), i);
+    add_read_request(ring, fds[i], &req[i], sizeof(data_request), i);
   }
   io_uring_cqe *cqe;
   while (1) {
-    cqe = wait_cqe_fast(&req_recv_ring);
+    cqe = wait_cqe_fast(&ring);
     if (exited)
       return;
     assert(cqe);
@@ -276,7 +277,7 @@ void Engine::request_handler(int index, int fds[]){
     }
     assert(cqe->res == sizeof(data_request));
     int index = cqe->user_data;
-    add_read_request(req_recv_ring, fds[index], &req[index], sizeof(data_request), index);
+    add_read_request(ring, fds[index], &req[index], sizeof(data_request), index);
     // process data
     uint8_t select_column, where_column;
     uint32_t fifo_id;
@@ -298,7 +299,7 @@ void Engine::request_handler(int index, int fds[]){
     int len = send(fds[index], &res_buffer, sizeof(response_header) + res_buffer.header.res_len, MSG_NOSIGNAL);
     assert(len == sizeof(response_header) + res_buffer.header.res_len);
     DEBUG_PRINTF(LOG, "send res ret = %d\n", res_buffer.header.ret);
-    io_uring_cqe_seen(&req_recv_ring, cqe);
+    io_uring_cqe_seen(&ring, cqe);
   }
 }
 
@@ -313,11 +314,11 @@ void Engine::start_handlers() {
   /* }; */
 
   auto req_handler_fn = [&]() {
-    request_handler(get_request_index(), req_recv_fds);
+    request_handler(get_request_index(), req_recv_fds, req_recv_ring);
   };
 
   auto req_weak_handler_fn = [&]() {
-    request_handler(get_another_request_index(), req_weak_recv_fds);
+    request_handler(get_another_request_index(), req_weak_recv_fds, req_weak_recv_ring);
   };
   // std::thread不能直接运行类的成员函数，用lambda稍微封装一下
   /* req_sender = new std::thread(req_sender_fn); */
@@ -329,7 +330,6 @@ void Engine::start_handlers() {
 void Engine::disconnect() {
   // wake up request sender
   exited = true;
-  send_fifo->exit(); // wake up send fifo
   for (int i = 0; i < 50; ++i) {
     shutdown(req_send_fds[i], SHUT_RDWR);
     shutdown(req_weak_send_fds[i], SHUT_RDWR);
@@ -342,8 +342,6 @@ void Engine::disconnect() {
 
   DEBUG_PRINTF(LOG, "socket close, waiting handlers\n");
 
-  /* req_sender->join(); */
-  /* rep_recvier->join(); */
   req_handler->join();
   req_weak_handler->join();
 
@@ -354,6 +352,7 @@ void Engine::disconnect() {
     close(req_weak_recv_fds[i]);
   }
   io_uring_queue_exit(&req_recv_ring);
+  io_uring_queue_exit(&req_weak_recv_ring);
 }
 
 int Engine::get_backup_index() {

@@ -73,7 +73,7 @@ private:
 
   /* void response_recvier(); */
 
-  void request_handler(int index, int req_recv_fds[]);
+  void request_handler(int index, int req_recv_fds[], io_uring &ring);
   
   void term_sending_request();
 
@@ -110,6 +110,8 @@ private:
   std::thread *consumers;
   
   io_uring req_recv_ring;
+  io_uring req_weak_recv_ring;
+
   int host_index;
   int listen_fd;
   volatile bool alive[4];
@@ -117,7 +119,6 @@ private:
   /* int recv_fds[4]; */
   int data_fd;
   int data_recv_fd;
-  CircularFifo<1<<16> *send_fifo;
   /* std::thread *req_sender; */
   /* std::thread *rep_recvier; */
   std::thread *req_handler;
