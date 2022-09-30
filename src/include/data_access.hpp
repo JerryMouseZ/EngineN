@@ -16,6 +16,12 @@ public:
     uint32_t qid = encoded_index >> 28;
     uint32_t index = encoded_index & ((1 << 28) - 1);
     auto data = &datas[qid];
+
+    // for remote
+    if (qs == nullptr)
+      return data->data_read(index);
+
+    // for local
     auto q = &qs[qid];
 
     if (!data->get_flag(index))

@@ -1,5 +1,5 @@
 #pragma once
-
+#include <stdint.h>
 constexpr uint64_t MAX_NR_PRODUCER = 50;
 constexpr uint64_t MAX_NR_CONSUMER = 16;
 

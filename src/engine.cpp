@@ -119,7 +119,7 @@ void Engine::write(const User *user) {
 
   uint32_t qid = user->id % MAX_NR_CONSUMER;
   uint32_t index = qs[qid].push(user);
-  size_t encoded_index = (qid << 28) | index; 
+  size_t encoded_index = (index << 4) | qid; 
 
   id_r->put(user->id, encoded_index);
   uid_r->put(std::hash<UserString>()(*(UserString *)(user->user_id)), encoded_index);
@@ -129,6 +129,8 @@ void Engine::write(const User *user) {
   datas[qid].put_flag(index);
 }
 
+constexpr int key_len[4] = {8, 128, 128, 8};
+
 
 size_t Engine::local_read(int32_t select_column,
                           int32_t where_column, const void *column_key, size_t column_key_len, void *res) {
@@ -136,10 +138,14 @@ size_t Engine::local_read(int32_t select_column,
   switch(where_column) {
   case Id:
     result = id_r->get(column_key, where_column, select_column, res, false);
+    if (!result)
+      result = remote_id_r->get(column_key, where_column, select_column, res, false);
     DEBUG_PRINTF(LOG, "select %s where ID = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
     break;
   case Userid:
     result = uid_r->get(column_key, where_column, select_column, res, false);
+    if (!result)
+      result = remote_uid_r->get(column_key, where_column, select_column, res, false);
     DEBUG_PRINTF(LOG, "select %s where UID = %ld, res = %ld\n", column_str(select_column).c_str(), std::hash<std::string>()(std::string((char *) column_key, 128)), result);
     break;
   case Name:
@@ -149,6 +155,8 @@ size_t Engine::local_read(int32_t select_column,
     break;
   case Salary:
     result = sala_r->get(column_key, where_column, select_column, res, true);
+    res = ((char *)res) + result * key_len[select_column];
+    result += remote_sala_r->get(column_key, where_column, select_column, res, true);
     DEBUG_PRINTF(LOG, "select %s where salary = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
     break;
   default:
@@ -161,8 +169,10 @@ size_t Engine::read(int32_t select_column,
                     int32_t where_column, const void *column_key, size_t column_key_len, void *res) {
   size_t result = 0;
   result = local_read(select_column, where_column, column_key, column_key_len, res);
+  /* if (result == 0 || where_column == Salary) { */
   if (result == 0) {
-    return remote_read(select_column, where_column, column_key, column_key_len, res);
+    res = (char *) res + result * key_len[select_column];
+    result += remote_read(select_column, where_column, column_key, column_key_len, res);
   }
   return result;
 }
