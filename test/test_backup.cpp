@@ -143,8 +143,6 @@ int main(int argc, char **argv)
   } else {
     int backup_index = engine->get_backup_index();
     test_engine_read(context, backup_index, num);
-    // waitint for other read done
-    sleep(20);
   }
   engine_deinit(context);
 }
