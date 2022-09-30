@@ -1,4 +1,5 @@
 #include "include/data.hpp"
+#include <cstdio>
 
 bool UserString::operator==(const UserString &other) {
   return memcmp(ptr, other.ptr, 128) == 0;
