@@ -34,8 +34,8 @@ void test_engine_write(void *context, int index, size_t num)
   std::thread *threads[50];
   for (long tid = 0; tid < 50; ++tid) {
     threads[tid] = new std::thread([=]{
-      long data_begin = tid * per_thread, data_end = (tid + 1) * per_thread;
-      for (long i = index * num; i < (index + 1) * num; ++i) {
+      long data_begin = index * num + tid * per_thread, data_end = index * num + (tid + 1) * per_thread;
+      for (long i = data_begin; i < data_end; ++i) {
         TestUser user;
         memset(&user, 0, sizeof(TestUser));
         user.id = i;
@@ -63,7 +63,8 @@ void test_engine_read(void *context, int index, size_t num)
   std::thread *threads[50];
   for (int tid = 0; tid < 50; ++tid) {
     threads[tid] = new std::thread([=]{
-      for (long i = index * num; i < (index + 1) * num; ++i) {
+      long data_begin = index * num + tid * per_thread, data_end = index * num + (tid + 1) * per_thread;
+      for (long i = data_begin; i < data_end; ++i) {
         TestUser user;
         // Select Uid from ... where Id
         memset(&user, 0, sizeof(user));
