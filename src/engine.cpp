@@ -92,7 +92,6 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
                                ;
                                });
   }
-  send_fifo = new CircularFifo<1<<16>();
   
   // for remote
   bool remote_state_is_new_create;
