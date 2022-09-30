@@ -19,7 +19,6 @@ public:
 
     if (!data->get_flag(index))
       return nullptr;
-    index -= 1;
 
     if (qs == nullptr)
       return data->data_read(index);

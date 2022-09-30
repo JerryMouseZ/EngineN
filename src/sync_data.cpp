@@ -250,13 +250,12 @@ void Engine::finish_recv_data(const DataTransMeta *recv_metas) {
 
     for (auto i = remote_next; i < end; i++) {
       const User *user = remote_data.data_read(i);
-      uint32_t index = i + 1;
-      uint32_t encoded_index = (qid << 28) | index;
+      uint32_t encoded_index = (qid << 28) | i;
       
       remote_id_r->put(user->id, encoded_index);
       remote_uid_r->put(std::hash<UserString>()(*(UserString *)(user->user_id)), encoded_index);
       remote_sala_r->put(user->salary, encoded_index);
-      remote_data.put_flag(index);
+      remote_data.put_flag(i);
       char uid[128];
       assert(remote_id_r->get(&user->id, Id, Userid, uid, false) == 1);
       assert(std::string(uid) == std::string(user->user_id));
