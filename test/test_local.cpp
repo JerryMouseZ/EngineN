@@ -34,7 +34,7 @@ void test_engine_write(int index, size_t num)
   long per_thread = num / 50;
   std::thread *threads[50];
   for (long tid = 0; tid < 50; ++tid) {
-    threads[tid] = new std::thread([=]{
+    /* threads[tid] = new std::thread([=]{ */
       long data_begin = index * num + tid * per_thread, data_end = index * num + (tid + 1) * per_thread;
       for (long i = data_begin; i < data_end; ++i) {
         TestUser user;
@@ -47,13 +47,13 @@ void test_engine_write(int index, size_t num)
         user.salary = i / 4;
         engine_write(context, &user, sizeof(user));
       }
-    });
+    /* }); */
   }
 
-  for (int tid = 0; tid < 50; tid++) {
-    threads[tid]->join();
-    delete threads[tid];
-  }
+  /* for (int tid = 0; tid < 50; tid++) { */
+  /*   threads[tid]->join(); */
+  /*   delete threads[tid]; */
+  /* } */
   engine_deinit(context);
 }
 
@@ -77,7 +77,7 @@ void test_engine_read(int index, size_t num)
   int per_thread = num / 50;
   std::thread *threads[50];
   for (int tid = 0; tid < 50; ++tid) {
-    threads[tid] = new std::thread([=]{
+    /* threads[tid] = new std::thread([=]{ */
       long data_begin = index * num + tid * per_thread, data_end = index * num + (tid + 1) * per_thread;
       for (long i = data_begin; i < data_end; ++i) {
         TestUser user;
@@ -118,12 +118,12 @@ void test_engine_read(int index, size_t num)
         }
         assert(ret == 4);
       }
-      });
+      /* }); */
   }
-  for (int tid = 0; tid < 50; tid++) {
-    threads[tid]->join();
-    delete threads[tid];
-  }
+  /* for (int tid = 0; tid < 50; tid++) { */
+  /*   threads[tid]->join(); */
+  /*   delete threads[tid]; */
+  /* } */
   engine_deinit(context);
 }
 
