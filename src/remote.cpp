@@ -107,7 +107,7 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
   }
 
   data_request data;
-  data.fifo_id = 0;
+  data.fifo_id = 1;
   data.select_column = select_column;
   data.where_column = where_column;
   memcpy(data.key, column_key, column_key_len);
@@ -167,6 +167,17 @@ int get_column_len(int column) {
   return -1;
 }
 
+void Engine::ask_peer_quit() {
+  data_request req;
+  req.select_column = 22;
+  req.where_column = 22;
+  for (int i = 0; i < 10; ++i) {
+    fprintf(stderr, "ask node %d to quit\n", get_request_index());
+    send_all(req_send_fds[i * 5], &req, sizeof(req), MSG_NOSIGNAL);
+    fprintf(stderr, "ask node %d to quit\n", get_another_request_index());
+    send_all(req_weak_send_fds[i * 5], &req, sizeof(req), MSG_NOSIGNAL);
+  }
+}
 
 void Engine::request_handler(int node, int *fds, io_uring &ring){
   // 用一个ring来存request，然后可以异步处理，是一个SPMC的模型，那就不能用之前的队列了
@@ -181,8 +192,6 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
   io_uring_cqe *cqe;
   while (1) {
     cqe = wait_cqe_fast(&ring);
-    if (exited)
-      return;
     assert(cqe);
     if (cqe->res <= 0) {
       fprintf(stderr, "recv error %d\n", cqe->res);
@@ -190,12 +199,8 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
       break;
     }
     assert(cqe->res == sizeof(data_request));
-    int id = cqe->user_data;
-    iov[id].iov_base = &req[id];
-    iov[id].iov_len = sizeof(data_request);
-    add_read_request(ring, fds[id], &iov[id], id);
-    /* add_read_request(ring, fds[id], &req[id], sizeof(data_request), id); */
     // process data
+    int id = cqe->user_data;
     uint8_t select_column, where_column;
     uint32_t fifo_id;
     void *key;
@@ -203,6 +208,10 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
     where_column = req[id].where_column;
     key = req[id].key;
     fifo_id = req[id].fifo_id;
+    if (select_column == 22 && where_column == 22) {
+      fprintf(stderr, "handlers for node %d quiting\n", node);
+      return;
+    }
     if (where_column == Id || where_column == Salary)
       DEBUG_PRINTF(LOG, "recv request select %s where %s = %ld\n", column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
     else
@@ -211,6 +220,11 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
     res_buffer[id].header.fifo_id = fifo_id;
     res_buffer[id].header.ret = num;
     res_buffer[id].header.res_len = get_column_len(select_column) * num;
+
+    // add new request before send
+    iov[id].iov_base = &req[id];
+    iov[id].iov_len = sizeof(data_request);
+    add_read_request(ring, fds[id], &iov[id], id);
     int len = send_all(fds[id], &res_buffer[id], sizeof(response_header) + res_buffer[id].header.res_len, MSG_NOSIGNAL);
     /* if (len < 0) { */
     /*   alive[node] = false; */
@@ -227,7 +241,7 @@ void Engine::start_handlers() {
   auto req_handler_fn = [&](int index, int *fds, io_uring *ring) {
     request_handler(index, fds, *ring);
   };
-  
+
   for (int i = 0; i < 10; ++i) {
     req_handler[i] = new std::thread(req_handler_fn, get_request_index(), req_recv_fds + i * 5, &req_recv_ring[i]);
     req_weak_handler[i] = new std::thread(req_handler_fn, get_another_request_index(), req_weak_recv_fds + i * 5, &req_weak_recv_ring[i]);
@@ -236,23 +250,24 @@ void Engine::start_handlers() {
 
 void Engine::disconnect() {
   // wake up request sender
-  exited = true;
+  ask_peer_quit();
+  DEBUG_PRINTF(0, "socket close, waiting handlers\n");
+
+  for (int i = 0; i < 10; ++i) {
+    req_handler[i]->join();
+    req_weak_handler[i]->join();
+  }
+
   for (int i = 0; i < 50; ++i) {
     shutdown(req_send_fds[i], SHUT_RDWR);
     shutdown(req_recv_fds[i], SHUT_RDWR);
     shutdown(req_weak_send_fds[i], SHUT_RDWR);
     shutdown(req_weak_recv_fds[i], SHUT_RDWR);
   }
+
   close(data_fd);
   close(data_recv_fd);
   close(listen_fd);
-
-  DEBUG_PRINTF(LOG, "socket close, waiting handlers\n");
-
-  for (int i = 0; i < 10; ++i) {
-    req_handler[i]->join();
-    req_weak_handler[i]->join();
-  }
 
   for (int i = 0; i < 4; ++i) {
     close(req_send_fds[i]);
