@@ -29,7 +29,9 @@ int connect_to_server(const char *this_host_ip, const char *ip, int port);
 
 int add_write_request(io_uring &ring, int client_socket, void *buffer, size_t len, __u64 udata);
 
-int add_read_request(io_uring &ring, int client_socket, void *buffer, size_t len, __u64 udata);
+/* int add_read_request(io_uring &ring, int client_socket, void *buffer, size_t len, __u64 udata); */
+
+int add_read_request(io_uring &ring, int client_socket, iovec *iov, __u64 udata);
 
 io_uring_cqe *wait_cqe_fast(struct io_uring *ring);
 
