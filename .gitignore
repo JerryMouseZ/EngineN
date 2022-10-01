@@ -16,3 +16,4 @@ test_engine_read
 test_sala
 .vscode
 compile_commands.json
+./liburing/liburing.a
