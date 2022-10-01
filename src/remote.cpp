@@ -239,7 +239,7 @@ void Engine::disconnect() {
   exited = true;
   for (int i = 0; i < 50; ++i) {
     shutdown(req_send_fds[i], SHUT_RDWR);
-    shutdown(req_weak_send_fds[i], SHUT_RDWR);
+    shutdown(req_recv_fds[i], SHUT_RDWR);
     shutdown(req_weak_send_fds[i], SHUT_RDWR);
     shutdown(req_weak_recv_fds[i], SHUT_RDWR);
   }
@@ -256,7 +256,7 @@ void Engine::disconnect() {
 
   for (int i = 0; i < 4; ++i) {
     close(req_send_fds[i]);
-    close(req_weak_send_fds[i]);
+    close(req_recv_fds[i]);
     close(req_weak_send_fds[i]);
     close(req_weak_recv_fds[i]);
   }
