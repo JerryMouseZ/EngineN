@@ -56,8 +56,10 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
 
 void Engine::connect(std::vector<info_type> &infos, int num, int host_index, bool is_new_create) {
   this->host_index = host_index;
-  io_uring_queue_init(QUEUE_DEPTH, &req_recv_ring, 0);
-  io_uring_queue_init(QUEUE_DEPTH, &req_weak_recv_ring, 0);
+  for (int i = 0; i < 10; ++i) {
+    io_uring_queue_init(QUEUE_DEPTH, &req_recv_ring[i], 0);
+    io_uring_queue_init(QUEUE_DEPTH, &req_weak_recv_ring[i], 0);
+  }
   listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
   sockaddr_in client_addr;
   socklen_t client_addr_len = sizeof(client_addr);
@@ -69,7 +71,7 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index, boo
     alive[i] = true;
 
   data_fd = connect_to_server(infos[host_index].first.c_str(), infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
-  
+
   for (int i = 0; i < 50; ++i) {
     req_send_fds[i] = connect_to_server(infos[host_index].first.c_str(), infos[get_request_index()].first.c_str(), infos[get_request_index()].second);
   }
@@ -261,8 +263,8 @@ int get_column_len(int column) {
 response_buffer res_buffer;
 void Engine::request_handler(int index, int fds[], io_uring &ring){
   // 用一个ring来存request，然后可以异步处理，是一个SPMC的模型，那就不能用之前的队列了
-  data_request req[50];
-  for (int i = 0; i < 50; ++i) {
+  data_request req[5];
+  for (int i = 0; i < 5; ++i) {
     add_read_request(ring, fds[i], &req[i], sizeof(data_request), i);
   }
   io_uring_cqe *cqe;
@@ -313,18 +315,14 @@ void Engine::start_handlers() {
   /*   response_recvier(); */
   /* }; */
 
-  auto req_handler_fn = [&]() {
-    request_handler(get_request_index(), req_recv_fds, req_recv_ring);
+  auto req_handler_fn = [&](int index, int *fds, io_uring *ring) {
+    request_handler(index, fds, *ring);
   };
-
-  auto req_weak_handler_fn = [&]() {
-    request_handler(get_another_request_index(), req_weak_recv_fds, req_weak_recv_ring);
-  };
-  // std::thread不能直接运行类的成员函数，用lambda稍微封装一下
-  /* req_sender = new std::thread(req_sender_fn); */
-  /* rep_recvier = new std::thread(rep_recver_fn); */
-  req_handler = new std::thread(req_handler_fn);
-  req_weak_handler = new std::thread(req_weak_handler_fn);
+  
+  for (int i = 0; i < 10; ++i) {
+    req_handler[i] = new std::thread(req_handler_fn, get_request_index(), &req_recv_fds[i * 5], &req_recv_ring[i]);
+    req_weak_handler[i] = new std::thread(req_handler_fn, get_another_request_index(), &req_weak_recv_fds[i * 5], &req_weak_recv_ring[i]);
+  }
 }
 
 void Engine::disconnect() {
@@ -342,8 +340,10 @@ void Engine::disconnect() {
 
   DEBUG_PRINTF(LOG, "socket close, waiting handlers\n");
 
-  req_handler->join();
-  req_weak_handler->join();
+  for (int i = 0; i < 10; ++i) {
+    req_handler[i]->join();
+    req_weak_handler[i]->join();
+  }
 
   for (int i = 0; i < 4; ++i) {
     close(req_send_fds[i]);
@@ -351,8 +351,11 @@ void Engine::disconnect() {
     close(req_weak_send_fds[i]);
     close(req_weak_recv_fds[i]);
   }
-  io_uring_queue_exit(&req_recv_ring);
-  io_uring_queue_exit(&req_weak_recv_ring);
+
+  for (int i = 0; i < 10; ++i) {
+    io_uring_queue_exit(&req_recv_ring[i]);
+    io_uring_queue_exit(&req_weak_recv_ring[i]);
+  }
 }
 
 int Engine::get_backup_index() {
