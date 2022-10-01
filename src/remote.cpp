@@ -204,9 +204,9 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
     key = req[id].key;
     fifo_id = req[id].fifo_id;
     if (where_column == Id || where_column == Salary)
-      DEBUG_PRINTF(0, "recv request select %s where %s = %ld\n", column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
+      DEBUG_PRINTF(LOG, "recv request select %s where %s = %ld\n", column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
     else
-      DEBUG_PRINTF(0, "recv request select %s where %s = %s\n", column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
+      DEBUG_PRINTF(LOG, "recv request select %s where %s = %s\n", column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
     int num = local_read(select_column, where_column, key, 128, res_buffer[id].body);
     res_buffer[id].header.fifo_id = fifo_id;
     res_buffer[id].header.ret = num;
