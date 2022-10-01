@@ -29,7 +29,7 @@
 #endif
 
 // close log
-#define LOG 0
+#define LOG 1
 #define QINFO 1
 #define QDEBUG 1
 
