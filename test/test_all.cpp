@@ -55,15 +55,15 @@ void test_engine_write(void *context, int index, size_t num)
 }
 
 // both for local or remote
-void test_engine_read(void *context, int index, size_t num)
+void test_engine_read(void *context, size_t num)
 {
   assert(num % 50 == 0);
   int per_thread = num / 50;
   std::thread *threads[50];
-  long begin = index * num, end = (index + 1) * num;
+  long begin = 0, end = num;
   for (int tid = 0; tid < 50; ++tid) {
     threads[tid] = new std::thread([=]{
-      long data_begin = index * num + tid * per_thread, data_end = index * num + (tid + 1) * per_thread;
+      long data_begin = tid * per_thread, data_end = (tid + 1) * per_thread;
       for (long i = data_begin; i < data_end; ++i) {
         TestUser user;
         // Select Uid from ... where Id
@@ -141,8 +141,7 @@ int main(int argc, char **argv)
   if (argv[3][0] == 'w') {
     test_engine_write(context, index, num);
   } else {
-    for (int i = 0; i < 3; ++i)
-      test_engine_read(context, i, num);
+    test_engine_read(context, num * 4);
     // waitint for other read done
     sleep(20);
   }

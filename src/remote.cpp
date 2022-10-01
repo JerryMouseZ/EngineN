@@ -105,7 +105,7 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
     return 0;
   }
 
-  data_request data = data_request();
+  data_request data;
   data.fifo_id = 0;
   data.select_column = select_column;
   data.where_column = where_column;

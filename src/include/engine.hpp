@@ -56,6 +56,8 @@ public:
 
   int get_request_index();
 
+  int get_another_request_index();
+
   int get_backup_index();
 
   void do_peer_data_sync();
@@ -64,8 +66,6 @@ private:
   static std::string column_str(int column);
 
   void connect(std::vector<info_type> &infos, int num, int host_index, bool is_new_create);
-
-  int get_another_request_index();
 
   void start_handlers();
 
