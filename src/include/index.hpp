@@ -28,7 +28,7 @@
 
 static const int BUCKET_NUM = 1 << 24;
 static const int OVER_NUM = 1 << 20;
-static const int ENTRY_NUM = 6;
+static const uint32_t ENTRY_NUM = 6;
 
 // 64-byte allign
 struct Bucket {
@@ -174,7 +174,8 @@ public:
   size_t get(size_t over_offset, size_t hash_val, const void *key, int where_column, int select_column, void *res, bool multi) {
     int count = 0;
     Bucket *bucket = reinterpret_cast<Bucket *>(ptr + over_offset);
-    for (int i = 0; i < ENTRY_NUM && i < bucket->next_free.load(std::memory_order_acquire); ++i) {
+    int num = std::min(ENTRY_NUM, bucket->next_free.load(std::memory_order_acquire));
+    for (int i = 0; num; ++i) {
       uint64_t offset = bucket->entries[i];
       const User *tmp = accessor.read(offset);
       /* __builtin_prefetch(tmp, 0, 0); */
@@ -259,7 +260,8 @@ public:
     size_t bucket_location = hash_val & (BUCKET_NUM - 1);
     int count = 0;
     Bucket *bucket = reinterpret_cast<Bucket *>(hash_ptr + bucket_location * sizeof(Bucket));
-    for (int i = 0; i < ENTRY_NUM && i < bucket->next_free.load(std::memory_order_acquire); ++i) {
+    int num = std::min(ENTRY_NUM, bucket->next_free.load(std::memory_order_acquire));
+    for (int i = 0; i < num; ++i) {
       size_t offset = bucket->entries[i];
       const User *tmp = accessor.read(offset);
       /* __builtin_prefetch(tmp, 0, 0); */
