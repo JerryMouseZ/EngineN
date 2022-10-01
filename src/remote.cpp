@@ -5,6 +5,7 @@
 #include "include/thread_id.hpp"
 #include "include/util.hpp"
 #include "liburing.h"
+#include <bits/types/struct_iovec.h>
 #include <cassert>
 #include <cerrno>
 #include <cstddef>
@@ -171,8 +172,11 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
   // 用一个ring来存request，然后可以异步处理，是一个SPMC的模型，那就不能用之前的队列了
   data_request req[5];
   response_buffer res_buffer[5];
+  iovec iov[5];
   for (int i = 0; i < 5; ++i) {
-    add_read_request(ring, fds[i], &req[i], sizeof(data_request), i);
+    iov[i].iov_base = &req[i];
+    iov[i].iov_len = sizeof(data_request);
+    add_read_request(ring, fds[i], &iov[i], i);
   }
   io_uring_cqe *cqe;
   while (1) {
@@ -181,12 +185,16 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
       return;
     assert(cqe);
     if (cqe->res <= 0) {
+      fprintf(stderr, "recv error %d\n", cqe->res);
       alive[node] = false;
       break;
     }
     assert(cqe->res == sizeof(data_request));
     int id = cqe->user_data;
-    add_read_request(ring, fds[id], &req[id], sizeof(data_request), id);
+    iov[id].iov_base = &req[id];
+    iov[id].iov_len = sizeof(data_request);
+    add_read_request(ring, fds[id], &iov[id], id);
+    /* add_read_request(ring, fds[id], &req[id], sizeof(data_request), id); */
     // process data
     uint8_t select_column, where_column;
     uint32_t fifo_id;
@@ -196,9 +204,9 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
     key = req[id].key;
     fifo_id = req[id].fifo_id;
     if (where_column == Id || where_column == Salary)
-      DEBUG_PRINTF(LOG, "recv request select %s where %s = %ld\n", column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
+      DEBUG_PRINTF(0, "recv request select %s where %s = %ld\n", column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
     else
-      DEBUG_PRINTF(LOG, "recv request select %s where %s = %s\n", column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
+      DEBUG_PRINTF(0, "recv request select %s where %s = %s\n", column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
     int num = local_read(select_column, where_column, key, 128, res_buffer[id].body);
     res_buffer[id].header.fifo_id = fifo_id;
     res_buffer[id].header.ret = num;

@@ -1,6 +1,7 @@
 #include "include/comm.h"
 #include "liburing.h"
 #include <asm-generic/socket.h>
+#include <bits/types/struct_iovec.h>
 #include <cstring>
 #include <ctime>
 #include <netinet/in.h>
@@ -108,10 +109,10 @@ int connect_to_server(const char *this_host_ip, const char *ip, int port) {
 }
 
 
-int add_read_request(io_uring &ring, int client_socket, void *buffer, size_t len, __u64 udata) {
+int add_read_request(io_uring &ring, int client_socket, iovec *iov, __u64 udata) {
   struct io_uring_sqe *sqe = io_uring_get_sqe(&ring);
   assert(sqe);
-  io_uring_prep_recv(sqe, client_socket, buffer, len, MSG_WAITALL);
+  io_uring_prep_readv(sqe, client_socket, iov, 1, 0);
   io_uring_sqe_set_data64(sqe, udata);
   assert(io_uring_submit(&ring) == 1);
   return 0;
