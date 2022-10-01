@@ -42,7 +42,7 @@ void test_engine_write(void *context, int index, size_t num)
         memset(user.user_id, 0, 128);
         strcpy(user.name, std::to_string(i).c_str());
         strcpy(user.user_id, std::to_string(i).c_str());
-        user.salary = i / 4;
+        user.salary = i % num;
         engine_write(context, &user, sizeof(user));
       }
     });
@@ -60,6 +60,8 @@ void test_engine_read(void *context, size_t num)
   assert(num % 50 == 0);
   int per_thread = num / 50;
   std::thread *threads[50];
+  assert(num % 4 == 0);
+  int per_node = num / 4;
   long begin = 0, end = num;
   for (int tid = 0; tid < 50; ++tid) {
     threads[tid] = new std::thread([=]{
@@ -93,7 +95,7 @@ void test_engine_read(void *context, size_t num)
     
         // Select Id from ... where Salary
         memset(&user, 0, sizeof(user));
-        long salary = i / 4;
+        long salary = i % per_node;
         int64_t ids[4];
         ret = engine_read(context, Id, Salary, &salary, sizeof(salary), ids);
         if (ret != 4) {
