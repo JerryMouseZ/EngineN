@@ -56,7 +56,7 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
 
 void Engine::connect(std::vector<info_type> &infos, int num, int host_index, bool is_new_create) {
   this->host_index = host_index;
-  for (int i = 0; i < 1; ++i) {
+  for (int i = 0; i < 10; ++i) {
     io_uring_queue_init(QUEUE_DEPTH, &req_recv_ring[i], 0);
     io_uring_queue_init(QUEUE_DEPTH, &req_weak_recv_ring[i], 0);
   }
@@ -139,106 +139,12 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
   return header.ret;
 }
 
-/* void Engine::term_sending_request() { */
-/*   send_entry *entry; */
-/*   while (1) { */
-/*     entry = send_fifo->pop(); */
-/*     if (entry == nullptr) */
-/*       break; */
-/*     // 唤醒等待的线程 */
-/*     entry->has_come = 1; */
-/*     entry->ret = 0; */
-/*     pthread_mutex_lock(&entry->mutex); */
-/*     pthread_cond_signal(&entry->cond); */
-/*     pthread_mutex_unlock(&entry->mutex); */
-/*   } */
-/* } */
-
-
-/* void Engine::request_sender(){ */
-/*   data_request *reqv; */
-/*   send_entry *metav; */
-/*   io_uring_cqe *cqe; */
-/*   unsigned head; */
-/*   int ret; */
-/*   int send_req_index; */
-/*   while (1) { */
-/*     DEBUG_PRINTF(LOG, "waiting for fifo send\n"); */
-/*     // 30大概是4020，能凑4096 */
-/*     reqv = send_fifo->prepare_send(1, &metav); // 读是会阻塞的，如果要等前面的请求完成才有后面的请求的话可能不太行，毕竟read没有tail commit */
-/*     if (exited) */
-/*       return; */
-
-/*     send_req_index = get_request_index(); */
-/*     if (send_req_index < 0) { */
-/*       // stop remote read, wake up threads */
-/*       term_sending_request(); */
-/*       return; */
-/*     } */
-
-/*     send(send_fds[send_req_index], reqv, sizeof(data_request), MSG_NOSIGNAL); */
-/*     if (reqv->where_column == Id || reqv->where_column == Salary) */
-/*       DEBUG_PRINTF(LOG, "send remote read request [%d - %d] select %s where %s = %ld\n", reqv->fifo_id, reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), *(uint64_t *)reqv->key); */
-/*     else */
-/*       DEBUG_PRINTF(LOG, "send remote read request [%d - %d] select %s where %s = %s\n", reqv->fifo_id, reqv->fifo_id, column_str(reqv->select_column).c_str(), column_str(reqv->where_column).c_str(), (char *)reqv->key); */
-/*     metav->socket = send_fds[send_req_index]; */
-/*   } */
-/* } */
 
 struct recv_cqe_data{
   int type;
   int fd;
 };
 
-/* void Engine::invalidate_fd(int sock) { */
-/*   for (int i = 0; i < 4; ++i) { */
-/*     if (send_fds[i] == sock || recv_fds[i] == sock) { */
-/*       if (alive[i]) { */
-/*         alive[i] = false; */
-/*       } */
-/*       break; */
-/*     } */
-/*   } */
-/* } */
-
-
-// 有一个问题，就是可能recv和send的不是同一个socket，但是没有关系，我们只负责接收
-/* void Engine::response_recvier() { */
-/*   response_header header; */
-/*   send_entry *entry; */
-/*   int req_fd_index = get_request_index(); */
-/*   // 如果两个request node都挂了，其实不需要发request了 */
-/*   if (req_fd_index < 0) */
-/*     return; */
-/*   while (1) { */
-/*     int len = recv(send_fds[req_fd_index], &header, sizeof(response_header), 0); */
-/*     if (exited) */
-/*       return; */
-/*     // socket close */
-/*     if (len <= 0) { */
-/*       invalidate_fd(req_fd_index); */
-/*       return; */
-/*     } */
-
-/*     entry = send_fifo->get_meta(header.fifo_id); */
-/*     // recv body */
-/*     len = recv(send_fds[req_fd_index], entry->res, header.res_len, 0); */
-/*     assert(len == header.res_len); */
-/*     // body */
-/*     // 设置返回值以及标记，唤醒等待线程 */
-/*     entry->ret = header.ret; */
-/*     entry->has_come = 1; */
-/*     DEBUG_PRINTF(LOG, "receiving read response [%d] ret = %d\n", header.fifo_id, entry->ret); */
-/*     pthread_mutex_lock(&entry->mutex); */
-/*     pthread_cond_signal(&entry->cond); */
-/*     pthread_mutex_unlock(&entry->mutex); */
-/*     DEBUG_PRINTF(LOG, "waking up [%d] %p\n", header.fifo_id, &entry->cond); */
-/*     req_fd_index = get_request_index(); */
-/*     if (req_fd_index < 0) { */
-/*       return; */
-/*     } */
-/*   } */
-/* } */
 
 int get_column_len(int column) {
   switch(column) {
@@ -260,11 +166,12 @@ int get_column_len(int column) {
   return -1;
 }
 
-response_buffer res_buffer;
-void Engine::request_handler(int index, int fds[], io_uring &ring){
+
+void Engine::request_handler(int node, int *fds, io_uring &ring){
   // 用一个ring来存request，然后可以异步处理，是一个SPMC的模型，那就不能用之前的队列了
-  data_request req[50];
-  for (int i = 0; i < 50; ++i) {
+  data_request req[5];
+  response_buffer res_buffer[5];
+  for (int i = 0; i < 5; ++i) {
     add_read_request(ring, fds[i], &req[i], sizeof(data_request), i);
   }
   io_uring_cqe *cqe;
@@ -274,54 +181,48 @@ void Engine::request_handler(int index, int fds[], io_uring &ring){
       return;
     assert(cqe);
     if (cqe->res <= 0) {
-      alive[index] = false;
+      alive[node] = false;
       break;
     }
     assert(cqe->res == sizeof(data_request));
-    int index = cqe->user_data;
-    add_read_request(ring, fds[index], &req[index], sizeof(data_request), index);
+    int id = cqe->user_data;
+    add_read_request(ring, fds[id], &req[id], sizeof(data_request), id);
     // process data
     uint8_t select_column, where_column;
     uint32_t fifo_id;
     void *key;
-    select_column = req[index].select_column;
-    where_column = req[index].where_column;
-    key = req[index].key;
-    fifo_id = req[index].fifo_id;
+    select_column = req[id].select_column;
+    where_column = req[id].where_column;
+    key = req[id].key;
+    fifo_id = req[id].fifo_id;
     if (where_column == Id || where_column == Salary)
       DEBUG_PRINTF(LOG, "recv request select %s where %s = %ld\n", column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
     else
       DEBUG_PRINTF(LOG, "recv request select %s where %s = %s\n", column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
-    int num = local_read(select_column, where_column, key, 128, res_buffer.body);
-    res_buffer.header.fifo_id = fifo_id;
-    res_buffer.header.ret = num;
-    res_buffer.header.res_len = get_column_len(select_column) * num;
-    /* int ret = send(cqe->user_data, &res_buffer, sizeof(response_header) + res_buffer.header.res_len, MSG_NOSIGNAL); */
-    /* assert(ret == sizeof(response_header) + res_buffer.header.res_len); */
-    int len = send(fds[index], &res_buffer, sizeof(response_header) + res_buffer.header.res_len, MSG_NOSIGNAL);
-    assert(len == sizeof(response_header) + res_buffer.header.res_len);
-    DEBUG_PRINTF(LOG, "send res ret = %d\n", res_buffer.header.ret);
+    int num = local_read(select_column, where_column, key, 128, res_buffer[id].body);
+    res_buffer[id].header.fifo_id = fifo_id;
+    res_buffer[id].header.ret = num;
+    res_buffer[id].header.res_len = get_column_len(select_column) * num;
+    int len = send_all(fds[id], &res_buffer[id], sizeof(response_header) + res_buffer[id].header.res_len, MSG_NOSIGNAL);
+    /* if (len < 0) { */
+    /*   alive[node] = false; */
+    /*   break; */
+    /* } */
+    assert(len == sizeof(response_header) + res_buffer[id].header.res_len);
+    DEBUG_PRINTF(LOG, "send res ret = %d\n", res_buffer[id].header.ret);
     io_uring_cqe_seen(&ring, cqe);
   }
 }
 
 
 void Engine::start_handlers() {
-  /* auto req_sender_fn = [&]() { */
-  /*   request_sender(); */
-  /* }; */
-
-  /* auto rep_recver_fn = [&]() { */
-  /*   response_recvier(); */
-  /* }; */
-
   auto req_handler_fn = [&](int index, int *fds, io_uring *ring) {
     request_handler(index, fds, *ring);
   };
   
-  for (int i = 0; i < 1; ++i) {
-    req_handler[i] = new std::thread(req_handler_fn, get_request_index(), &req_recv_fds[i * 5], &req_recv_ring[i]);
-    req_weak_handler[i] = new std::thread(req_handler_fn, get_another_request_index(), &req_weak_recv_fds[i * 5], &req_weak_recv_ring[i]);
+  for (int i = 0; i < 10; ++i) {
+    req_handler[i] = new std::thread(req_handler_fn, get_request_index(), req_recv_fds + i * 5, &req_recv_ring[i]);
+    req_weak_handler[i] = new std::thread(req_handler_fn, get_another_request_index(), req_weak_recv_fds + i * 5, &req_weak_recv_ring[i]);
   }
 }
 
@@ -340,7 +241,7 @@ void Engine::disconnect() {
 
   DEBUG_PRINTF(LOG, "socket close, waiting handlers\n");
 
-  for (int i = 0; i < 1; ++i) {
+  for (int i = 0; i < 10; ++i) {
     req_handler[i]->join();
     req_weak_handler[i]->join();
   }
@@ -352,7 +253,7 @@ void Engine::disconnect() {
     close(req_weak_recv_fds[i]);
   }
 
-  for (int i = 0; i < 1; ++i) {
+  for (int i = 0; i < 10; ++i) {
     io_uring_queue_exit(&req_recv_ring[i]);
     io_uring_queue_exit(&req_weak_recv_ring[i]);
   }
