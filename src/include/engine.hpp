@@ -109,8 +109,8 @@ private:
   UserQueue *qs;
   std::thread *consumers;
   
-  io_uring req_recv_ring;
-  io_uring req_weak_recv_ring;
+  io_uring req_recv_ring[10];
+  io_uring req_weak_recv_ring[10];
 
   int host_index;
   int listen_fd;
@@ -121,8 +121,8 @@ private:
   int data_recv_fd;
   /* std::thread *req_sender; */
   /* std::thread *rep_recvier; */
-  std::thread *req_handler;
-  std::thread *req_weak_handler;
+  std::thread *req_handler[10];
+  std::thread *req_weak_handler[10];
   volatile bool exited;
   RemoteState remote_state;
 
