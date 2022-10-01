@@ -56,7 +56,7 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
 
 void Engine::connect(std::vector<info_type> &infos, int num, int host_index, bool is_new_create) {
   this->host_index = host_index;
-  for (int i = 0; i < 10; ++i) {
+  for (int i = 0; i < 1; ++i) {
     io_uring_queue_init(QUEUE_DEPTH, &req_recv_ring[i], 0);
     io_uring_queue_init(QUEUE_DEPTH, &req_weak_recv_ring[i], 0);
   }
@@ -263,8 +263,8 @@ int get_column_len(int column) {
 response_buffer res_buffer;
 void Engine::request_handler(int index, int fds[], io_uring &ring){
   // 用一个ring来存request，然后可以异步处理，是一个SPMC的模型，那就不能用之前的队列了
-  data_request req[5];
-  for (int i = 0; i < 5; ++i) {
+  data_request req[50];
+  for (int i = 0; i < 50; ++i) {
     add_read_request(ring, fds[i], &req[i], sizeof(data_request), i);
   }
   io_uring_cqe *cqe;
@@ -319,7 +319,7 @@ void Engine::start_handlers() {
     request_handler(index, fds, *ring);
   };
   
-  for (int i = 0; i < 10; ++i) {
+  for (int i = 0; i < 1; ++i) {
     req_handler[i] = new std::thread(req_handler_fn, get_request_index(), &req_recv_fds[i * 5], &req_recv_ring[i]);
     req_weak_handler[i] = new std::thread(req_handler_fn, get_another_request_index(), &req_weak_recv_fds[i * 5], &req_weak_recv_ring[i]);
   }
@@ -340,7 +340,7 @@ void Engine::disconnect() {
 
   DEBUG_PRINTF(LOG, "socket close, waiting handlers\n");
 
-  for (int i = 0; i < 10; ++i) {
+  for (int i = 0; i < 1; ++i) {
     req_handler[i]->join();
     req_weak_handler[i]->join();
   }
@@ -352,7 +352,7 @@ void Engine::disconnect() {
     close(req_weak_recv_fds[i]);
   }
 
-  for (int i = 0; i < 10; ++i) {
+  for (int i = 0; i < 1; ++i) {
     io_uring_queue_exit(&req_recv_ring[i]);
     io_uring_queue_exit(&req_weak_recv_ring[i]);
   }
