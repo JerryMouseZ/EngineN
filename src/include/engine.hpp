@@ -81,6 +81,7 @@ private:
 
   void disconnect();
 
+  void ask_peer_quit();
   // for backup
   /* void do_send_data(const ArrayTransControl &ctrl); */
   /* void do_recv_data(ArrayTransControl &ctrl); */
@@ -123,7 +124,7 @@ private:
   /* std::thread *rep_recvier; */
   std::thread *req_handler[10];
   std::thread *req_weak_handler[10];
-  volatile bool exited;
+  /* volatile bool exited; */
   RemoteState remote_state;
 
   int req_send_fds[50];

@@ -144,8 +144,7 @@ int main(int argc, char **argv)
     test_engine_write(context, index, num);
   } else {
     test_engine_read(context, num * 4);
-    // waitint for other read done
-    sleep(20);
+    // don't wait
   }
   engine_deinit(context);
 }
