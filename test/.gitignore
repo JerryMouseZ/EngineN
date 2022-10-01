@@ -10,3 +10,4 @@ test_local
 test_backup
 test_data_sync
 test_all
+liburing/liburing.a
