@@ -234,15 +234,15 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
       res_buffer[id].header.ret = num;
       res_buffer[id].header.res_len = get_column_len(select_column) * num;
 
-      /* send_iov[id].iov_len = sizeof(response_header) + res_buffer[id].header.res_len; */
-      /* send_iov[id].iov_base = &res_buffer[id]; */
-      /* add_write_request(ring, fds[id], &send_iov[id], (id << 16) | 1); */
-      int len = send_all(fds[id], &res_buffer[id], sizeof(response_header) + res_buffer[id].header.res_len, MSG_NOSIGNAL);
-      if (len < 0) {
-      alive[node] = false;
-      break;
-      }
-      assert(len == sizeof(response_header) + res_buffer[id].header.res_len);
+      send_iov[id].iov_len = sizeof(response_header) + res_buffer[id].header.res_len;
+      send_iov[id].iov_base = &res_buffer[id];
+      add_write_request(ring, fds[id], &send_iov[id], (id << 16) | 1);
+      /* int len = send_all(fds[id], &res_buffer[id], sizeof(response_header) + res_buffer[id].header.res_len, MSG_NOSIGNAL); */
+      /* if (len < 0) { */
+      /*   alive[node] = false; */
+      /*   break; */
+      /* } */
+      /* assert(len == sizeof(response_header) + res_buffer[id].header.res_len); */
       DEBUG_PRINTF(LOG, "send res ret = %d\n", res_buffer[id].header.ret);
       // add new request
       iov[id].iov_base = &req[id];
