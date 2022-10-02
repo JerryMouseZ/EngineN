@@ -15,7 +15,7 @@
 #include <vector>
 
 extern const char *this_host_info;
-#define QUEUE_DEPTH 128
+#define QUEUE_DEPTH 512
 
 int send_all(int fd, const void *src, size_t n, int flag);
 

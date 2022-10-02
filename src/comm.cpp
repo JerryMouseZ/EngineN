@@ -114,7 +114,7 @@ int add_read_request(io_uring &ring, int client_socket, iovec *iov, __u64 udata)
   assert(sqe);
   io_uring_prep_readv(sqe, client_socket, iov, 1, 0);
   io_uring_sqe_set_data64(sqe, udata);
-  io_uring_submit(&ring);
+  /* io_uring_submit(&ring); */
   return 0;
 }
 
@@ -124,7 +124,7 @@ int add_write_request(io_uring &ring, int client_socket, iovec *iov, __u64 udata
   assert(sqe);
   io_uring_prep_writev(sqe, client_socket, iov, 1, 0);
   io_uring_sqe_set_data64(sqe, udata);
-  io_uring_submit(&ring);
+  /* io_uring_submit(&ring); */
   return 0;
 }
 
