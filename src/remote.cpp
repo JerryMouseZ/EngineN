@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <ctime>
 #include <fcntl.h>
+#include <liburing.h>
 #include <pthread.h>
 #include <sys/socket.h>
 #include <thread>
@@ -193,63 +194,63 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
     iov[i].iov_len = sizeof(data_request);
     add_read_request(ring, fds[i], &iov[i], i << 16);
   }
-  io_uring_cqe *cqe;
   while (1) {
-    cqe = wait_cqe_fast(&ring);
-    assert(cqe);
-    if (cqe->res <= 0) {
-      fprintf(stderr, "recv error %d\n", cqe->res);
-      alive[node] = false;
-      break;
-    }
-    int id = cqe->user_data >> 16;
-    int type = cqe->user_data & 1;
-    int len = cqe->res;
-    io_uring_cqe_seen(&ring, cqe);
-    if (type == 1) {
-      if (len < 0) {
-        fprintf(stderr, "send error %d\n", len);
-        alive[node] = false;
-        break;
-      }
-      DEBUG_PRINTF(len == send_iov[id].iov_len, "send %d, res %ld\n", len, send_iov[id].iov_len); // 可能需要一个自增的id，不然这个send_iov可能是下一个包的
-    } else {
-      uint8_t select_column, where_column;
-      uint32_t fifo_id;
-      void *key;
-      select_column = req[id].select_column;
-      where_column = req[id].where_column;
-      key = req[id].key;
-      fifo_id = req[id].fifo_id;
-      if (select_column == 22 && where_column == 22) {
-        /* fprintf(stderr, "handlers for node %d quiting\n", node); */
-        return;
-      }
-      if (where_column == Id || where_column == Salary)
-        DEBUG_PRINTF(LOG, "recv request select %s where %s = %ld\n", column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
-      else
-        DEBUG_PRINTF(LOG, "recv request select %s where %s = %s\n", column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
-      int num = local_read(select_column, where_column, key, 128, res_buffer[id].body);
-      res_buffer[id].header.fifo_id = fifo_id;
-      res_buffer[id].header.ret = num;
-      res_buffer[id].header.res_len = get_column_len(select_column) * num;
+    io_uring_submit_and_wait(&ring, 1);
+    unsigned head;
+    unsigned count = 0;
+    io_uring_cqe *cqe;
+    io_uring_for_each_cqe(&ring, head, cqe) {
+      ++count;
+      int id = cqe->user_data >> 16;
+      int type = cqe->user_data & 1;
+      int len = cqe->res;
+      if (type == 1) {
+        if (len < 0) {
+          fprintf(stderr, "send error %d\n", len);
+          alive[node] = false;
+          break;
+        }
+        // 看起来不会出现只发一部分的情况，先不管了
+        /* DEBUG_PRINTF(len == send_iov[id].iov_len, "send %d, res %ld\n", len, send_iov[id].iov_len); // 可能需要一个自增的id，不然这个send_iov可能是下一个包的 */
+      } else {
+        uint8_t select_column, where_column;
+        uint32_t fifo_id;
+        void *key;
+        select_column = req[id].select_column;
+        where_column = req[id].where_column;
+        key = req[id].key;
+        fifo_id = req[id].fifo_id;
+        if (select_column == 22 && where_column == 22) {
+          /* fprintf(stderr, "handlers for node %d quiting\n", node); */
+          return;
+        }
+        if (where_column == Id || where_column == Salary)
+          DEBUG_PRINTF(LOG, "recv request select %s where %s = %ld\n", column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
+        else
+          DEBUG_PRINTF(LOG, "recv request select %s where %s = %s\n", column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
+        int num = local_read(select_column, where_column, key, 128, res_buffer[id].body);
+        res_buffer[id].header.fifo_id = fifo_id;
+        res_buffer[id].header.ret = num;
+        res_buffer[id].header.res_len = get_column_len(select_column) * num;
 
-      send_iov[id].iov_len = sizeof(response_header) + res_buffer[id].header.res_len;
-      send_iov[id].iov_base = &res_buffer[id];
-      add_write_request(ring, fds[id], &send_iov[id], (id << 16) | 1);
-      /* int len = send_all(fds[id], &res_buffer[id], sizeof(response_header) + res_buffer[id].header.res_len, MSG_NOSIGNAL); */
-      /* if (len < 0) { */
-      /*   alive[node] = false; */
-      /*   break; */
-      /* } */
-      /* assert(len == sizeof(response_header) + res_buffer[id].header.res_len); */
-      DEBUG_PRINTF(LOG, "send res ret = %d\n", res_buffer[id].header.ret);
-      // add new request
-      iov[id].iov_base = &req[id];
-      iov[id].iov_len = sizeof(data_request);
-      add_read_request(ring, fds[id], &iov[id], id << 16);
-    }
-  }
+        send_iov[id].iov_len = sizeof(response_header) + res_buffer[id].header.res_len;
+        send_iov[id].iov_base = &res_buffer[id];
+        add_write_request(ring, fds[id], &send_iov[id], (id << 16) | 1);
+        /* int len = send_all(fds[id], &res_buffer[id], sizeof(response_header) + res_buffer[id].header.res_len, MSG_NOSIGNAL); */
+        /* if (len < 0) { */
+        /*   alive[node] = false; */
+        /*   break; */
+        /* } */
+        /* assert(len == sizeof(response_header) + res_buffer[id].header.res_len); */
+        DEBUG_PRINTF(LOG, "send res ret = %d\n", res_buffer[id].header.ret);
+        // add new request
+        iov[id].iov_base = &req[id];
+        iov[id].iov_len = sizeof(data_request);
+        add_read_request(ring, fds[id], &iov[id], id << 16);
+      }
+    } // end if
+    io_uring_cq_advance(&ring, count);
+  } // end while
 }
 
 
