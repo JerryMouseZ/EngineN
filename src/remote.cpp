@@ -172,9 +172,9 @@ void Engine::ask_peer_quit() {
   req.select_column = 22;
   req.where_column = 22;
   for (int i = 0; i < 10; ++i) {
-    fprintf(stderr, "ask node %d to quit\n", get_request_index());
+    /* fprintf(stderr, "ask node %d to quit\n", get_request_index()); */
     send_all(req_send_fds[i * 5], &req, sizeof(req), MSG_NOSIGNAL);
-    fprintf(stderr, "ask node %d to quit\n", get_another_request_index());
+    /* fprintf(stderr, "ask node %d to quit\n", get_another_request_index()); */
     send_all(req_weak_send_fds[i * 5], &req, sizeof(req), MSG_NOSIGNAL);
   }
 }
@@ -194,7 +194,7 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
     cqe = wait_cqe_fast(&ring);
     assert(cqe);
     if (cqe->res <= 0) {
-      fprintf(stderr, "recv error %d\n", cqe->res);
+      fprintf(stderr, "recv error %d, maybe connection of %d is closed\n", cqe->res, node);
       alive[node] = false;
       break;
     }
@@ -209,7 +209,7 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
     key = req[id].key;
     fifo_id = req[id].fifo_id;
     if (select_column == 22 && where_column == 22) {
-      fprintf(stderr, "handlers for node %d quiting\n", node);
+      /* fprintf(stderr, "handlers for node %d quiting\n", node); */
       return;
     }
     if (where_column == Id || where_column == Salary)
