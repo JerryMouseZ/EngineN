@@ -62,6 +62,7 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index, boo
     io_uring_queue_init(QUEUE_DEPTH, &req_recv_ring[i], 0);
     io_uring_queue_init(QUEUE_DEPTH, &req_weak_recv_ring[i], 0);
   }
+  signal(SIGPIPE, SIG_IGN);
   listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
   sockaddr_in client_addr;
   socklen_t client_addr_len = sizeof(client_addr);
