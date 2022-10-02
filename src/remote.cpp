@@ -248,6 +248,9 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
       }
     } // end if
     io_uring_cq_advance(&ring, count);
+    if (alive[node] == false) {
+      break;
+    }
   } // end while
 }
 
