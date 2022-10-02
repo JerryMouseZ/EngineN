@@ -60,6 +60,8 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index, boo
   for (int i = 0; i < 10; ++i) {
     io_uring_queue_init(QUEUE_DEPTH, &req_recv_ring[i], 0);
     io_uring_queue_init(QUEUE_DEPTH, &req_weak_recv_ring[i], 0);
+    io_uring_queue_init(QUEUE_DEPTH, &resp_ring[i], 0);
+    io_uring_queue_init(QUEUE_DEPTH, &resp_weak_ring[i], 0);
   }
   listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
   sockaddr_in client_addr;
@@ -183,11 +185,13 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
   // 用一个ring来存request，然后可以异步处理，是一个SPMC的模型，那就不能用之前的队列了
   data_request req[5];
   response_buffer res_buffer[5];
+  int lens[5];
   iovec iov[5];
+  iovec send_iov[5];
   for (int i = 0; i < 5; ++i) {
     iov[i].iov_base = &req[i];
     iov[i].iov_len = sizeof(data_request);
-    add_read_request(ring, fds[i], &iov[i], i);
+    add_read_request(ring, fds[i], &iov[i], i << 16);
   }
   io_uring_cqe *cqe;
   while (1) {
@@ -198,41 +202,53 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
       alive[node] = false;
       break;
     }
-    assert(cqe->res == sizeof(data_request));
-    // process data
-    int id = cqe->user_data;
-    uint8_t select_column, where_column;
-    uint32_t fifo_id;
-    void *key;
-    select_column = req[id].select_column;
-    where_column = req[id].where_column;
-    key = req[id].key;
-    fifo_id = req[id].fifo_id;
-    if (select_column == 22 && where_column == 22) {
-      /* fprintf(stderr, "handlers for node %d quiting\n", node); */
-      return;
-    }
-    if (where_column == Id || where_column == Salary)
-      DEBUG_PRINTF(LOG, "recv request select %s where %s = %ld\n", column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
-    else
-      DEBUG_PRINTF(LOG, "recv request select %s where %s = %s\n", column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
-    int num = local_read(select_column, where_column, key, 128, res_buffer[id].body);
-    res_buffer[id].header.fifo_id = fifo_id;
-    res_buffer[id].header.ret = num;
-    res_buffer[id].header.res_len = get_column_len(select_column) * num;
-
-    // add new request before send
-    iov[id].iov_base = &req[id];
-    iov[id].iov_len = sizeof(data_request);
-    add_read_request(ring, fds[id], &iov[id], id);
-    int len = send_all(fds[id], &res_buffer[id], sizeof(response_header) + res_buffer[id].header.res_len, MSG_NOSIGNAL);
-    /* if (len < 0) { */
-    /*   alive[node] = false; */
-    /*   break; */
-    /* } */
-    assert(len == sizeof(response_header) + res_buffer[id].header.res_len);
-    DEBUG_PRINTF(LOG, "send res ret = %d\n", res_buffer[id].header.ret);
+    int id = cqe->user_data >> 16;
+    int type = cqe->user_data & 1;
+    int len = cqe->res;
     io_uring_cqe_seen(&ring, cqe);
+    if (type == 1) {
+      if (len < 0) {
+        fprintf(stderr, "send error %d\n", len);
+        alive[node] = false;
+        break;
+      }
+      DEBUG_PRINTF(len == send_iov[id].iov_len, "send %d, res %ld\n", len, send_iov[id].iov_len); // 可能需要一个自增的id，不然这个send_iov可能是下一个包的
+    } else {
+      uint8_t select_column, where_column;
+      uint32_t fifo_id;
+      void *key;
+      select_column = req[id].select_column;
+      where_column = req[id].where_column;
+      key = req[id].key;
+      fifo_id = req[id].fifo_id;
+      if (select_column == 22 && where_column == 22) {
+        /* fprintf(stderr, "handlers for node %d quiting\n", node); */
+        return;
+      }
+      if (where_column == Id || where_column == Salary)
+        DEBUG_PRINTF(LOG, "recv request select %s where %s = %ld\n", column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
+      else
+        DEBUG_PRINTF(LOG, "recv request select %s where %s = %s\n", column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
+      int num = local_read(select_column, where_column, key, 128, res_buffer[id].body);
+      res_buffer[id].header.fifo_id = fifo_id;
+      res_buffer[id].header.ret = num;
+      res_buffer[id].header.res_len = get_column_len(select_column) * num;
+
+      /* send_iov[id].iov_len = sizeof(response_header) + res_buffer[id].header.res_len; */
+      /* send_iov[id].iov_base = &res_buffer[id]; */
+      /* add_write_request(ring, fds[id], &send_iov[id], (id << 16) | 1); */
+      int len = send_all(fds[id], &res_buffer[id], sizeof(response_header) + res_buffer[id].header.res_len, MSG_NOSIGNAL);
+      if (len < 0) {
+      alive[node] = false;
+      break;
+      }
+      assert(len == sizeof(response_header) + res_buffer[id].header.res_len);
+      DEBUG_PRINTF(LOG, "send res ret = %d\n", res_buffer[id].header.ret);
+      // add new request
+      iov[id].iov_base = &req[id];
+      iov[id].iov_len = sizeof(data_request);
+      add_read_request(ring, fds[id], &iov[id], id << 16);
+    }
   }
 }
 
@@ -279,6 +295,8 @@ void Engine::disconnect() {
   for (int i = 0; i < 10; ++i) {
     io_uring_queue_exit(&req_recv_ring[i]);
     io_uring_queue_exit(&req_weak_recv_ring[i]);
+    io_uring_queue_exit(&resp_ring[i]);
+    io_uring_queue_exit(&resp_weak_ring[i]);
   }
 }
 

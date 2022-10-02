@@ -15,7 +15,7 @@
 #include <vector>
 
 extern const char *this_host_info;
-#define QUEUE_DEPTH 256
+#define QUEUE_DEPTH 128
 
 int send_all(int fd, const void *src, size_t n, int flag);
 
@@ -27,7 +27,7 @@ int add_accept_request(io_uring &ring, int server_socket, struct sockaddr_in *cl
 
 int connect_to_server(const char *this_host_ip, const char *ip, int port);
 
-int add_write_request(io_uring &ring, int client_socket, void *buffer, size_t len, __u64 udata);
+int add_write_request(io_uring &ring, int client_socket, iovec *iov, __u64 udata);
 
 /* int add_read_request(io_uring &ring, int client_socket, void *buffer, size_t len, __u64 udata); */
 
