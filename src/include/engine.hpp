@@ -112,8 +112,6 @@ private:
   
   io_uring req_recv_ring[10];
   io_uring req_weak_recv_ring[10];
-  io_uring resp_ring[10];
-  io_uring resp_weak_ring[10];
 
   int host_index;
   int listen_fd;

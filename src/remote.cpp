@@ -61,8 +61,6 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index, boo
   for (int i = 0; i < 10; ++i) {
     io_uring_queue_init(QUEUE_DEPTH, &req_recv_ring[i], 0);
     io_uring_queue_init(QUEUE_DEPTH, &req_weak_recv_ring[i], 0);
-    io_uring_queue_init(QUEUE_DEPTH, &resp_ring[i], 0);
-    io_uring_queue_init(QUEUE_DEPTH, &resp_weak_ring[i], 0);
   }
   listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
   sockaddr_in client_addr;
@@ -296,8 +294,6 @@ void Engine::disconnect() {
   for (int i = 0; i < 10; ++i) {
     io_uring_queue_exit(&req_recv_ring[i]);
     io_uring_queue_exit(&req_weak_recv_ring[i]);
-    io_uring_queue_exit(&resp_ring[i]);
-    io_uring_queue_exit(&resp_weak_ring[i]);
   }
 }
 
