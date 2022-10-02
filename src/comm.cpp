@@ -114,7 +114,10 @@ int add_read_request(io_uring &ring, int client_socket, iovec *iov, __u64 udata)
   assert(sqe);
   io_uring_prep_readv(sqe, client_socket, iov, 1, 0);
   io_uring_sqe_set_data64(sqe, udata);
-  assert(io_uring_submit(&ring) == 1);
+  int ret = io_uring_submit(&ring);
+  // 加上SQPOLL以后可能会返回或者大于1的值
+  DEBUG_PRINTF(ret >= 0, "io_uring submit error %s\n", strerror(-ret));
+  /* assert(ret == 1); */
   return 0;
 }
 

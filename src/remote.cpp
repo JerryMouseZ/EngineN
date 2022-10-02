@@ -54,13 +54,32 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
   connect(infos, peer_host_info_num + 1, my_index, is_new_create);
 }
 
+void print_sq_poll_kernel_thread_status() {
+
+    if (system("ps --ppid 2 | grep io_uring-sq" ) == 0)
+        printf("Kernel thread io_uring-sq found running...\n");
+    else
+        printf("Kernel thread io_uring-sq is not running.\n");
+}
 
 void Engine::connect(std::vector<info_type> &infos, int num, int host_index, bool is_new_create) {
   this->host_index = host_index;
+  io_uring_params params;
+  print_sq_poll_kernel_thread_status();
+  int ret;
   for (int i = 0; i < 10; ++i) {
-    io_uring_queue_init(QUEUE_DEPTH, &req_recv_ring[i], 0);
-    io_uring_queue_init(QUEUE_DEPTH, &req_weak_recv_ring[i], 0);
+    memset(&params, 0, sizeof(params));
+    params.flags |= IORING_SETUP_SQPOLL;
+    params.sq_thread_idle = 2;
+    ret = io_uring_queue_init_params(QUEUE_DEPTH, &req_recv_ring[i], &params);
+    DEBUG_PRINTF(ret == 0, "Unable to setup io_uring: %s\n", strerror(-ret));
+    memset(&params, 0, sizeof(params));
+    params.flags |= IORING_SETUP_SQPOLL;
+    params.sq_thread_idle = 2;
+    ret = io_uring_queue_init_params(QUEUE_DEPTH, &req_weak_recv_ring[i], &params);
+    DEBUG_PRINTF(ret == 0, "Unable to setup io_uring: %s\n", strerror(-ret));
   }
+  print_sq_poll_kernel_thread_status();
   listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
   sockaddr_in client_addr;
   socklen_t client_addr_len = sizeof(client_addr);
