@@ -66,6 +66,7 @@ int connect_to_server(const char *this_host_ip, const char *ip, int port) {
   assert(sock > 0);
 
   // bind
+#ifdef BIND_PORT
   sockaddr_in client_addr;
   int client_port = 0;
   memset(&client_addr, 0, sizeof(client_addr));
@@ -73,6 +74,7 @@ int connect_to_server(const char *this_host_ip, const char *ip, int port) {
   client_addr.sin_port = htons(client_port);
   assert (inet_pton(AF_INET, this_host_ip, &client_addr.sin_addr) > 0);
   assert (bind(sock, (const struct sockaddr *)&client_addr, sizeof(client_addr)) >= 0);
+#endif
 
   // set nodelay
   int enable = 1;
@@ -152,15 +154,18 @@ void listener(int listen_fd, std::vector<info_type> *infos, int *data_recv_fd, i
       if (memcmp(&addr.sin_addr, &client_addr.sin_addr, sizeof(sockaddr_in::sin_addr)) == 0) {
         if (j == data_peer_index ) {
           *data_recv_fd = client_fd;
-          DEBUG_PRINTF(LOG, "data_recv_fd from %s\n", (*infos)[j].first.c_str());
+          DEBUG_PRINTF(LOG, "%s: data_recv_fd = %d from %s\n",
+            this_host_info, client_fd, (*infos)[j].first.c_str());
         } 
         else if (j == req_recv_index) {
           req_recv_fds[req_recv_fd_cnt++] = client_fd;
-          DEBUG_PRINTF(LOG, "[%d <- %d] req_recv_fd[%d] from %s\n", host_index, j, req_recv_fd_cnt, (*infos)[j].first.c_str());
+          DEBUG_PRINTF(LOG, "%s: [%d <- %d] req_recv_fd[%d] from %s\n",
+            this_host_info, host_index, j, req_recv_fd_cnt, (*infos)[j].first.c_str());
         } 
         else if (j == req_weak_recv_index) {
           req_weak_recv_fds[req_weak_recv_fd_cnt++] = client_fd;
-          DEBUG_PRINTF(LOG, "[%d <- %d] req_weak_recv_fd[%d] from %s\n", host_index, j, req_weak_recv_fd_cnt, (*infos)[j].first.c_str());
+          DEBUG_PRINTF(LOG, "%s: [%d <- %d] req_weak_recv_fd[%d] from %s\n",
+            this_host_info, host_index, j, req_weak_recv_fd_cnt, (*infos)[j].first.c_str());
         } 
         else {
           assert(0);

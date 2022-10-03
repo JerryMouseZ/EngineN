@@ -115,7 +115,7 @@ void Engine::write(const User *user) {
     init_producer_id();
   }
 
-  DEBUG_PRINTF(LOG, "write %ld %ld %ld %ld\n", user->id, std::hash<std::string>()(std::string(user->name, 128)), std::hash<std::string>()(std::string(user->user_id, 128)), user->salary);
+  DEBUG_PRINTF(VLOG, "write %ld %ld %ld %ld\n", user->id, std::hash<std::string>()(std::string(user->name, 128)), std::hash<std::string>()(std::string(user->user_id, 128)), user->salary);
   
   uint32_t qid = user->id % MAX_NR_CONSUMER;
   uint32_t index = qs[qid].push(user);
@@ -139,24 +139,24 @@ size_t Engine::local_read(int32_t select_column,
     result = id_r->get(column_key, where_column, select_column, res, false);
     if (!result)
       result = remote_id_r->get(column_key, where_column, select_column, res, false);
-    DEBUG_PRINTF(LOG, "select %s where ID = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
+    DEBUG_PRINTF(VLOG, "select %s where ID = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
     break;
   case Userid:
     result = uid_r->get(column_key, where_column, select_column, res, false);
     if (!result)
       result = remote_uid_r->get(column_key, where_column, select_column, res, false);
-    DEBUG_PRINTF(LOG, "select %s where UID = %ld, res = %ld\n", column_str(select_column).c_str(), std::hash<std::string>()(std::string((char *) column_key, 128)), result);
+    DEBUG_PRINTF(VLOG, "select %s where UID = %ld, res = %ld\n", column_str(select_column).c_str(), std::hash<std::string>()(std::string((char *) column_key, 128)), result);
     break;
   case Name:
     assert(0);
     /* result = name_r->get(column_key, where_column, select_column, res, false); */
-    DEBUG_PRINTF(LOG, "select %s where Name = %ld, res = %ld\n", column_str(select_column).c_str(), std::hash<std::string>()(std::string((char *) column_key, 128)), result);
+    DEBUG_PRINTF(VLOG, "select %s where Name = %ld, res = %ld\n", column_str(select_column).c_str(), std::hash<std::string>()(std::string((char *) column_key, 128)), result);
     break;
   case Salary:
     result = sala_r->get(column_key, where_column, select_column, res, true);
     res = ((char *)res) + result * key_len[select_column];
     result += remote_sala_r->get(column_key, where_column, select_column, res, true);
-    DEBUG_PRINTF(LOG, "select %s where salary = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
+    DEBUG_PRINTF(VLOG, "select %s where salary = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
     break;
   default:
     DEBUG_PRINTF(LOG, "column error");
