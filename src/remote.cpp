@@ -85,8 +85,8 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index, boo
 
   listen_thread.join();
   // move to after connect
-  do_peer_data_sync();
-
+  if (!is_new_create)
+    do_peer_data_sync();
   start_handlers(); // 先start handlers
 }
 
@@ -135,6 +135,8 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
   }
   assert(len == sizeof(header));
 
+  if (header.res_len == 0)
+    return 0;
   len = recv_all(fd, res, header.res_len, MSG_WAITALL);
   if (len <= 0) {
     fprintf(stderr, "recv body error %d from node %d, retry request\n", len, current_req_node);
