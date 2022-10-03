@@ -59,22 +59,16 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
 
   if (disk_path[disk_path.size() - 1] != '/')
     disk_path.push_back('/');
-
-  datas = new Data[MAX_NR_CONSUMER];
-  for (int i = 0; i < MAX_NR_CONSUMER; i++) {
-    datas[i].open(aep_path + "user.data" + std::to_string(i), disk_path + "flag" + std::to_string(i));
-  }
   
-  // remote data
-
-  id_r = new Index(disk_path + "id", datas, qs);
-  uid_r = new Index(disk_path + "uid", datas, qs);
-  sala_r = new Index(disk_path + "salary", datas, qs);
-
-  bool q_is_new_create;
-  for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+  datas = new Data[MAX_NR_CONSUMER];
+  std::thread *workers[MAX_NR_CONSUMER];
+  std::thread *index_worker;
+  auto data_opener = [&] (int i) {
+    datas[i].open(aep_path + "user.data" + std::to_string(i), disk_path + "flag" + std::to_string(i));
+    bool q_is_new_create;
     if (qs[i].open(disk_path + "queue" + std::to_string(i), &q_is_new_create, datas[i].get_pmem_users(), i)) {
-      return false;
+      DEBUG_PRINTF(0, "error open queue %d\n", i);
+      return;
     }
 
     if (!q_is_new_create && qs[i].need_rollback()) {
@@ -82,7 +76,26 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
     }
 
     qs[i].reset_thread_states();
+
+  };
+  for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+    workers[i] = new std::thread(data_opener, i);
   }
+
+  auto index_opener = [&] {
+    id_r = new Index(disk_path + "id", datas, qs);
+    uid_r = new Index(disk_path + "uid", datas, qs);
+    sala_r = new Index(disk_path + "salary", datas, qs);
+  };
+  index_worker = new std::thread(index_opener);
+
+
+  for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+    workers[i]->join();
+    delete workers[i];
+  }
+  index_worker->join();
+  delete index_worker;
 
   consumers = new std::thread[MAX_NR_CONSUMER];
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
@@ -93,7 +106,7 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
                                ;
                                });
   }
-  
+
   // for remote
   bool remote_state_is_new_create;
   remote_state.open(disk_path + "remote_state", &remote_state_is_new_create);
@@ -116,7 +129,7 @@ void Engine::write(const User *user) {
   }
 
   DEBUG_PRINTF(VLOG, "write %ld %ld %ld %ld\n", user->id, std::hash<std::string>()(std::string(user->name, 128)), std::hash<std::string>()(std::string(user->user_id, 128)), user->salary);
-  
+
   uint32_t qid = user->id % MAX_NR_CONSUMER;
   uint32_t index = qs[qid].push(user);
   size_t encoded_index = (qid << 28) | index;
