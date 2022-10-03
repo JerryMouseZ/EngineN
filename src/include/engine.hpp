@@ -83,9 +83,7 @@ private:
   
   int do_exchange_meta(DataTransMeta send_meta[MAX_NR_CONSUMER], DataTransMeta recv_meta[MAX_NR_CONSUMER]);
   int do_exchange_data(DataTransMeta send_meta[MAX_NR_CONSUMER], DataTransMeta recv_meta[MAX_NR_CONSUMER]);
-  bool finish_recv_meta(const DataTransMeta *recv_meta, ArrayTransControl &recv_data_ctrl);
-  void finish_recv_data(const DataTransMeta *recv_meta);
-  void finish_recv_resp(uint32_t *newest_remote_next);
+  void construct_remote_index(int qid, int begin, int end);
 
 
 private:
