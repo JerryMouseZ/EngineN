@@ -85,8 +85,8 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index, boo
 
   listen_thread.join();
   // move to after connect
-  if (!is_new_create)
-    do_peer_data_sync();
+  do_peer_data_sync();
+
   start_handlers(); // 先start handlers
 }
 
