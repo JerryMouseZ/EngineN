@@ -95,12 +95,10 @@ void Engine::do_peer_data_sync() {
   int ret = send_all(data_fd, send_meta_ctrl.src, send_meta_ctrl.rest, MSG_NOSIGNAL);
   assert(ret == send_meta_ctrl.rest);
   DEBUG_PRINTF(0, "%s send_meta done\n", this_host_info);
-  /* do_send_meta(send_meta_ctrl); */
   ret = recv_all(data_recv_fd, recv_meta_ctrl.src, recv_meta_ctrl.rest, MSG_WAITALL);
   assert(ret == recv_meta_ctrl.rest);
   DEBUG_PRINTF(0, "%s recv_meta done\n", this_host_info);
   finish_recv_meta(recv_meta, recv_data_ctrl);
-  /* do_recv_meta(recv_meta_ctrl); */
 
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     DEBUG_PRINTF(0, "\t[%d] ca: [%d, %d), user: [%d, %d)\n", i, 
@@ -268,7 +266,7 @@ void Engine::finish_recv_resp(uint32_t *newest_remote_next) {
     if (newest_remote_next[i] != head_value) {
       DEBUG_PRINTF(0, "%s: newest_remote_next[%d](= %d) != head_value(= %ld)\n",
                    this_host_info, i, newest_remote_next[i], head_value);
-      assert(newest_remote_next[i] == head_value);
+      assert(newest_remote_next[i] == head_value); // assert failed here
     }
     remote_next_user_index[i] = head_value;
   }
