@@ -115,6 +115,7 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
   memcpy(data.key, column_key, column_key_len);
   int len = send_all(fd, &data, sizeof(data), MSG_NOSIGNAL);
   if (len < 0) {
+    fprintf(stderr, "send error %d to node %d, retry request\n", len, current_req_node);
     alive[current_req_node] = false;
     return remote_read(select_column, where_column, column_key, column_key_len, res);
   }
@@ -128,6 +129,7 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
   response_header header;
   len = recv_all(fd, &header, sizeof(header), MSG_WAITALL);
   if (len <= 0) {
+    fprintf(stderr, "recv header error %d from node %d, retry request\n", len, current_req_node);
     alive[current_req_node] = false;
     return remote_read(select_column, where_column, column_key, column_key_len, res);
   }
@@ -135,6 +137,7 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
 
   len = recv_all(fd, res, header.res_len, MSG_WAITALL);
   if (len <= 0) {
+    fprintf(stderr, "recv body error %d from node %d, retry request\n", len, current_req_node);
     alive[current_req_node] = false;
     return remote_read(select_column, where_column, column_key, column_key_len, res);
   }
@@ -205,7 +208,7 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
       int len = cqe->res;
       if (type == 1) {
         if (len < 0) {
-          fprintf(stderr, "send error %d\n", len);
+          fprintf(stderr, "send error %d to node %d\n", len, node);
           alive[node] = false;
           break;
         }
@@ -213,7 +216,7 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
         /* DEBUG_PRINTF(len == send_iov[id].iov_len, "send %d, res %ld\n", len, send_iov[id].iov_len); // 可能需要一个自增的id，不然这个send_iov可能是下一个包的 */
       } else {
         if (len <= 0) {
-          fprintf(stderr, "recv error %d\n", len);
+          fprintf(stderr, "recv error %d from node %d\n", len, node);
           alive[node] = false;
           break;
         }
