@@ -209,7 +209,7 @@ int recv_all(int fd, void *dst, size_t n, int flag) {
   int recv_cnt = 0, ret;
   while (rest > 0) {
     ret = recv(fd, ((char *)dst) + recv_cnt, rest, flag);
-    if (ret < 0) {
+    if (ret <= 0) {
       return ret;
     }
     rest -= ret;

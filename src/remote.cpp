@@ -102,7 +102,7 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
     current_req_node = get_request_index();
   } else if (alive[get_another_request_index()]) {
     fd = req_weak_send_fds[reader_id];
-    current_req_node = get_backup_index();
+    current_req_node = get_another_request_index();
   } else {
     // 两个节点都失效了，返回0
     return 0;
@@ -127,14 +127,14 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
 
   response_header header;
   len = recv_all(fd, &header, sizeof(header), MSG_WAITALL);
-  if (len < 0) {
+  if (len <= 0) {
     alive[current_req_node] = false;
     return remote_read(select_column, where_column, column_key, column_key_len, res);
   }
   assert(len == sizeof(header));
 
   len = recv_all(fd, res, header.res_len, MSG_WAITALL);
-  if (len < 0) {
+  if (len <= 0) {
     alive[current_req_node] = false;
     return remote_read(select_column, where_column, column_key, column_key_len, res);
   }
@@ -212,6 +212,11 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
         // 看起来不会出现只发一部分的情况，先不管了
         /* DEBUG_PRINTF(len == send_iov[id].iov_len, "send %d, res %ld\n", len, send_iov[id].iov_len); // 可能需要一个自增的id，不然这个send_iov可能是下一个包的 */
       } else {
+        if (len <= 0) {
+          fprintf(stderr, "recv error %d\n", len);
+          alive[node] = false;
+          break;
+        }
         uint8_t select_column, where_column;
         uint32_t fifo_id;
         void *key;
