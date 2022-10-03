@@ -44,7 +44,12 @@ using UserArray = CommitArray<User, QCMT_ALIGN>;
 using location_type = std::atomic<size_t>;
 constexpr size_t ENTRY_LEN = sizeof(User);
 
+#ifdef LOCAL
 constexpr size_t NR_USER = 52 * 1000000;
+#else
+constexpr size_t NR_USER = 202 * 1000000;
+#endif
+
 constexpr size_t EACH_NR_USER = ROUND_DIV(NR_USER, MAX_NR_CONSUMER);
 constexpr size_t EACH_NR_USER_ARRAY = (EACH_NR_USER + UserArray::N_DATA - 1) / UserArray::N_DATA;
 constexpr size_t EACH_DATA_FILE_LEN = EACH_NR_USER_ARRAY * UserArray::DALIGN;
