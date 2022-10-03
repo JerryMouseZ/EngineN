@@ -91,10 +91,18 @@ void Engine::do_peer_data_sync() {
   send_meta_ctrl.rest = sizeof(send_meta);
   recv_meta_ctrl.src = (char *)&recv_meta;
   recv_meta_ctrl.rest = sizeof(recv_meta);
+
+  DEBUG_PRINTF(0, "%s: start send_meta:\n", this_host_info);
+  for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+    DEBUG_PRINTF(0, "\t[%d] ca: [%d, %d), user: [%d, %d)\n", i, 
+      send_meta[i].ca_start, send_meta[i].ca_start + send_meta[i].ca_cnt,
+      send_meta[i].user_start, send_meta[i].user_start + send_meta[i].user_cnt);
+  }
   
   int ret = send_all(data_fd, send_meta_ctrl.src, send_meta_ctrl.rest, MSG_NOSIGNAL);
   assert(ret == send_meta_ctrl.rest);
-  DEBUG_PRINTF(0, "%s send_meta done\n", this_host_info);
+  DEBUG_PRINTF(0, "%s: send_meta done\n", this_host_info);
+  DEBUG_PRINTF(0, "%s: start recv_meta\n", this_host_info);
   ret = recv_all(data_recv_fd, recv_meta_ctrl.src, recv_meta_ctrl.rest, MSG_WAITALL);
   assert(ret == recv_meta_ctrl.rest);
   DEBUG_PRINTF(0, "%s recv_meta done\n", this_host_info);
@@ -171,30 +179,32 @@ void Engine::do_peer_data_sync() {
     finish_recv_resp(remote_lasts);
   };
   std::thread *resp_reciver = nullptr;
-  if (need_to_send) {
+  if (need_to_recv) {
     DEBUG_PRINTF(0, "%s start recv_resp\n", this_host_info);
     resp_reciver = new std::thread(recv_resp_fn);
   }
 
-  if (need_to_recv) {
+  if (need_to_send) {
     DEBUG_PRINTF(0, "%s start send_resp:\n", this_host_info);
+    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+      DEBUG_PRINTF(0, "\t[%d] next_user_index = %d\n", i, remote_state.get_next_user_index()[i]);
+    }
     while (true) {
       ret = send_all(data_fd, send_resp_ctrl.src, send_resp_ctrl.rest, MSG_NOSIGNAL);
       assert(ret == recv_resp_ctrl.rest);
       if (send_resp_ctrl.update_check_finished(ret))
         break;
     }
-    /* do_send_resp(send_resp_ctrl); */
   }
 
   if (resp_reciver) {
     resp_reciver->join();
+    DEBUG_PRINTF(0, "%s recv_resp finished:\n", this_host_info);
+    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+      DEBUG_PRINTF(0, "\t[%d] next_user_index = %d\n", i, remote_lasts[i]);
+    }
     delete resp_reciver;
     resp_reciver = nullptr;
-  }
-
-  for (int i = 0; i < MAX_NR_CONSUMER; i++) {
-    DEBUG_PRINTF(0, "\t[%d] next_user_index = %d\n", i, remote_state.get_next_user_index()[i]);
   }
 
   end_time_record(&dsync_time);
