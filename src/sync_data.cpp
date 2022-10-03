@@ -29,100 +29,51 @@ void RemoteState::open(std::string fname, bool *is_new_create) {
   next_user_index = static_cast<volatile uint32_t *>(map_file(fname.c_str(), MAX_NR_CONSUMER * sizeof(uint32_t), is_new_create));
 }
 
-void Engine::do_peer_data_sync() {
-  duration_t dsync_time(0);
-  start_time_record();
-
-  DataTransMeta send_meta[MAX_NR_CONSUMER];
-  DataTransMeta recv_meta[MAX_NR_CONSUMER];
-  uint32_t send_resp[MAX_NR_CONSUMER];
-  uint32_t recv_resp[MAX_NR_CONSUMER];
-  UserArray *send_src[MAX_NR_CONSUMER];
-  ArrayTransControl send_data_ctrl, recv_data_ctrl;
-  TransControl send_meta_ctrl, recv_meta_ctrl, 
-    send_resp_ctrl, recv_resp_ctrl;
-
-  bool send_nothing = true,
-    recv_nothing = true;
-
+int Engine::do_exchange_meta(DataTransMeta send_meta[MAX_NR_CONSUMER], DataTransMeta recv_meta[MAX_NR_CONSUMER]) {
   DEBUG_PRINTF(0, "%s start peer data sync\n", this_host_info);
-
-  memset(send_meta, 0, sizeof(send_meta));
-  memset(recv_meta, 0, sizeof(recv_meta));
-  memset(send_resp, 0, sizeof(send_resp));
-  memset(recv_resp, 0, sizeof(recv_resp));
-  memset(&send_data_ctrl, 0, sizeof(send_data_ctrl));
-  memset(&recv_data_ctrl, 0, sizeof(recv_data_ctrl));
-  memset(&send_meta_ctrl, 0, sizeof(send_meta_ctrl));
-  memset(&recv_meta_ctrl, 0, sizeof(recv_meta_ctrl));
-  memset(&send_resp_ctrl, 0, sizeof(send_resp_ctrl));
-  memset(&recv_resp_ctrl, 0, sizeof(recv_resp_ctrl));
-
-  send_meta_ctrl.name = "send_meta";
-  recv_meta_ctrl.name = "recv_meta";
-  send_resp_ctrl.name = "send_resp";
-  recv_resp_ctrl.name = "recv_resp";
-  send_data_ctrl.name = "send_data";
-  recv_data_ctrl.name = "recv_data";
-
+  int len = sizeof(DataTransMeta) * MAX_NR_CONSUMER;
+  memset(send_meta, 0, len);
+  memset(recv_meta, 0, len);
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
-    auto remote_tail_value = remote_state.get_next_user_index()[i];
-    auto head_value = qs[i].head->load();
-
-    if (head_value == remote_tail_value) {
-      continue;
-    }
-
-    send_nothing = false;
-
-    auto start_ca_pos = remote_tail_value / UserArray::N_DATA;
-    auto end_ca_pos = ROUND_DIV(head_value, UserArray::N_DATA);
-    auto ca_cnt = end_ca_pos - start_ca_pos;
-
-    send_meta[i].ca_start = start_ca_pos;
-    send_meta[i].ca_cnt = ca_cnt;
-    send_meta[i].user_start = remote_tail_value;
-    send_meta[i].user_cnt = head_value - remote_tail_value;
-    send_data_ctrl.ctrls[i].src = (char *)&datas[i].get_pmem_users()[start_ca_pos];
-    send_data_ctrl.ctrls[i].rest = ca_cnt * UserArray::DALIGN;
+    auto remote_user_cnt = remote_state.get_next_user_index()[i];
+    auto user_cnt = qs[i].head->load();
+    send_meta[i].local_user_cnt = user_cnt;
+    send_meta[i].recived_user_cnt = remote_user_cnt;
   }
-
-  send_meta_ctrl.src = (char *)&send_meta;
-  send_meta_ctrl.rest = sizeof(send_meta);
-  recv_meta_ctrl.src = (char *)&recv_meta;
-  recv_meta_ctrl.rest = sizeof(recv_meta);
   
-  int ret = send_all(data_fd, send_meta_ctrl.src, send_meta_ctrl.rest, MSG_NOSIGNAL);
-  assert(ret == send_meta_ctrl.rest);
+  // send and recv
+  int ret = send_all(data_fd, send_meta, len, MSG_NOSIGNAL);
+  DEBUG_PRINTF(ret == len, "send meta error\n");
+  if (ret < 0)
+    return ret;
+  assert(ret == len);
   DEBUG_PRINTF(0, "%s send_meta done\n", this_host_info);
-  ret = recv_all(data_recv_fd, recv_meta_ctrl.src, recv_meta_ctrl.rest, MSG_WAITALL);
-  assert(ret == recv_meta_ctrl.rest);
+  ret = recv_all(data_recv_fd, recv_meta, len, MSG_WAITALL);
+  DEBUG_PRINTF(ret == len, "recv meta error\n");
+  if (ret <= 0)
+    return ret;
+  assert(ret == len);
   DEBUG_PRINTF(0, "%s recv_meta done\n", this_host_info);
-  finish_recv_meta(recv_meta, recv_data_ctrl);
+  return len;
+}
 
-  for (int i = 0; i < MAX_NR_CONSUMER; i++) {
-    DEBUG_PRINTF(0, "\t[%d] ca: [%d, %d), user: [%d, %d)\n", i, 
-      send_meta[i].ca_start, send_meta[i].ca_start + send_meta[i].ca_cnt,
-      send_meta[i].user_start, send_meta[i].user_start + send_meta[i].user_cnt);
-  }
-
+int Engine::do_exchange_data(DataTransMeta send_meta[MAX_NR_CONSUMER], DataTransMeta recv_meta[MAX_NR_CONSUMER]) {
   bool need_to_send = false,
        need_to_recv = false;
 
   for (int i = 0; i < MAX_NR_CONSUMER; ++i) {
-    if (send_meta[i].user_cnt > 0) {
+    if (send_meta[i].local_user_cnt > recv_meta[i].recived_user_cnt) {
       need_to_send = true;
       break;
     }
   }
-
   for (int i = 0; i < MAX_NR_CONSUMER; ++i) {
-    if (recv_meta[i].user_cnt > 0) {
+    if (recv_meta[i].local_user_cnt > send_meta[i].recived_user_cnt) {
       need_to_recv = true;
       break;
     }
   }
-  
+
   auto recv_fn = [&]() {
     while (true) {
       auto cc = recv_data_ctrl.ctrls[recv_data_ctrl.cur];
@@ -152,6 +103,57 @@ void Engine::do_peer_data_sync() {
     delete reciver;
     reciver = nullptr;
   }
+}
+
+// 其实就是要发16个queue而已，我们可以开16个线程来做这件事
+void Engine::do_peer_data_sync() {
+  duration_t dsync_time(0);
+  start_time_record();
+
+  DataTransMeta send_meta[MAX_NR_CONSUMER];
+  DataTransMeta recv_meta[MAX_NR_CONSUMER];
+  do_exchange_meta(send_meta, recv_meta);
+
+
+  uint32_t send_resp[MAX_NR_CONSUMER];
+  uint32_t recv_resp[MAX_NR_CONSUMER];
+  UserArray *send_src[MAX_NR_CONSUMER];
+  ArrayTransControl send_data_ctrl, recv_data_ctrl;
+  TransControl send_meta_ctrl, recv_meta_ctrl, 
+               send_resp_ctrl, recv_resp_ctrl;
+
+  bool send_nothing = true,
+       recv_nothing = true;
+
+  memset(send_resp, 0, sizeof(send_resp));
+  memset(recv_resp, 0, sizeof(recv_resp));
+  memset(&send_data_ctrl, 0, sizeof(send_data_ctrl));
+  memset(&recv_data_ctrl, 0, sizeof(recv_data_ctrl));
+  memset(&send_meta_ctrl, 0, sizeof(send_meta_ctrl));
+  memset(&recv_meta_ctrl, 0, sizeof(recv_meta_ctrl));
+  memset(&send_resp_ctrl, 0, sizeof(send_resp_ctrl));
+  memset(&recv_resp_ctrl, 0, sizeof(recv_resp_ctrl));
+
+  send_meta_ctrl.name = "send_meta";
+  recv_meta_ctrl.name = "recv_meta";
+  send_resp_ctrl.name = "send_resp";
+  recv_resp_ctrl.name = "recv_resp";
+  send_data_ctrl.name = "send_data";
+  recv_data_ctrl.name = "recv_data";
+
+
+  send_meta_ctrl.src = (char *)&send_meta;
+  send_meta_ctrl.rest = sizeof(send_meta);
+  recv_meta_ctrl.src = (char *)&recv_meta;
+  recv_meta_ctrl.rest = sizeof(recv_meta);
+
+  for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+    DEBUG_PRINTF(0, "\t[%d] ca: [%d, %d), user: [%d, %d)\n", i, 
+                 send_meta[i].ca_start, send_meta[i].ca_start + send_meta[i].ca_cnt,
+                 send_meta[i].user_start, send_meta[i].user_start + send_meta[i].user_cnt);
+  }
+
+
 
   // response
   uint32_t remote_lasts[MAX_NR_CONSUMER];
@@ -249,7 +251,7 @@ void Engine::finish_recv_data(const DataTransMeta *recv_metas) {
     for (auto i = remote_next; i < end; i++) {
       const User *user = remote_data.data_read(i);
       uint32_t encoded_index = (qid << 28) | i;
-      
+
       remote_id_r->put(user->id, encoded_index);
       remote_uid_r->put(std::hash<UserString>()(*(UserString *)(user->user_id)), encoded_index);
       remote_sala_r->put(user->salary, encoded_index);
