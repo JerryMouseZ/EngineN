@@ -108,8 +108,9 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
           start_chunk++;
         }
         if (recv_chunks[i]) {
-          src = remote_datas[i].get_pmem_users()[start_chunk + 1].data;
+          src = &remote_datas[i].get_pmem_users()[start_chunk];
           int ret = recv_all(data_recv_fd, src, 4096 * recv_chunks[i], MSG_WAITALL);
+          fprintf(stderr, "recv data id = %ld\n", remote_datas[i].data_read(start_chunk * 15)->id);
           if (ret != 4096 * recv_chunks[i]) {
             recv_success = false;
             fprintf(stderr, "recv sync failed\n");
@@ -118,7 +119,7 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
           start_chunk += recv_chunks[i];
         }
         if (recv_unaligned2[i]) {
-          src = remote_datas[i].get_pmem_users()[start_chunk].data;
+          src = &remote_datas[i].get_pmem_users()[start_chunk];
           int ret = recv_all(data_recv_fd, src, recv_unaligned2[i] * sizeof(User), MSG_WAITALL);
           if (ret != recv_unaligned2[i] * sizeof(User)) {
             recv_success = false;
@@ -145,7 +146,7 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
         void *src;
         int len = 0;
         if (send_unaligned1[i]) {
-          src = &remote_datas[i].get_pmem_users()[start_chunk].data[start_position];
+          src = &datas[i].get_pmem_users()[start_chunk].data[start_position];
           len = send_unaligned1[i] * sizeof(User);
           ret = send_all(data_fd, src, len, 0);
           if (ret != len) {
@@ -156,9 +157,9 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
           start_chunk++;
         }
         if (send_chunks[i]) {
-          src = remote_datas[i].get_pmem_users()[start_chunk + 1].data;
+          src = datas[i].get_pmem_users()[start_chunk + 1].data;
           len = 4096 * send_chunks[i];
-          ret = send_all(data_fd, src, len, MSG_ZEROCOPY);
+          ret = send_all(data_fd, src, len, 0);
           if (ret != len) {
             send_success = false;
             fprintf(stderr, "send sync failed\n");
@@ -167,9 +168,9 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
           start_chunk += send_chunks[i];
         }
         if (send_unaligned2[i]) {
-          src = remote_datas[i].get_pmem_users()[start_chunk].data;
+          src = datas[i].get_pmem_users()[start_chunk].data;
           len = send_unaligned2[i] * sizeof(User);
-          ret = send_all(data_fd, src, len, MSG_WAITALL);
+          ret = send_all(data_fd, src, len, 0);
           if (ret != len) {
             send_success = false;
             fprintf(stderr, "send sync failed\n");
@@ -224,15 +225,16 @@ void Engine::do_peer_data_sync() {
   print_elapse("peer data sync", dsync_time);
 }
 
+// 有几个数据读出来是0
 void Engine::construct_remote_index(int qid, int begin, int end) {
   auto &remote_data = remote_datas[qid];
   for (auto i = begin; i < end; i++) {
     const User *user = remote_data.data_read(i);
     uint32_t encoded_index = (qid << 28) | i;
-
     remote_id_r->put(user->id, encoded_index);
     remote_uid_r->put(std::hash<UserString>()(*(UserString *)(user->user_id)), encoded_index);
     remote_sala_r->put(user->salary, encoded_index);
     remote_data.put_flag(i);
+    fprintf(stderr, "add data %ld, %s, %ld\n", user->id, user->user_id, user->salary);
   }
 }
