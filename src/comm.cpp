@@ -152,15 +152,18 @@ void listener(int listen_fd, std::vector<info_type> *infos, int *data_recv_fd, i
       if (memcmp(&addr.sin_addr, &client_addr.sin_addr, sizeof(sockaddr_in::sin_addr)) == 0) {
         if (j == data_peer_index ) {
           *data_recv_fd = client_fd;
-          DEBUG_PRINTF(LOG, "data_recv_fd from %s\n", (*infos)[j].first.c_str());
+          DEBUG_PRINTF(LOG, "%s: data_recv_fd = %d from %s\n",
+            this_host_info, client_fd, (*infos)[j].first.c_str());
         } 
         else if (j == req_recv_index) {
           req_recv_fds[req_recv_fd_cnt++] = client_fd;
-          DEBUG_PRINTF(LOG, "[%d <- %d] req_recv_fd[%d] from %s\n", host_index, j, req_recv_fd_cnt, (*infos)[j].first.c_str());
+          DEBUG_PRINTF(LOG, "%s: [%d <- %d] req_recv_fd[%d] from %s\n",
+            this_host_info, host_index, j, req_recv_fd_cnt, (*infos)[j].first.c_str());
         } 
         else if (j == req_weak_recv_index) {
           req_weak_recv_fds[req_weak_recv_fd_cnt++] = client_fd;
-          DEBUG_PRINTF(LOG, "[%d <- %d] req_weak_recv_fd[%d] from %s\n", host_index, j, req_weak_recv_fd_cnt, (*infos)[j].first.c_str());
+          DEBUG_PRINTF(LOG, "%s: [%d <- %d] req_weak_recv_fd[%d] from %s\n",
+            this_host_info, host_index, j, req_weak_recv_fd_cnt, (*infos)[j].first.c_str());
         } 
         else {
           assert(0);
