@@ -126,7 +126,7 @@ struct TransControl {
 
   bool update_check_finished(uint64_t cnt) {
     if (name) {
-      DEBUG_PRINTF(LOG, "%s: %s cnt/rest = %ld/%ld\n", this_host_info, name, cnt, rest);
+      DEBUG_PRINTF(VLOG, "%s: %s cnt/rest = %ld/%ld\n", this_host_info, name, cnt, rest);
     }
     if (rest == cnt) {
       return true;
@@ -143,7 +143,7 @@ struct ArrayTransControl {
   int cur;
 
   bool update_check_finished(uint64_t cnt) {
-    DEBUG_PRINTF(LOG, "%s: %s [%d] cnt/rest = %ld/%ld\n", this_host_info, name, cur, cnt, ctrls[cur].rest);
+    DEBUG_PRINTF(VLOG, "%s: %s [%d] cnt/rest = %ld/%ld\n", this_host_info, name, cur, cnt, ctrls[cur].rest);
     bool finished = ctrls[cur].update_check_finished(cnt);
     if (finished) {
       while (++cur < MAX_NR_CONSUMER) {

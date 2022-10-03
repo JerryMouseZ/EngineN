@@ -45,7 +45,8 @@ void Engine::do_peer_data_sync() {
   bool send_nothing = true,
     recv_nothing = true;
 
-  DEBUG_PRINTF(0, "%s start peer data sync\n", this_host_info);
+  DEBUG_PRINTF(LOG, "%s: start peer data sync, data_fd = %d, data_recv_fd = %d\n",
+    this_host_info, data_fd, data_recv_fd);
 
   memset(send_meta, 0, sizeof(send_meta));
   memset(recv_meta, 0, sizeof(recv_meta));
@@ -110,8 +111,8 @@ void Engine::do_peer_data_sync() {
 
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     DEBUG_PRINTF(0, "\t[%d] ca: [%d, %d), user: [%d, %d)\n", i, 
-      send_meta[i].ca_start, send_meta[i].ca_start + send_meta[i].ca_cnt,
-      send_meta[i].user_start, send_meta[i].user_start + send_meta[i].user_cnt);
+      recv_meta[i].ca_start, recv_meta[i].ca_start + recv_meta[i].ca_cnt,
+      recv_meta[i].user_start, recv_meta[i].user_start + recv_meta[i].user_cnt);
   }
 
   bool need_to_send = false,
