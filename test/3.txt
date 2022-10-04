@@ -1,0 +1,2 @@
+host info : 192.168.1.41 9000
+test_connect: /home/jz/EngineN/src/comm.cpp:171: void listener(int, std::vector<std::pair<std::__cxx11::basic_string<char>, int> >*, int*, int, int, int*, int*, int, int): Assertion `0' failed.

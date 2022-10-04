@@ -112,8 +112,8 @@ private:
   volatile bool alive[4];
   /* int send_fds[4]; */
   /* int recv_fds[4]; */
-  int data_fd;
-  int data_recv_fd;
+  int data_fd[16];
+  int data_recv_fd[16];
   /* std::thread *req_sender; */
   /* std::thread *rep_recvier; */
   std::thread *req_handler[10];
