@@ -62,17 +62,22 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
 
   datas = new Data[MAX_NR_CONSUMER];
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+    DEBUG_PRINTF(INIT, "start open datas[%d]\n", i);
     datas[i].open(aep_path + "user.data" + std::to_string(i), disk_path + "flag" + std::to_string(i));
   }
   
   // remote data
 
+  DEBUG_PRINTF(INIT, "start open id_index\n");
   id_r = new Index(disk_path + "id", datas, qs);
+  DEBUG_PRINTF(INIT, "start open uid_index\n");
   uid_r = new Index(disk_path + "uid", datas, qs);
+  DEBUG_PRINTF(INIT, "start open salar_index\n");
   sala_r = new Index(disk_path + "salary", datas, qs);
 
   bool q_is_new_create;
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+    DEBUG_PRINTF(INIT, "start open queue[%d]\n", i);
     if (qs[i].open(disk_path + "queue" + std::to_string(i), &q_is_new_create, datas[i].get_pmem_users(), i)) {
       return false;
     }
@@ -96,15 +101,20 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
   
   // for remote
   bool remote_state_is_new_create;
+  DEBUG_PRINTF(INIT, "start open remote_state\n");
   remote_state.open(disk_path + "remote_state", &remote_state_is_new_create);
 
   remote_datas = new Data[MAX_NR_CONSUMER];
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+    DEBUG_PRINTF(INIT, "start open remote_datas[%d]\n", i);
     remote_datas[i].open(aep_path + "user.remote_data" + std::to_string(i), disk_path + "remote_flag" + std::to_string(i));
   }
 
+  DEBUG_PRINTF(INIT, "start open remote_id_index\n");
   remote_id_r = new Index(disk_path + "remote_id", remote_datas, nullptr);
+  DEBUG_PRINTF(INIT, "start open remote_uid_index\n");
   remote_uid_r = new Index(disk_path + "remote_uid", remote_datas, nullptr);
+  DEBUG_PRINTF(INIT, "start open remote_sala_index\n");
   remote_sala_r = new Index(disk_path + "remote_salary", remote_datas, nullptr);
 
   return remote_state_is_new_create;
