@@ -44,7 +44,7 @@ void test_engine_write(int index, size_t num)
         memset(user.user_id, 0, 128);
         strcpy(user.name, std::to_string(i).c_str());
         strcpy(user.user_id, std::to_string(i).c_str());
-        user.salary = i / 4;
+        user.salary = i % num;
         engine_write(context, &user, sizeof(user));
       }
     /* }); */
@@ -65,6 +65,7 @@ void print_user(const TestUser &user) {
   printf("  Salary: %lu\n", user.salary);
 }
 
+
 void test_engine_read(int index, size_t num)
 {
   char aep_path[16];
@@ -79,7 +80,7 @@ void test_engine_read(int index, size_t num)
   std::thread *threads[50];
   for (int tid = 0; tid < 50; ++tid) {
     threads[tid] = new std::thread([=]{
-      long data_begin = index * num + tid * per_thread, data_end = index * num + (tid + 1) * per_thread;
+      long data_begin = (index / 2) * num + tid * per_thread, data_end = (index / 2) * num + (tid + 1) * per_thread;
       fprintf(stderr, "from %ld to %ld\n", data_begin, data_end);
       for (long i = data_begin; i < data_end; ++i) {
         TestUser user;
@@ -112,13 +113,13 @@ void test_engine_read(int index, size_t num)
 
         // Select Id from ... where Salary
         memset(&user, 0, sizeof(user));
-        long salary = i / 4;
+        long salary = i % (num / 2);
         int64_t ids[4];
         ret = engine_read(context, Id, Salary, &salary, sizeof(salary), ids);
-        if (ret != 4) {
+        if (ret != 2) {
           fprintf(stderr, "Line %d %ld %d\n", __LINE__, i, ret);
         }
-        assert(ret == 4);
+        assert(ret == 2);
       }
       });
   }
@@ -199,7 +200,7 @@ int main(int argc, char **argv)
 
   int num = atol(argv[3]);
   if (argv[2][0] == 'r') {
-    test_engine_read(atoi(argv[1]), num);
+    test_engine_read(atoi(argv[1]), num * 2); // 现在local应该有两个人的数量
   } else if (argv[2][0] == 'w'){
     test_engine_write(atoi(argv[1]), num);
   } else {
