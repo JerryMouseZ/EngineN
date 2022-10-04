@@ -65,8 +65,6 @@ int connect_to_server(const char *this_host_ip, const char *ip, int port) {
   int sock = socket(PF_INET, SOCK_STREAM | SOCK_CLOEXEC, IPPROTO_TCP);
   assert(sock > 0);
 
-  // bind
-#ifdef BIND_PORT
   sockaddr_in client_addr;
   int client_port = 0;
   memset(&client_addr, 0, sizeof(client_addr));
@@ -74,7 +72,6 @@ int connect_to_server(const char *this_host_ip, const char *ip, int port) {
   client_addr.sin_port = htons(client_port);
   assert (inet_pton(AF_INET, this_host_ip, &client_addr.sin_addr) > 0);
   assert (bind(sock, (const struct sockaddr *)&client_addr, sizeof(client_addr)) >= 0);
-#endif
 
   // set nodelay
   int enable = 1;
@@ -168,6 +165,9 @@ void listener(int listen_fd, std::vector<info_type> *infos, int *data_recv_fd, i
             this_host_info, host_index, j, req_weak_recv_fd_cnt, (*infos)[j].first.c_str());
         } 
         else {
+          char clientname[20];
+          fprintf(stderr, "Client Adress = %s\n", inet_ntop(AF_INET,&client_addr.sin_addr,
+                    clientname, sizeof(clientname)));
           assert(0);
         }
       }

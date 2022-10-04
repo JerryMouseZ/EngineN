@@ -74,15 +74,18 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index, boo
     alive[i] = true;
 
   data_fd = connect_to_server(infos[host_index].first.c_str(), infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
+  fprintf(stderr, "connect to %s %d as data fd\n", infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
 
   DEBUG_PRINTF(LOG, "%s: data_fd = %d\n", this_host_info, data_fd);
 
   for (int i = 0; i < 50; ++i) {
     req_send_fds[i] = connect_to_server(infos[host_index].first.c_str(), infos[get_request_index()].first.c_str(), infos[get_request_index()].second);
+    fprintf(stderr, "connect to %s %d as req send fd\n", infos[get_request_index()].first.c_str(), infos[get_request_index()].second);
   }
 
   for (int i = 0; i < 50; ++i) {
     req_weak_send_fds[i] = connect_to_server(infos[host_index].first.c_str(), infos[get_another_request_index()].first.c_str(), infos[get_another_request_index()].second);
+    fprintf(stderr, "connect to %s %d as req weak send fd\n", infos[get_another_request_index()].first.c_str(), infos[get_another_request_index()].second);
   }
 
   listen_thread.join();
