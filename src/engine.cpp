@@ -21,8 +21,6 @@ Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr)
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     new (&qs[i])UserQueue;
   }
-  fprintf(stderr, "user cnt : %ld\n", NR_USER);
-  exit(0);
   DEBUG_PRINTF(qs, "Fail to mmap consumer queues\n");
 }
 
