@@ -47,7 +47,7 @@ constexpr size_t ENTRY_LEN = sizeof(User);
 #ifdef LOCAL
 constexpr size_t NR_USER = 52 * 1000000;
 #else
-constexpr size_t NR_USER = 202 * 1000000;
+constexpr size_t NR_USER = 200 * 1000000;
 #endif
 
 constexpr size_t EACH_NR_USER = ROUND_DIV(NR_USER, MAX_NR_CONSUMER);
