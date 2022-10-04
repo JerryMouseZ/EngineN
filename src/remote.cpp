@@ -80,12 +80,10 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index, boo
 
   for (int i = 0; i < 50; ++i) {
     req_send_fds[i] = connect_to_server(infos[host_index].first.c_str(), infos[get_request_index()].first.c_str(), infos[get_request_index()].second);
-    fprintf(stderr, "connect to %s %d as req send fd\n", infos[get_request_index()].first.c_str(), infos[get_request_index()].second);
   }
 
   for (int i = 0; i < 50; ++i) {
     req_weak_send_fds[i] = connect_to_server(infos[host_index].first.c_str(), infos[get_another_request_index()].first.c_str(), infos[get_another_request_index()].second);
-    fprintf(stderr, "connect to %s %d as req weak send fd\n", infos[get_another_request_index()].first.c_str(), infos[get_another_request_index()].second);
   }
 
   listen_thread.join();
@@ -313,6 +311,7 @@ void Engine::disconnect() {
   }
 
   for (int i = 0; i < 10; ++i) {
+    fprintf(stderr, "queue exit\n");
     io_uring_queue_exit(&req_recv_ring[i]);
     io_uring_queue_exit(&req_weak_recv_ring[i]);
   }
