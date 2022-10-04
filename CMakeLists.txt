@@ -3,7 +3,7 @@ project("interface")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_compile_options(-O3)
+add_compile_options(-g -O3)
 
 include_directories(src)
 include_directories(liburing/src/include)

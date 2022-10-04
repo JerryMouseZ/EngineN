@@ -59,8 +59,8 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
 void Engine::connect(std::vector<info_type> &infos, int num, int host_index, bool is_new_create) {
   this->host_index = host_index;
   for (int i = 0; i < 10; ++i) {
-    io_uring_queue_init(QUEUE_DEPTH, &req_recv_ring[i], 0);
-    io_uring_queue_init(QUEUE_DEPTH, &req_weak_recv_ring[i], 0);
+    assert(io_uring_queue_init(QUEUE_DEPTH, &req_recv_ring[i], 0) == 0);
+    assert(io_uring_queue_init(QUEUE_DEPTH, &req_weak_recv_ring[i], 0) == 0);
   }
   signal(SIGPIPE, SIG_IGN);
   listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
@@ -210,6 +210,7 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
     io_uring_for_each_cqe(&ring, head, cqe) {
       ++count;
       int id = cqe->user_data >> 16;
+      assert(id < 5);
       int type = cqe->user_data & 1;
       int len = cqe->res;
       if (type == 1) {
