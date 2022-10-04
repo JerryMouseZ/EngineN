@@ -44,7 +44,12 @@ using UserArray = CommitArray<User, QCMT_ALIGN>;
 using location_type = std::atomic<size_t>;
 constexpr size_t ENTRY_LEN = sizeof(User);
 
+#ifdef LOCAL
 constexpr size_t NR_USER = 52 * 1000000;
+#else
+constexpr size_t NR_USER = 202 * 1000000;
+#endif
+
 constexpr size_t EACH_NR_USER = ROUND_DIV(NR_USER, MAX_NR_CONSUMER);
 constexpr size_t EACH_NR_USER_ARRAY = (EACH_NR_USER + UserArray::N_DATA - 1) / UserArray::N_DATA;
 constexpr size_t EACH_DATA_FILE_LEN = EACH_NR_USER_ARRAY * UserArray::DALIGN;
@@ -93,7 +98,7 @@ public:
   UserArray *get_pmem_users();
 private:
   char *pmem_ptr = nullptr;
-  size_t *next_location;
+  /* size_t *next_location; */
   UserArray *pmem_users = nullptr;
   DataFlag *flags;
 };
@@ -126,7 +131,7 @@ struct TransControl {
 
   bool update_check_finished(uint64_t cnt) {
     if (name) {
-      DEBUG_PRINTF(LOG, "%s: %s cnt/rest = %ld/%ld\n", this_host_info, name, cnt, rest);
+      DEBUG_PRINTF(VLOG, "%s: %s cnt/rest = %ld/%ld\n", this_host_info, name, cnt, rest);
     }
     if (rest == cnt) {
       return true;
@@ -143,7 +148,7 @@ struct ArrayTransControl {
   int cur;
 
   bool update_check_finished(uint64_t cnt) {
-    DEBUG_PRINTF(LOG, "%s: %s [%d] cnt/rest = %ld/%ld\n", this_host_info, name, cur, cnt, ctrls[cur].rest);
+    DEBUG_PRINTF(VLOG, "%s: %s [%d] cnt/rest = %ld/%ld\n", this_host_info, name, cur, cnt, ctrls[cur].rest);
     bool finished = ctrls[cur].update_check_finished(cnt);
     if (finished) {
       while (++cur < MAX_NR_CONSUMER) {
