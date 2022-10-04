@@ -29,9 +29,11 @@
 #endif
 
 // close log
-#define LOG 1
+#define LOG 0
+#define VLOG 1
 #define QINFO 1
 #define QDEBUG 1
+// #define BIND_PORT
 
 #define TIME_RECORD
 
@@ -40,9 +42,9 @@
 static void prefault(char *ptr, size_t len)
 {
   volatile long *reader = new long;
-  std::thread *threads[8];
-  size_t per_thread = len / 8;
-  for (int i = 0; i < 8; ++i) {
+  std::thread *threads[16];
+  size_t per_thread = len / 16;
+  for (int i = 0; i < 16; ++i) {
     threads[i] = new std::thread([=]{
       for (size_t j = i * per_thread; j < (i + 1) * per_thread  && j < len; j += 4096) {
         __sync_fetch_and_add(reader, ptr[j]);
@@ -51,7 +53,7 @@ static void prefault(char *ptr, size_t len)
     });
   }
 
-  for (int i = 0; i < 8; ++i) {
+  for (int i = 0; i < 16; ++i) {
     threads[i]->join();
     delete threads[i];
   }

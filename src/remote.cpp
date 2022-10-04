@@ -75,6 +75,8 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index, boo
 
   data_fd = connect_to_server(infos[host_index].first.c_str(), infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
 
+  DEBUG_PRINTF(LOG, "%s: data_fd = %d\n", this_host_info, data_fd);
+
   for (int i = 0; i < 50; ++i) {
     req_send_fds[i] = connect_to_server(infos[host_index].first.c_str(), infos[get_request_index()].first.c_str(), infos[get_request_index()].second);
   }
@@ -121,9 +123,9 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
   assert(len == sizeof(data_request));
 
   if (where_column == Id || where_column == Salary)
-    DEBUG_PRINTF(LOG, "add remote read request select %s where %s = %ld\n", column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)column_key);
+    DEBUG_PRINTF(VLOG, "add remote read request select %s where %s = %ld\n", column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)column_key);
   else
-    DEBUG_PRINTF(LOG, "add send remote read request select %s where %s = %s\n", column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)column_key);
+    DEBUG_PRINTF(VLOG, "add send remote read request select %s where %s = %s\n", column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)column_key);
 
   response_header header;
   len = recv_all(fd, &header, sizeof(header), MSG_WAITALL);
@@ -233,9 +235,9 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
           return;
         }
         if (where_column == Id || where_column == Salary)
-          DEBUG_PRINTF(LOG, "recv request select %s where %s = %ld\n", column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
+          DEBUG_PRINTF(VLOG, "recv request select %s where %s = %ld\n", column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
         else
-          DEBUG_PRINTF(LOG, "recv request select %s where %s = %s\n", column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
+          DEBUG_PRINTF(VLOG, "recv request select %s where %s = %s\n", column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
         int num = local_read(select_column, where_column, key, 128, res_buffer[id].body);
         res_buffer[id].header.fifo_id = fifo_id;
         res_buffer[id].header.ret = num;
@@ -250,7 +252,7 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
         /*   break; */
         /* } */
         /* assert(len == sizeof(response_header) + res_buffer[id].header.res_len); */
-        DEBUG_PRINTF(LOG, "send res ret = %d\n", res_buffer[id].header.ret);
+        DEBUG_PRINTF(VLOG, "send res ret = %d\n", res_buffer[id].header.ret);
         // add new request
         iov[id].iov_base = &req[id];
         iov[id].iov_len = sizeof(data_request);

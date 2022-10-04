@@ -26,8 +26,13 @@
  * Bucket buckets[max_num];
  */
 
+#ifdef LOCAL
 static const int BUCKET_NUM = 1 << 24;
 static const int OVER_NUM = 1 << 20;
+#else
+static const int BUCKET_NUM = 1 << 26;
+static const int OVER_NUM = 1 << 22;
+#endif
 static const uint32_t ENTRY_NUM = 6;
 
 // 64-byte allign
