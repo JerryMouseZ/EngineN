@@ -98,7 +98,7 @@ public:
   UserArray *get_pmem_users();
 private:
   char *pmem_ptr = nullptr;
-  size_t *next_location;
+  /* size_t *next_location; */
   UserArray *pmem_users = nullptr;
   DataFlag *flags;
 };
