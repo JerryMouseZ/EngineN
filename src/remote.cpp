@@ -214,16 +214,14 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
       if (type == 1) {
         if (len < 0) {
           fprintf(stderr, "send error %d to node %d\n", len, node);
-          alive[node] = false;
-          break;
+          return;
         }
         // 看起来不会出现只发一部分的情况，先不管了
         /* DEBUG_PRINTF(len == send_iov[id].iov_len, "send %d, res %ld\n", len, send_iov[id].iov_len); // 可能需要一个自增的id，不然这个send_iov可能是下一个包的 */
       } else {
         if (len <= 0) {
           fprintf(stderr, "recv error %d from node %d\n", len, node);
-          alive[node] = false;
-          break;
+          return;
         }
         uint8_t select_column, where_column;
         uint32_t fifo_id;
@@ -248,23 +246,14 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
         send_iov[id].iov_len = sizeof(response_header) + res_buffer[id].header.res_len;
         send_iov[id].iov_base = &res_buffer[id];
         add_write_request(ring, fds[id], &send_iov[id], (id << 16) | 1);
-        /* int len = send_all(fds[id], &res_buffer[id], sizeof(response_header) + res_buffer[id].header.res_len, MSG_NOSIGNAL); */
-        /* if (len < 0) { */
-        /*   alive[node] = false; */
-        /*   break; */
-        /* } */
-        /* assert(len == sizeof(response_header) + res_buffer[id].header.res_len); */
         DEBUG_PRINTF(VLOG, "send res ret = %d\n", res_buffer[id].header.ret);
         // add new request
         iov[id].iov_base = &req[id];
         iov[id].iov_len = sizeof(data_request);
         add_read_request(ring, fds[id], &iov[id], id << 16);
-      }
-    } // end if
+      } // end for
+    } // end for
     io_uring_cq_advance(&ring, count);
-    if (alive[node] == false) {
-      break;
-    }
   } // end while
 }
 
