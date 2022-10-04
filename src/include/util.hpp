@@ -33,7 +33,7 @@
 #define VLOG 1
 #define QINFO 1
 #define QDEBUG 1
-#define INIT 0
+#define INIT 1
 // #define BIND_PORT
 
 #define TIME_RECORD
