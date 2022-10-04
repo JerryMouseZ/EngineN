@@ -47,13 +47,7 @@ void Data::open(const std::string &fdata, const std::string &fflag) {
   DEBUG_PRINTF(pmem_ptr, "%s open mmaped failed", fdata.c_str());
   pmem_users = (UserArray *)pmem_ptr;
 
-
-  if (new_create) {
-    // 其实会自动置零的，这里相当于是一个populate
-    pmem_memset_nodrain(pmem_ptr, 0, EACH_DATA_FILE_LEN);
-  } else {
-    prefault(pmem_ptr, EACH_DATA_FILE_LEN);
-  }
+  prefault(pmem_ptr, EACH_DATA_FILE_LEN, false);
 
   flags = new DataFlag();
   flags->Open(fflag);
