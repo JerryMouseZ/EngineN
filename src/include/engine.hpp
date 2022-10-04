@@ -18,12 +18,9 @@
 #include "send_recv.hpp"
 
 extern thread_local UserQueue *consumer_q;
-
 struct DataTransMeta {
-  uint32_t ca_start;
-  uint32_t ca_cnt;
-  uint32_t user_start;
-  uint32_t user_cnt;
+  uint32_t local_user_cnt; // 本地有的user数量
+  uint32_t recived_user_cnt; // 之前已经接收过的user数量
 };
 
 
@@ -83,19 +80,16 @@ private:
 
   void ask_peer_quit();
   // for backup
-  /* void do_send_data(const ArrayTransControl &ctrl); */
-  /* void do_recv_data(ArrayTransControl &ctrl); */
-  /* void do_send_resp(const TransControl &ctrl); */
-  /* void do_recv_resp(TransControl &ctrl); */
-  bool finish_recv_meta(const DataTransMeta *recv_meta, ArrayTransControl &recv_data_ctrl);
-  void finish_recv_data(const DataTransMeta *recv_meta);
-  void finish_recv_resp(uint32_t *newest_remote_next);
+  
+  int do_exchange_meta(DataTransMeta send_meta[MAX_NR_CONSUMER], DataTransMeta recv_meta[MAX_NR_CONSUMER]);
+  int do_exchange_data(DataTransMeta send_meta[MAX_NR_CONSUMER], DataTransMeta recv_meta[MAX_NR_CONSUMER]);
+  void construct_remote_index(int qid, int begin, int end);
 
 
 private:
   Data *datas;
   Data *remote_datas;
-  
+
   // indexes
   Index *id_r;
   Index *uid_r;
@@ -105,11 +99,11 @@ private:
   Index *remote_id_r;
   Index *remote_uid_r;
   Index *remote_sala_r;
- 
+
   // write buffer
   UserQueue *qs;
   std::thread *consumers;
-  
+
   io_uring req_recv_ring[10];
   io_uring req_weak_recv_ring[10];
 
@@ -118,14 +112,14 @@ private:
   volatile bool alive[4];
   /* int send_fds[4]; */
   /* int recv_fds[4]; */
-  int data_fd;
-  int data_recv_fd;
+  int data_fd[16];
+  int data_recv_fd[16];
   /* std::thread *req_sender; */
   /* std::thread *rep_recvier; */
   std::thread *req_handler[10];
   std::thread *req_weak_handler[10];
   /* volatile bool exited; */
-  RemoteState remote_state;
+  RemoteState remote_state; // 用来存当前有多少remote的user吧
 
   int req_send_fds[50];
   int req_weak_send_fds[50];
