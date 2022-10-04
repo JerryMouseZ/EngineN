@@ -93,14 +93,17 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
   auto recv_fn = [&]() {
     int ret = 0;
     for (int i = 0; i < 16; ++i) {
-      if (recv_chunks[i] || recv_unaligned1[i] || recv_unaligned2[i]) {
+      if (need_to_recv) {
         int start_chunk = remote[i].recived_user_cnt / 15;
         void *src;
+        int len = 0;
         if (recv_unaligned1[i]) {
           int start_position = remote[i].recived_user_cnt % 15;
-          src = &remote_datas[i].get_pmem_users()[start_chunk].data[start_position];
-          ret = recv_all(data_recv_fd, src, recv_unaligned1[i] * sizeof(User), MSG_WAITALL);
-          if (ret != recv_unaligned1[i] * sizeof(User)) {
+          UserArray *users = remote_datas[i].get_pmem_users();
+          src = &users[start_chunk].data[start_position];
+          len = recv_unaligned1[i] * sizeof(User);
+          ret = recv_all(data_recv_fd, src, len, MSG_WAITALL);
+          if (ret != len) {
             recv_success = false;
             fprintf(stderr, "recv sync failed\n");
             return;
@@ -108,10 +111,16 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
           start_chunk++;
         }
         if (recv_chunks[i]) {
-          src = &remote_datas[i].get_pmem_users()[start_chunk];
-          int ret = recv_all(data_recv_fd, src, 4096 * recv_chunks[i], MSG_WAITALL);
-          fprintf(stderr, "recv data id = %ld\n", remote_datas[i].data_read(start_chunk * 15)->id);
-          if (ret != 4096 * recv_chunks[i]) {
+          UserArray *users = remote_datas[i].get_pmem_users();
+          src = &users[start_chunk];
+          len = 4096 * recv_chunks[i];
+          int ret = recv_all(data_recv_fd, src, len, MSG_WAITALL);
+          for (int j = start_chunk; j < start_chunk + recv_chunks[i]; ++j) {
+            for (int k = 0; k < 15; ++k) {
+              fprintf(stderr, "recving id = %ld\n", users[j].data[k].id);
+            }
+          }
+          if (ret != len) {
             recv_success = false;
             fprintf(stderr, "recv sync failed\n");
             return;
@@ -119,23 +128,28 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
           start_chunk += recv_chunks[i];
         }
         if (recv_unaligned2[i]) {
-          src = &remote_datas[i].get_pmem_users()[start_chunk];
-          int ret = recv_all(data_recv_fd, src, recv_unaligned2[i] * sizeof(User), MSG_WAITALL);
-          if (ret != recv_unaligned2[i] * sizeof(User)) {
+          UserArray *users = remote_datas[i].get_pmem_users();
+          src = &users[start_chunk];
+          len = recv_unaligned2[i] * sizeof(User);
+          int ret = recv_all(data_recv_fd, src, len, MSG_WAITALL);
+          for (int j = 0; j < recv_unaligned2[i]; ++j) {
+            fprintf(stderr, "recving id = %ld\n", users[start_chunk].data[j].id);
+          }
+          if (ret != len) {
             recv_success = false;
             fprintf(stderr, "recv sync failed\n");
             return;
-          }
-        }
-      }
-    }
+          } // if ret
+        }// if recv unaligned2
+      } // end if need to recv
+    } // end for
   };
 
   std::thread *reciver = nullptr;
   if (need_to_recv) {
     reciver = new std::thread(recv_fn);
   }
-  
+
   bool send_success = true;
   if (need_to_send) {
     for (int i = 0; i < 16; ++i) {
@@ -146,7 +160,8 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
         void *src;
         int len = 0;
         if (send_unaligned1[i]) {
-          src = &datas[i].get_pmem_users()[start_chunk].data[start_position];
+          UserArray *users = datas[i].get_pmem_users();
+          src = &users[start_chunk].data[start_position];
           len = send_unaligned1[i] * sizeof(User);
           ret = send_all(data_fd, src, len, 0);
           if (ret != len) {
@@ -157,7 +172,13 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
           start_chunk++;
         }
         if (send_chunks[i]) {
-          src = datas[i].get_pmem_users()[start_chunk + 1].data;
+          UserArray *users = datas[i].get_pmem_users();
+          src = &users[start_chunk];
+          for (int j = start_chunk; j < start_chunk + send_chunks[i]; ++j) {
+            for (int k = 0; k < 15; ++k) {
+              fprintf(stderr, "sending id = %ld\n", users[j].data[k].id);
+            }
+          }
           len = 4096 * send_chunks[i];
           ret = send_all(data_fd, src, len, 0);
           if (ret != len) {
@@ -168,7 +189,11 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
           start_chunk += send_chunks[i];
         }
         if (send_unaligned2[i]) {
-          src = datas[i].get_pmem_users()[start_chunk].data;
+          UserArray *users = datas[i].get_pmem_users();
+          src = &users[start_chunk];
+          for (int j = 0; j < send_unaligned2[i]; ++j) {
+            fprintf(stderr, "sending id = %ld\n", users[start_chunk].data[j].id);
+          }
           len = send_unaligned2[i] * sizeof(User);
           ret = send_all(data_fd, src, len, 0);
           if (ret != len) {
