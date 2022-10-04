@@ -134,8 +134,8 @@ using info_type = std::pair<std::string, int>;
 void listener(int listen_fd, std::vector<info_type> *infos, int *data_recv_fd, int data_peer_index, int host_index, int req_recv_fds[], int req_weak_recv_fds[], int req_recv_index, int req_weak_recv_index) {
   sockaddr_in client_addr;
   socklen_t client_addr_len = sizeof(sockaddr_in);
-  int num = 0, req_recv_fd_cnt = 0, req_weak_recv_fd_cnt = 0;
-  while (num < 1 + 2 * 50) {
+  int num = 0, req_recv_fd_cnt = 0, req_weak_recv_fd_cnt = 0, data_recv_fd_cnt = 0;
+  while (num < 16 + 2 * 50) {
     int client_fd = accept(listen_fd, (sockaddr *)&client_addr, &client_addr_len);
     if (client_fd < 0) {
       usleep(50);
@@ -153,9 +153,9 @@ void listener(int listen_fd, std::vector<info_type> *infos, int *data_recv_fd, i
       inet_pton(AF_INET, (*infos)[j].first.c_str(), &addr.sin_addr);
       if (memcmp(&addr.sin_addr, &client_addr.sin_addr, sizeof(sockaddr_in::sin_addr)) == 0) {
         if (j == data_peer_index ) {
-          *data_recv_fd = client_fd;
-          DEBUG_PRINTF(LOG, "%s: data_recv_fd = %d from %s\n",
-            this_host_info, client_fd, (*infos)[j].first.c_str());
+          data_recv_fd[data_recv_fd_cnt++] = client_fd;
+          DEBUG_PRINTF(LOG, "%s: data_recv_fd[%d] from %s\n",
+            this_host_info, data_recv_fd_cnt, (*infos)[j].first.c_str());
         } 
         else if (j == req_recv_index) {
           req_recv_fds[req_recv_fd_cnt++] = client_fd;
