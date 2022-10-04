@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <ctime>
 #include <fcntl.h>
 #include <liburing.h>
@@ -58,9 +59,14 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
 
 void Engine::connect(std::vector<info_type> &infos, int num, int host_index, bool is_new_create) {
   this->host_index = host_index;
+  int ret;
   for (int i = 0; i < 10; ++i) {
-    assert(io_uring_queue_init(QUEUE_DEPTH, &req_recv_ring[i], 0) == 0);
-    assert(io_uring_queue_init(QUEUE_DEPTH, &req_weak_recv_ring[i], 0) == 0);
+    ret = io_uring_queue_init(QUEUE_DEPTH, &req_recv_ring[i], 0);
+    DEBUG_PRINTF(ret == 0, "queue init error %d:%s\n", errno, strerror(errno));
+    assert(ret == 0);
+    ret = io_uring_queue_init(QUEUE_DEPTH, &req_weak_recv_ring[i], 0);
+    DEBUG_PRINTF(ret == 0, "queue init error %d:%s\n", errno, strerror(errno));
+    assert(ret == 0);
   }
   signal(SIGPIPE, SIG_IGN);
   listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
