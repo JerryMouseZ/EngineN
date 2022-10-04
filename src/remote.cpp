@@ -67,16 +67,16 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index, boo
   sockaddr_in client_addr;
   socklen_t client_addr_len = sizeof(client_addr);
   char client_addr_str[60];
-  std::thread listen_thread(listener, listen_fd, &infos, &data_recv_fd, get_backup_index(), host_index, req_recv_fds, req_weak_recv_fds, get_request_index(), get_another_request_index());
+  std::thread listen_thread(listener, listen_fd, &infos, data_recv_fd, get_backup_index(), host_index, req_recv_fds, req_weak_recv_fds, get_request_index(), get_another_request_index());
 
   // 建立同步数据的连接
   for (int i = 0; i < 4; ++i)
     alive[i] = true;
-
-  data_fd = connect_to_server(infos[host_index].first.c_str(), infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
-  fprintf(stderr, "connect to %s %d as data fd\n", infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
-
-  DEBUG_PRINTF(LOG, "%s: data_fd = %d\n", this_host_info, data_fd);
+  
+  for (int i = 0; i < 16; ++i) {
+    data_fd[i] = connect_to_server(infos[host_index].first.c_str(), infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
+    DEBUG_PRINTF(LOG, "%s: data_fd[%d] = %d\n", this_host_info, i, data_fd[i]);
+  }
 
   for (int i = 0; i < 50; ++i) {
     req_send_fds[i] = connect_to_server(infos[host_index].first.c_str(), infos[get_request_index()].first.c_str(), infos[get_request_index()].second);
@@ -90,8 +90,7 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index, boo
 
   listen_thread.join();
   // move to after connect
-  if (!is_new_create)
-    do_peer_data_sync();
+  do_peer_data_sync();
   start_handlers(); // 先start handlers
 }
 
@@ -298,9 +297,11 @@ void Engine::disconnect() {
     shutdown(req_weak_send_fds[i], SHUT_RDWR);
     shutdown(req_weak_recv_fds[i], SHUT_RDWR);
   }
-
-  close(data_fd);
-  close(data_recv_fd);
+  
+  for (int i = 0; i < 16; ++i) {
+    close(data_fd[i]);
+    close(data_recv_fd[i]);
+  }
   close(listen_fd);
 
   for (int i = 0; i < 4; ++i) {
