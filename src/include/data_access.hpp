@@ -31,15 +31,21 @@ public:
       return data->data_read(index);
     }
 
-    q->pop_at(&race_data, index);
+    DEBUG_PRINTF(0, "Try to read from write buffer: qid = %u, index = %u, but blocked\n", qid, index);
 
-    std::atomic_thread_fence(std::memory_order_release);
+    while (index >= q->min_uncommitted_data_index())
+      ;
 
-    if (index >= q->min_uncommitted_data_index()) {
-      DEBUG_PRINTF(QDEBUG, "Read from write buffer: qid = %u, index = %u\n", qid, index);
-      return &race_data;
-    }
+    DEBUG_PRINTF(0, "Block released from write buffer: qid = %u, index = %u\n", qid, index);
 
+    // q->pop_at(&race_data, index);
+
+    // std::atomic_thread_fence(std::memory_order_release);
+
+    // if (index >= q->min_uncommitted_data_index()) {
+    //   DEBUG_PRINTF(QDEBUG, "Read from write buffer: qid = %u, index = %u\n", qid, index);
+    //   return &race_data;
+    // }
     return data->data_read(index);      
   }
 
