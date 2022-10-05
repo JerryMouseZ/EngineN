@@ -31,21 +31,25 @@ public:
       return data->data_read(index);
     }
 
+    q->pop_at(&race_data, index);
+
+    std::atomic_thread_fence(std::memory_order_release);
+
     DEBUG_PRINTF(0, "Try to read from write buffer: qid = %u, index = %u, but blocked\n", qid, index);
 
-    while (index >= q->min_uncommitted_data_index())
-      ;
+    int yield_cnt = 0;
+    while (index >= q->min_uncommitted_data_index() && yield_cnt < 50) {
+      sched_yield();
+      yield_cnt++;
+    }
 
     DEBUG_PRINTF(0, "Block released from write buffer: qid = %u, index = %u\n", qid, index);
 
-    // q->pop_at(&race_data, index);
+    if (unlikely(index >= q->min_uncommitted_data_index())) {
+      DEBUG_PRINTF(0, "Read from write buffer: qid = %u, index = %u\n", qid, index);
+      return &race_data;
+    }
 
-    // std::atomic_thread_fence(std::memory_order_release);
-
-    // if (index >= q->min_uncommitted_data_index()) {
-    //   DEBUG_PRINTF(QDEBUG, "Read from write buffer: qid = %u, index = %u\n", qid, index);
-    //   return &race_data;
-    // }
     return data->data_read(index);      
   }
 
