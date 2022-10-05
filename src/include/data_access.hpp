@@ -18,11 +18,9 @@ public:
     uint32_t index = encoded_index & ((1 << 28) - 1);
     auto data = &datas[qid];
     
-    if (!data->get_flag(index))
-      return nullptr;
-
     if (qs == nullptr)
       return data->data_read(index);
+
     // for local
     auto q = &qs[qid];
     // for remote
@@ -35,7 +33,7 @@ public:
 
     std::atomic_thread_fence(std::memory_order_release);
 
-    DEBUG_PRINTF(0, "Try to read from write buffer: qid = %u, index = %u, but blocked\n", qid, index);
+    DEBUG_PRINTF(WBREAD, "Try to read from write buffer: qid = %u, index = %u, but blocked\n", qid, index);
 
     int yield_cnt = 0;
     while (index >= q->min_uncommitted_data_index() && yield_cnt < 50) {
@@ -43,10 +41,10 @@ public:
       yield_cnt++;
     }
 
-    DEBUG_PRINTF(0, "Block released from write buffer: qid = %u, index = %u\n", qid, index);
+    DEBUG_PRINTF(WBREAD, "Block released from write buffer: qid = %u, index = %u\n", qid, index);
 
     if (unlikely(index >= q->min_uncommitted_data_index())) {
-      DEBUG_PRINTF(0, "Read from write buffer: qid = %u, index = %u\n", qid, index);
+      DEBUG_PRINTF(WBREAD, "Read from write buffer: qid = %u, index = %u\n", qid, index);
       return &race_data;
     }
 

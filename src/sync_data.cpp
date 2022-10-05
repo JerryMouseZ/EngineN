@@ -211,7 +211,9 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
     if (recv_success) {
       if (recv_chunks[i] || recv_unaligned1[i] || recv_unaligned2[i]) {
         remote_state.get_next_user_index()[i] = remote[i].local_user_cnt;
-        construct_remote_index(i, local[i].recived_user_cnt, remote[i].local_user_cnt);
+        DEBUG_PRINTF(INIT, "start build remote index[%d] range [0, %d)\n", 
+          i, remote[i].local_user_cnt);
+        build_index(i, 0, remote[i].local_user_cnt, remote_id_r, remote_uid_r, remote_sala_r, &remote_datas[i]);
       }
     }
   };
@@ -256,18 +258,4 @@ void Engine::do_peer_data_sync() {
   }
   end_time_record(&dsync_time);
   print_elapse("peer data sync", dsync_time);
-}
-
-// 有几个数据读出来是0
-void Engine::construct_remote_index(int qid, int begin, int end) {
-  auto &remote_data = remote_datas[qid];
-  for (auto i = begin; i < end; i++) {
-    const User *user = remote_data.data_read(i);
-    uint32_t encoded_index = (qid << 28) | i;
-    remote_id_r->put(user->id, encoded_index);
-    remote_uid_r->put(std::hash<UserString>()(*(UserString *)(user->user_id)), encoded_index);
-    remote_sala_r->put(user->salary, encoded_index);
-    remote_data.put_flag(i);
-    /* fprintf(stderr, "add data %ld, %s, %ld\n", user->id, user->user_id, user->salary); */
-  }
 }

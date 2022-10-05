@@ -83,7 +83,7 @@ private:
   
   int do_exchange_meta(DataTransMeta send_meta[MAX_NR_CONSUMER], DataTransMeta recv_meta[MAX_NR_CONSUMER]);
   int do_exchange_data(DataTransMeta send_meta[MAX_NR_CONSUMER], DataTransMeta recv_meta[MAX_NR_CONSUMER]);
-  void construct_remote_index(int qid, int begin, int end);
+  void build_index(int qid, int begin, int end, Index *id_index, Index *uid_index, Index *salary_index, Data *datap);
 
 
 private:
