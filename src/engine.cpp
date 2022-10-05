@@ -63,17 +63,14 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
   datas = new Data[MAX_NR_CONSUMER];
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     DEBUG_PRINTF(INIT, "start open datas[%d]\n", i);
-    datas[i].open(aep_path + "user.data" + std::to_string(i), disk_path + "flag" + std::to_string(i));
+    datas[i].open(aep_path + "user.data" + std::to_string(i));
   }
   
   // remote data
 
-  DEBUG_PRINTF(INIT, "start open id_index\n");
-  id_r = new Index(disk_path + "id", datas, qs);
-  DEBUG_PRINTF(INIT, "start open uid_index\n");
-  uid_r = new Index(disk_path + "uid", datas, qs);
-  DEBUG_PRINTF(INIT, "start open salar_index\n");
-  sala_r = new Index(disk_path + "salary", datas, qs);
+  id_r = new Index(datas, qs);
+  uid_r = new Index(datas, qs);
+  sala_r = new Index(datas, qs);
 
   bool q_is_new_create;
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
@@ -87,6 +84,11 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
     }
 
     qs[i].reset_thread_states();
+  }
+
+  for (int qid = 0; qid < MAX_NR_CONSUMER; qid++) {
+    DEBUG_PRINTF(INIT, "start build local index[%d] range [0, %ld)\n", qid, qs[qid].head->load());
+    build_index(qid, 0, qs[qid].head->load(), id_r, uid_r, sala_r, &datas[qid]);
   }
 
   consumers = new std::thread[MAX_NR_CONSUMER];
@@ -107,17 +109,24 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
   remote_datas = new Data[MAX_NR_CONSUMER];
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     DEBUG_PRINTF(INIT, "start open remote_datas[%d]\n", i);
-    remote_datas[i].open(aep_path + "user.remote_data" + std::to_string(i), disk_path + "remote_flag" + std::to_string(i));
+    remote_datas[i].open(aep_path + "user.remote_data" + std::to_string(i));
   }
 
-  DEBUG_PRINTF(INIT, "start open remote_id_index\n");
-  remote_id_r = new Index(disk_path + "remote_id", remote_datas, nullptr);
-  DEBUG_PRINTF(INIT, "start open remote_uid_index\n");
-  remote_uid_r = new Index(disk_path + "remote_uid", remote_datas, nullptr);
-  DEBUG_PRINTF(INIT, "start open remote_sala_index\n");
-  remote_sala_r = new Index(disk_path + "remote_salary", remote_datas, nullptr);
+  remote_id_r = new Index(remote_datas, nullptr);
+  remote_uid_r = new Index(remote_datas, nullptr);
+  remote_sala_r = new Index(remote_datas, nullptr);
 
   return remote_state_is_new_create;
+}
+
+void Engine::build_index(int qid, int begin, int end, Index *id_index, Index *uid_index, Index *salary_index, Data *datap) {
+  for (auto i = begin; i < end; i++) {
+    const User *user = datap->data_read(i);
+    uint32_t encoded_index = (qid << 28) | i;
+    id_index->put(user->id, encoded_index);
+    uid_index->put(std::hash<UserString>()(*(UserString *)(user->user_id)), encoded_index);
+    salary_index->put(user->salary, encoded_index);
+  }
 }
 
 void Engine::write(const User *user) {
@@ -134,8 +143,6 @@ void Engine::write(const User *user) {
   id_r->put(user->id, encoded_index);
   uid_r->put(std::hash<UserString>()(*(UserString *)(user->user_id)), encoded_index);
   sala_r->put(user->salary, encoded_index);
-
-  datas[qid].put_flag(index);
 }
 
 constexpr int key_len[4] = {8, 128, 128, 8};
