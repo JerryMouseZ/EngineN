@@ -58,25 +58,6 @@ constexpr size_t EACH_DATA_FILE_LEN = EACH_NR_USER_ARRAY * UserArray::DALIGN;
 /*   return (offset - START) / sizeof(User); */
 /* } */
 
-/* Flag file
- * char flags[DATA_NUM]
- */
-class DataFlag{
-private:
-  volatile uint8_t *ptr;
-  size_t *next_location;
-public:
-  DataFlag();
-  ~DataFlag();
-
-  void Open(const std::string &filename);
-
-  void set_flag(uint32_t index);
-
-  bool get_flag(size_t index);
-};
-
-
 /*
  * Data file
  * ---------------------
@@ -87,20 +68,15 @@ class Data
 public:
   Data();
   ~Data();
-  void open(const std::string &fdata, const std::string &fflag);
+  void open(const std::string &fdata);
   // data read and data write
   const User *data_read(uint32_t index);
-
-  void put_flag(uint32_t index);
-
-  bool get_flag(uint32_t index);
 
   UserArray *get_pmem_users();
 private:
   char *pmem_ptr = nullptr;
   /* size_t *next_location; */
   UserArray *pmem_users = nullptr;
-  DataFlag *flags;
 };
 
 struct query{

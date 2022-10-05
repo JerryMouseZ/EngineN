@@ -137,17 +137,13 @@ static void *res_copy(const User *user, void *res, int32_t select_column) {
 class OverflowIndex{
 public:
   volatile std::atomic<size_t> *next_location; // open to index
-  OverflowIndex(const std::string &filename, const DataAccess &accessor)
+  OverflowIndex(const DataAccess &accessor)
     : accessor(accessor) {
-    bool new_create = false;
-    if (access(filename.c_str(), F_OK))
-      new_create = true;
-    ptr = reinterpret_cast<char *>(map_file(filename.c_str(), OVER_NUM * sizeof(Bucket) + 64, nullptr));
+    ptr = reinterpret_cast<char *>(map_anonymouse(OVER_NUM * sizeof(Bucket) + 64));
     madvise(ptr, OVER_NUM * sizeof(Bucket), MADV_RANDOM);
     next_location = reinterpret_cast<std::atomic<size_t> *>(ptr);
 
-    if (new_create)
-      next_location->store(64, std::memory_order_release);
+    next_location->store(64, std::memory_order_release);
   }
 
   void put(uint64_t over_offset, size_t hash_val, uint32_t data_offset) {
@@ -204,7 +200,7 @@ public:
 
   ~OverflowIndex() {
     if (ptr) {
-      munmap(ptr, BUCKET_NUM * sizeof(Bucket));
+      munmap(ptr, BUCKET_NUM * sizeof(Bucket) + 64);
     }
   }
 
@@ -216,14 +212,11 @@ private:
 class Index
 {
 public:
-  Index(const std::string &path, Data *datas, UserQueue *qs)
+  Index(Data *datas, UserQueue *qs)
     : accessor(datas, qs) {
-      std::string hash_file = path + ".hash";
-      std::string over_file = path + ".over";
-
-      hash_ptr = reinterpret_cast<char *>(map_file(hash_file.c_str(), BUCKET_NUM * sizeof(Bucket), nullptr));
+      hash_ptr = reinterpret_cast<char *>(map_anonymouse(BUCKET_NUM * sizeof(Bucket)));
       madvise(hash_ptr, BUCKET_NUM * sizeof(Bucket), MADV_RANDOM);
-      overflowindex = new OverflowIndex(over_file, accessor);
+      overflowindex = new OverflowIndex(accessor);
     }
 
   ~Index() {
