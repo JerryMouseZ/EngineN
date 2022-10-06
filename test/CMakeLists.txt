@@ -18,6 +18,8 @@ include_directories(../liburing/src/include)
 add_executable(test_local test_local.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
 target_link_libraries(test_local pmem pthread uring)
 
+add_executable(test_crash test_crash.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
+target_link_libraries(test_crash pmem pthread uring)
 # add_executable(init init.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/engine.cpp)
 # target_link_libraries(init pmem pthread uring)
 
