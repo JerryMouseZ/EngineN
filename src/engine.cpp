@@ -80,13 +80,13 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
 
     if (!q_is_new_create && qs[i].need_rollback()) {
       fprintf(stderr, "rollback commit : %ld -> %ld\n", *qs[i].tail, qs[i].head->load());
+      qs[i].compact_head();
       qs[i].tail_commit();
     }
 
     qs[i].reset_thread_states();
   }
 
-#pragma omp parallel for num_threads(16)
   for (int qid = 0; qid < MAX_NR_CONSUMER; qid++) {
     DEBUG_PRINTF(INIT, "start build local index[%d] range [0, %ld)\n", qid, qs[qid].head->load());
     build_index(qid, 0, qs[qid].head->load(), id_r, uid_r, sala_r, &datas[qid]);

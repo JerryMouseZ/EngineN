@@ -111,8 +111,14 @@ public:
 
         uint64_t caid = pos / CMT_BATCH_CNT;
         uint64_t ca_pos = caid & QMASK;
-        
-        while (pos + CMT_BATCH_CNT - 1 >= *last_head) {
+
+        uint64_t waiting_cnt = CMT_BATCH_CNT;
+
+        if (unlikely(pos % CMT_BATCH_CNT != 0)) {
+            waiting_cnt -= (pos % CMT_BATCH_CNT);
+        }
+
+        while (pos + waiting_cnt - 1 >= *last_head) {
 
             // exit condition
             if (unlikely(producers_exit)) {
@@ -122,37 +128,18 @@ public:
             // printf("Consumer %d yield at tail = %lu, last_head = %lu, head = %lu\n", consumer_id, *tail, *last_head, head->load());
             consumer_yield_thread();
 
-            auto min = head->load(std::memory_order_consume);
-
-            for (int i = 0; i < MAX_NR_PRODUCER; i++) {
-                __builtin_prefetch((cache_aligned_uint64 *)(thread_heads + i + 1));
-                auto tmp_head = thread_heads[i].value;
-
-                std::atomic_thread_fence(std::memory_order_consume);
-
-                if (tmp_head < min) {
-                    min = tmp_head;
-                }
-            }
-
-            /*
-                多个consumer可能会同时更新，导致last_head并不是最新的，但无妨，
-                因为只要能通过while条件就不影响写入，而通不过last_head条件也只是再来一次
-            */
-            /*
-                可能发生多个线程同时更新，应当取它们每个人眼中min的最大值，否则可能导致
-                较小的min被最后写入，导致有人的while判断从能通过变成不能通过，发生不必要的yield
-            */
-            do {
-                *last_head = min;
-            } while(*last_head < min);
+            update_last_head();
         }
         
-        do_commit(&data[ca_pos], caid);    
+        if (likely(waiting_cnt == CMT_BATCH_CNT)) {
+            do_commit(&data[ca_pos], caid);    
+        } else {
+            do_unaligned_rest_commit(&data[ca_pos], caid, DataArray::N_DATA - waiting_cnt, waiting_cnt);
+        }
 
         std::atomic_thread_fence(std::memory_order_release);
 
-        *tail = pos + CMT_BATCH_CNT;
+        *tail = pos + waiting_cnt;
 
         return true;
     }
@@ -165,6 +152,10 @@ public:
         pmem_memcpy_persist(&pmem_data[ca_index], src, pop_cnt * sizeof(T));
     }
 
+    void do_unaligned_rest_commit(const DataArray *src, uint64_t ca_index, uint64_t start_pos, uint64_t pop_cnt) {
+        pmem_memcpy_persist(&pmem_data[ca_index].data[start_pos], src, pop_cnt * sizeof(T));
+    }
+
     void notify_producers_exit() {
         producers_exit = true;
         pthread_mutex_lock(&mtx);
@@ -173,8 +164,11 @@ public:
     }
 
     void tail_commit() {
+        DEBUG_PRINTF(*last_head == head->load(), "Queue %u last_head(%lu) != head(%lu) before tail commit\n", id, *last_head, head->load());
+
         uint64_t tail_value = *tail;
         uint64_t head_value = head->load(std::memory_order_relaxed);
+        uint64_t start_caid, end_caid, end_ca_cnt, start_ca_pos, end_ca_pos;
 
         DEBUG_PRINTF(QDEBUG, "Queue %u tail_commit: Start at tail = %lu, head = %lu\n", id, tail_value, head_value);
 
@@ -187,15 +181,31 @@ public:
         }
 
         if (tail_value % CMT_BATCH_CNT != 0) {
-            DEBUG_PRINTF(QINFO, "Queue %u tail_commit: Wierd, tail not aligned to CMT_CNT: tail = %lu\n", id, tail_value);
+            DEBUG_PRINTF(QINFO, "Queue %u tail_commit: tail not aligned to CMT_CNT: tail = %lu\n", id, tail_value);
+            uint64_t tail_mod = tail_value % CMT_BATCH_CNT;
+            uint64_t tail_unaligned_rest = CMT_BATCH_CNT - tail_mod;
+            bool end_here = (head_value - tail_value <= tail_unaligned_rest);
+            uint64_t unaligned_cmt_cnt = end_here
+                ? head_value - tail_value
+                : tail_unaligned_rest;
+
+            uint64_t caid = tail_value / CMT_BATCH_CNT;
+
+            do_unaligned_rest_commit(&data[caid & QMASK], caid, tail_mod, unaligned_cmt_cnt);
+
+            if (end_here) {
+                goto end_tail_commit;
+            } else {
+                tail_value += unaligned_cmt_cnt;
+            }
         }
 
-        uint64_t start_caid = tail_value / CMT_BATCH_CNT;
-        uint64_t end_caid = head_value / CMT_BATCH_CNT;
-        uint64_t end_ca_cnt = head_value % CMT_BATCH_CNT;
+        start_caid = tail_value / CMT_BATCH_CNT;
+        end_caid = head_value / CMT_BATCH_CNT;
+        end_ca_cnt = head_value % CMT_BATCH_CNT;
 
-        uint64_t start_ca_pos = start_caid & QMASK;
-        uint64_t end_ca_pos = end_caid & QMASK;
+        start_ca_pos = start_caid & QMASK;
+        end_ca_pos = end_caid & QMASK;
 
         DEBUG_PRINTF(QINFO, "Queue %u tail_commit: Start qpos: %lu, End qpos: %lu, nonfull_cnt = %lu, QSIZE = %lu\n", id, start_ca_pos, end_ca_pos, end_ca_cnt, QSIZE);
 
@@ -218,10 +228,105 @@ public:
             do_unaligned_commit(&data[end_ca_pos], end_caid, end_ca_cnt);
         }
 
+end_tail_commit:
         std::atomic_thread_fence(std::memory_order_release);
         *tail = head_value;
 
         DEBUG_PRINTF(QDEBUG, "Queue %u: End tail commit\n", id);
+    }
+
+    void compact_head() {
+        update_last_head();
+
+        auto last_value = *last_head;
+        auto head_value = head->load();
+
+        if (last_value == head_value) {
+            return;
+        }
+
+        int init_gap = head_value - last_value;
+        int owner_tid[MAX_NR_PRODUCER];
+
+        for (int i = 0; i < init_gap; i++) {
+            owner_tid[i] = -1;
+        }
+
+        int diff_i;
+        int hole_cnt = 0;
+        for (int tid = 0; tid < MAX_NR_PRODUCER; tid++) {
+            uint64_t the_head = thread_heads[tid].value;
+            if (the_head != UINT64_MAX) {
+                diff_i = the_head - last_value;
+                if (diff_i >= init_gap) {
+                    // 因为先head - 1，后设置的thread_heads，所以可能发生这种情况
+                    thread_heads[tid].value = UINT64_MAX;
+                    continue;
+                }
+                DEBUG_PRINTF(owner_tid[diff_i] < 0,
+                    "Queue %u: last_head = %lu, head = %lu, this_head = %lu has been owned by tid = %d, new tid = %d\n",
+                    id, last_value, head_value, the_head, owner_tid[diff_i], tid);
+                owner_tid[diff_i] = tid;
+                hole_cnt++;
+            }
+        }
+
+        int v, max_nonhole_v, found_hole_cnt = 0;
+        for (int i = init_gap - 1; i >= 0; i--) {
+            v = last_value + i;
+            if (owner_tid[i] >= 0) {
+                found_hole_cnt++;
+                DEBUG(found_hole_cnt <= hole_cnt, "Queue %u: found more hole = %d than initial = %d\n",
+                    id, found_hole_cnt, hole_cnt);
+                if (v != head->load() - 1) {
+                    user_copy(v, head->load() - 1);
+                }
+                head->fetch_sub(1);
+                thread_heads[owner_tid[i]].value = UINT64_MAX;
+            }
+        }
+
+        update_last_head();
+
+        DEBUG_PRINTF(*last_head == head->load(), "Queue %u last_head(%lu) != head(%lu) after compact head\n", id, *last_head, head->load());
+    }
+
+    void user_copy(uint64_t vdst, uint64_t vsrc) {
+        memcpy(user_at(vdst), user_at(vsrc), sizeof(T));
+    }
+
+    T *user_at(uint64_t v) {
+        auto caid = v / CMT_BATCH_CNT;
+        auto in_ca_pos = v % CMT_BATCH_CNT;
+        auto ca_pos = caid & QMASK;
+        return &data[ca_pos].data[in_ca_pos];
+    }
+
+    void update_last_head() {
+        auto min = head->load(std::memory_order_consume);
+
+        for (int i = 0; i < MAX_NR_PRODUCER; i++) {
+            __builtin_prefetch((cache_aligned_uint64 *)(thread_heads + i + 1));
+            auto tmp_head = thread_heads[i].value;
+
+            std::atomic_thread_fence(std::memory_order_consume);
+
+            if (tmp_head < min) {
+                min = tmp_head;
+            }
+        }
+
+        /*
+            多个consumer可能会同时更新，导致last_head并不是最新的，但无妨，
+            因为只要能通过while条件就不影响写入，而通不过last_head条件也只是再来一次
+        */
+        /*
+            可能发生多个线程同时更新，应当取它们每个人眼中min的最大值，否则可能导致
+            较小的min被最后写入，导致有人的while判断从能通过变成不能通过，发生不必要的yield
+        */
+        do {
+            *last_head = min;
+        } while(*last_head < min);
     }
 
     uint64_t min_uncommitted_data_index() {
