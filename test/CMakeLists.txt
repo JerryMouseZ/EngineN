@@ -16,24 +16,24 @@ include_directories(../liburing/src/include)
 # target_link_libraries(test_multi pmem pthread uring)
 
 add_executable(test_local test_local.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
-target_link_libraries(test_local pmem pthread uring)
+target_link_libraries(test_local pmem pthread uring OpenMP::OpenMP_CXX)
 
 add_executable(test_crash test_crash.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
-target_link_libraries(test_crash pmem pthread uring)
+target_link_libraries(test_crash pmem pthread uring OpenMP::OpenMP_CXX)
 # add_executable(init init.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/engine.cpp)
 # target_link_libraries(init pmem pthread uring)
 
 add_executable(test_connect test_connect.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
-target_link_libraries(test_connect pmem pthread uring)
+target_link_libraries(test_connect pmem pthread uring OpenMP::OpenMP_CXX)
 
 add_executable(test_request test_request.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
-target_link_libraries(test_request pmem pthread uring)
+target_link_libraries(test_request pmem pthread uring OpenMP::OpenMP_CXX)
 
 add_executable(test_all test_all.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
-target_link_libraries(test_all pmem pthread uring)
+target_link_libraries(test_all pmem pthread uring OpenMP::OpenMP_CXX)
 
 add_executable(test_backup test_backup.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
-target_link_libraries(test_backup pmem pthread uring)
+target_link_libraries(test_backup pmem pthread uring OpenMP::OpenMP_CXX)
 # add_executable(test_data test_data.cpp ../src/comm.cpp)
 # target_link_libraries(test_data pmem pthread uring)
 

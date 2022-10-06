@@ -21,6 +21,6 @@ SHARED
         src/remote.cpp
 )
 
-target_link_libraries(interface uring)
+target_link_libraries(interface uring OpenMP::OpenMP_CXX)
 
 message(${CMAKE_SOURCE_DIR})
