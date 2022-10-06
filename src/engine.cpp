@@ -79,6 +79,7 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
     }
 
     if (!q_is_new_create && qs[i].need_rollback()) {
+      fprintf(stderr, "rollback commit\n");
       qs[i].tail_commit();
     }
 

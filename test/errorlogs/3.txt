@@ -1,0 +1,511 @@
+host info : 192.168.1.41 9015
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[1] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[1] from 192.168.1.39
+192.168.1.41:9015: data_recv_fd[1] from 192.168.1.40
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[2] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[2] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[3] from 192.168.1.38
+192.168.1.41:9015: data_fd[0] = 24
+192.168.1.41:9015: [3 <- 1] req_recv_fd[3] from 192.168.1.39
+192.168.1.41:9015: data_recv_fd[2] from 192.168.1.40
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[4] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[4] from 192.168.1.39
+192.168.1.41:9015: data_fd[1] = 32
+192.168.1.41:9015: data_recv_fd[3] from 192.168.1.40
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[5] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[5] from 192.168.1.39
+192.168.1.41:9015: data_fd[2] = 37
+192.168.1.41:9015: data_recv_fd[4] from 192.168.1.40
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[6] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[6] from 192.168.1.39
+192.168.1.41:9015: data_fd[3] = 41
+192.168.1.41:9015: data_recv_fd[5] from 192.168.1.40
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[7] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[7] from 192.168.1.39
+192.168.1.41:9015: data_fd[4] = 45
+192.168.1.41:9015: data_recv_fd[6] from 192.168.1.40
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[8] from 192.168.1.38
+192.168.1.41:9015: data_fd[5] = 49
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[9] from 192.168.1.38
+192.168.1.41:9015: data_recv_fd[7] from 192.168.1.40
+192.168.1.41:9015: data_fd[6] = 52
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[10] from 192.168.1.38
+192.168.1.41:9015: data_recv_fd[8] from 192.168.1.40
+192.168.1.41:9015: data_fd[7] = 55
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[11] from 192.168.1.38
+192.168.1.41:9015: data_recv_fd[9] from 192.168.1.40
+192.168.1.41:9015: data_fd[8] = 58
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[12] from 192.168.1.38
+192.168.1.41:9015: data_fd[9] = 61
+192.168.1.41:9015: data_recv_fd[10] from 192.168.1.40
+192.168.1.41:9015: data_fd[10] = 63
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[13] from 192.168.1.38
+192.168.1.41:9015: data_recv_fd[11] from 192.168.1.40
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[14] from 192.168.1.38
+192.168.1.41:9015: data_recv_fd[12] from 192.168.1.40
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[15] from 192.168.1.38
+192.168.1.41:9015: data_recv_fd[13] from 192.168.1.40
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[16] from 192.168.1.38
+192.168.1.41:9015: data_recv_fd[14] from 192.168.1.40
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[17] from 192.168.1.38
+192.168.1.41:9015: data_recv_fd[15] from 192.168.1.40
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[18] from 192.168.1.38
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[19] from 192.168.1.38
+192.168.1.41:9015: data_recv_fd[16] from 192.168.1.40
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[20] from 192.168.1.38
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[21] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[8] from 192.168.1.39
+192.168.1.41:9015: data_fd[11] = 68
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[22] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[9] from 192.168.1.39
+192.168.1.41:9015: data_fd[12] = 82
+192.168.1.41:9015: [3 <- 1] req_recv_fd[10] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[23] from 192.168.1.38
+192.168.1.41:9015: data_fd[13] = 85
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[24] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[11] from 192.168.1.39
+192.168.1.41:9015: data_fd[14] = 88
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[25] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[12] from 192.168.1.39
+192.168.1.41:9015: data_fd[15] = 91
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[26] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[13] from 192.168.1.39
+192.168.1.41:9015: [3 <- 1] req_recv_fd[14] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[27] from 192.168.1.38
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[28] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[15] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[29] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[16] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[30] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[17] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[31] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[18] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[32] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[19] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[33] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[20] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[34] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[21] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[35] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[22] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[36] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[23] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[37] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[24] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[38] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[25] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[39] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[26] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[40] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[27] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[41] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[28] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[42] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[29] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[43] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[30] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[44] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[31] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[45] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[32] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[46] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[33] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[47] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[34] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[48] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[35] from 192.168.1.39
+192.168.1.41:9015: [3 <- 1] req_recv_fd[36] from 192.168.1.39
+192.168.1.41:9015: [3 <- 1] req_recv_fd[37] from 192.168.1.39
+192.168.1.41:9015: [3 <- 1] req_recv_fd[38] from 192.168.1.39
+192.168.1.41:9015: [3 <- 1] req_recv_fd[39] from 192.168.1.39
+192.168.1.41:9015: [3 <- 1] req_recv_fd[40] from 192.168.1.39
+192.168.1.41:9015: [3 <- 1] req_recv_fd[41] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[49] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[42] from 192.168.1.39
+192.168.1.41:9015: [3 <- 0] req_weak_recv_fd[50] from 192.168.1.38
+192.168.1.41:9015: [3 <- 1] req_recv_fd[43] from 192.168.1.39
+192.168.1.41:9015: [3 <- 1] req_recv_fd[44] from 192.168.1.39
+192.168.1.41:9015: [3 <- 1] req_recv_fd[45] from 192.168.1.39
+192.168.1.41:9015: [3 <- 1] req_recv_fd[46] from 192.168.1.39
+192.168.1.41:9015: [3 <- 1] req_recv_fd[47] from 192.168.1.39
+192.168.1.41:9015: [3 <- 1] req_recv_fd[48] from 192.168.1.39
+192.168.1.41:9015: [3 <- 1] req_recv_fd[49] from 192.168.1.39
+192.168.1.41:9015: [3 <- 1] req_recv_fd[50] from 192.168.1.39
+192.168.1.41:9015 start peer data sync
+192.168.1.41:9015 send_meta done
+192.168.1.41:9015 recv_meta done
+	[0] user: [625000, 625000)
+	[1] user: [625000, 625000)
+	[2] user: [625000, 625000)
+	[3] user: [625000, 625000)
+	[4] user: [625000, 625000)
+	[5] user: [625000, 625000)
+	[6] user: [625000, 625000)
+	[7] user: [625000, 625000)
+	[8] user: [625000, 625000)
+	[9] user: [625000, 625000)
+	[10] user: [625000, 625000)
+	[11] user: [625000, 625000)
+	[12] user: [625000, 625000)
+	[13] user: [625000, 625000)
+	[14] user: [625000, 625000)
+	[15] user: [625000, 625000)
+192.168.1.41:9015: peer data sync elapse time: 0.031644 s
+recv request select UID where ID = 5600000
+select UID where ID = 5600000, res = 0
+send res ret = 0
+recv request select UID where ID = 4800000
+select UID where ID = 4800000, res = 0
+send res ret = 0
+recv request select UID where ID = 3200000
+select UID where ID = 3200000, res = 0
+send res ret = 0
+recv request select UID where ID = 9600000
+select UID where ID = 9600000, res = 0
+send res ret = 0
+recv request select UID where ID = 8800000
+select UID where ID = 8800000, res = 0
+send res ret = 0
+recv request select UID where ID = 0
+select UID where ID = 0, res = 0
+send res ret = 0
+recv request select UID where ID = 1600000
+select UID where ID = 1600000, res = 0
+send res ret = 0
+recv request select UID where ID = 2400000
+select UID where ID = 2400000, res = 0
+send res ret = 0
+recv request select UID where ID = 7200000
+select UID where ID = 7200000, res = 0
+send res ret = 0
+recv request select UID where ID = 6400000
+select UID where ID = 6400000, res = 0
+send res ret = 0
+recv request select UID where ID = 4000000
+select UID where ID = 4000000, res = 0
+send res ret = 0
+recv request select UID where ID = 8000000
+select UID where ID = 8000000, res = 0
+send res ret = 0
+recv request select UID where ID = 800000
+select UID where ID = 800000, res = 0
+send res ret = 0
+recv request select ID where Salary = 1200000
+select ID where salary = 1200000, res = 1
+send res ret = 1
+recv request select ID where Salary = 400000
+select ID where salary = 400000, res = 1
+send res ret = 1
+init time 11.741114 s
+select UID where ID = 0, res = 0
+select UID where ID = 800000, res = 0
+add remote read request select UID where ID = 800000
+add remote read request select UID where ID = 0
+select UID where ID = 2400000, res = 0
+select UID where ID = 1600000, res = 0
+add remote read request select UID where ID = 2400000
+select UID where ID = 4000000, res = 0
+add remote read request select UID where ID = 1600000
+add remote read request select UID where ID = 4000000
+select UID where ID = 4800000, res = 0
+add remote read request select UID where ID = 4800000
+select UID where ID = 3200000, res = 0
+select UID where ID = 6400000, res = 0
+select UID where ID = 7200000, res = 0
+add remote read request select UID where ID = 3200000
+select UID where ID = 8000000, res = 0
+add remote read request select UID where ID = 7200000
+add remote read request select UID where ID = 6400000
+select UID where ID = 5600000, res = 0
+add remote read request select UID where ID = 8000000
+select UID where ID = 8800000, res = 0
+select UID where ID = 9600000, res = 0
+add remote read request select UID where ID = 8800000
+add remote read request select UID where ID = 5600000
+add remote read request select UID where ID = 9600000
+select UID where ID = 10400000, res = 0
+add remote read request select UID where ID = 10400000
+select UID where ID = 12000000, res = 0
+add remote read request select UID where ID = 12000000
+select UID where ID = 13600000, res = 0
+select UID where ID = 11200000, res = 0
+add remote read request select UID where ID = 13600000
+select UID where ID = 12800000, res = 0
+add remote read request select UID where ID = 11200000
+select UID where ID = 15200000, res = 0
+add remote read request select UID where ID = 12800000
+select UID where ID = 16000000, res = 0
+add remote read request select UID where ID = 15200000
+add remote read request select UID where ID = 16000000
+select UID where ID = 14400000, res = 0
+select UID where ID = 16800000, res = 0
+add remote read request select UID where ID = 16800000
+select UID where ID = 17600000, res = 0
+add remote read request select UID where ID = 14400000
+add remote read request select UID where ID = 17600000
+select UID where ID = 18400000, res = 0
+add remote read request select UID where ID = 18400000
+select UID where ID = 19200000, res = 0
+add remote read request select UID where ID = 19200000
+select UID where ID = 20000000, res = 0
+add remote read request select UID where ID = 20000000
+select UID where ID = 20800000, res = 0
+select UID where ID = 21600000, res = 0
+add remote read request select UID where ID = 20800000
+select UID where ID = 22400000, res = 0
+add remote read request select UID where ID = 21600000
+add remote read request select UID where ID = 22400000
+select UID where ID = 23200000, res = 0
+add remote read request select UID where ID = 23200000
+select UID where ID = 24000000, res = 0
+add remote read request select UID where ID = 24000000
+select UID where ID = 24800000, res = 0
+add remote read request select UID where ID = 24800000
+select UID where ID = 25600000, res = 0
+add remote read request select UID where ID = 25600000
+select UID where ID = 26400000, res = 0
+add remote read request select UID where ID = 26400000
+select UID where ID = 27200000, res = 0
+select UID where ID = 28000000, res = 0
+add remote read request select UID where ID = 27200000
+add remote read request select UID where ID = 28000000
+select UID where ID = 28800000, res = 0
+add remote read request select UID where ID = 28800000
+select UID where ID = 29600000, res = 0
+add remote read request select UID where ID = 29600000
+select UID where ID = 30400000, res = 1
+select ID where UID = -3907155478047402710, res = 1
+select ID where salary = 400000, res = 1
+select UID where ID = 31200000, res = 1
+select ID where UID = 8563236049152501169, res = 1
+select ID where salary = 1200000, res = 1
+add remote read request select ID where Salary = 400000
+select UID where ID = 32000000, res = 1
+add remote read request select ID where Salary = 1200000
+select UID where ID = 32800000, res = 1
+select ID where UID = 8112006350011272351, res = 1
+select ID where salary = 2000000, res = 1
+select ID where UID = 6783019176543421805, res = 1
+select ID where salary = 2800000, res = 1
+add remote read request select ID where Salary = 2000000
+add remote read request select ID where Salary = 2800000
+select UID where ID = 33600000, res = 1
+select UID where ID = 34400000, res = 1
+select UID where ID = 35200000, res = 1
+select ID where UID = -8401944706881224654, res = 1
+select ID where salary = 4400000, res = 1
+select ID where UID = 1173404714281346649, res = 1
+select ID where UID = 5522855422207294560, res = 1
+select ID where salary = 5200000, res = 1
+add remote read request select ID where Salary = 4400000
+select UID where ID = 36000000, res = 1
+select ID where salary = 3600000, res = 1
+add remote read request select ID where Salary = 5200000
+select ID where UID = 1643449355035010046, res = 1
+select ID where salary = 6000000, res = 1
+select UID where ID = 36800000, res = 1
+add remote read request select ID where Salary = 6000000
+add remote read request select ID where Salary = 3600000
+select UID where ID = 37600000, res = 1
+select ID where UID = 7622786230690317062, res = 1
+select ID where salary = 6800000, res = 1
+select ID where UID = 3313948561407515936, res = 1
+select ID where salary = 7600000, res = 1
+add remote read request select ID where Salary = 6800000
+select UID where ID = 38400000, res = 1
+add remote read request select ID where Salary = 7600000
+select UID where ID = 39200000, res = 1
+select ID where UID = 8366380570290565644, res = 1
+select ID where salary = 8400000, res = 1
+select ID where UID = 1823327244642562889, res = 1
+select ID where salary = 9200000, res = 1
+add remote read request select ID where Salary = 8400000
+add remote read request select ID where Salary = 9200000
+recv request select UID where ID = 35200000
+select UID where ID = 35200000, res = 1
+recv request select UID where ID = 32000000
+select UID where ID = 32000000, res = 1
+send res ret = 1
+send res ret = 1
+recv request select UID where ID = 36000000
+select UID where ID = 36000000, res = 1
+send res ret = 1
+recv request select UID where ID = 34400000
+select UID where ID = 34400000, res = 1
+send res ret = 1
+recv request select UID where ID = 33600000
+select UID where ID = 33600000, res = 1
+send res ret = 1
+recv request select UID where ID = 28000000
+select UID where ID = 28000000, res = 0
+send res ret = 0
+recv request select UID where ID = 30400000
+select UID where ID = 30400000, res = 1
+send res ret = 1
+recv request select UID where ID = 36800000
+recv request select ID where Salary = 4000000
+select ID where salary = 4000000, res = 1
+send res ret = 1
+select UID where ID = 36800000, res = 1
+send res ret = 1
+recv request select ID where UID = 35200000
+select ID where UID = 5522855422207294560, res = 1
+send res ret = 1
+recv request select ID where UID = 36000000
+select ID where UID = 1643449355035010046, res = 1
+send res ret = 1
+recv request select ID where UID = 34400000
+recv request select UID where ID = 29600000
+select UID where ID = 29600000, res = 0
+send res ret = 0
+select ID where UID = -8401944706881224654, res = 1
+send res ret = 1
+recv request select UID where ID = 39200000
+select UID where ID = 39200000, res = 1
+send res ret = 1
+recv request select ID where UID = 32000000
+recv request select ID where Salary = 5200000
+select ID where salary = 5200000, res = 1
+send res ret = 1
+recv request select ID where Salary = 6000000
+select ID where salary = 6000000, res = 1
+send res ret = 1
+select ID where UID = 8112006350011272351, res = 1
+send res ret = 1
+recv request select ID where Salary = 8000000
+select ID where salary = 8000000, res = 1
+send res ret = 1
+recv request select UID where ID = 21600000
+select UID where ID = 21600000, res = 0
+send res ret = 0
+recv request select UID where ID = 22400000
+select UID where ID = 22400000, res = 0
+send res ret = 0
+recv request select UID where ID = 25600000
+select UID where ID = 25600000, res = 0
+send res ret = 0
+recv request select ID where UID = 33600000
+select ID where UID = 1173404714281346649, res = 1
+send res ret = 1
+recv request select ID where UID = 36800000
+select ID where UID = 7622786230690317062, res = 1
+send res ret = 1
+recv error 0 from node 1
+recv error 0 from node 1
+recv error 0 from node 1
+recv header error -1 from node 1, retry request
+add remote read request select ID where Salary = 9200000
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+add remote read request select ID where Salary = 2800000
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+add remote read request select UID where ID = 27200000
+recv header error -1 from node 1, retry request
+add remote read request select UID where ID = 25600000
+recv header error -1 from node 1, retry request
+add remote read request select UID where ID = 24000000
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+add remote read request select UID where ID = 20800000
+add remote read request select UID where ID = 20000000
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+add remote read request select UID where ID = 17600000
+add remote read request select UID where ID = 16800000
+add remote read request select UID where ID = 18400000
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+add remote read request select UID where ID = 14400000
+add remote read request select UID where ID = 15200000
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+add remote read request select UID where ID = 16000000
+add remote read request select UID where ID = 12800000
+recv header error -1 from node 1, retry request
+add remote read request select UID where ID = 13600000
+recv header error -1 from node 1, retry request
+add remote read request select UID where ID = 26400000
+recv header error -1 from node 1, retry request
+add remote read request select UID where ID = 23200000
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+add remote read request select UID where ID = 10400000
+add remote read request select UID where ID = 24800000
+recv header error -1 from node 1, retry request
+add remote read request select UID where ID = 21600000
+recv header error -1 from node 1, retry request
+recv error 0 from node 1
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+add remote read request select UID where ID = 9600000
+add remote read request select UID where ID = 12000000
+recv header error -1 from node 1, retry request
+add remote read request select UID where ID = 8000000
+add remote read request select UID where ID = 19200000
+recv error 0 from node 1
+recv header error -1 from node 1, retry request
+add remote read request select UID where ID = 3200000
+add remote read request select UID where ID = 4800000
+recv header error -1 from node 1, retry request
+recv error 0 from node 1
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+add remote read request select UID where ID = 1600000
+add remote read request select UID where ID = 5600000
+add remote read request select UID where ID = 8800000
+recv header error -1 from node 1, retry request
+recv header error -1 from node 1, retry request
+add remote read request select UID where ID = 2400000
+add remote read request select UID where ID = 7200000
+recv error -104 from node 1
+recv header error -1 from node 1, retry request
+recv error 0 from node 1
+add remote read request select UID where ID = 0
+recv header error -1 from node 1, retry request
+recv error 0 from node 1
+add remote read request select UID where ID = 800000
+add remote read request select ID where Salary = 6000000
+recv header error -1 from node 1, retry request
+add remote read request select ID where Salary = 2000000
+add remote read request select ID where Salary = 1200000
+add remote read request select ID where Salary = 8400000
+add remote read request select UID where ID = 29600000
+add remote read request select ID where Salary = 400000
+add remote read request select ID where Salary = 7600000
+add remote read request select ID where Salary = 5200000
+add remote read request select ID where Salary = 3600000
+add remote read request select ID where Salary = 4400000
+add remote read request select UID where ID = 22400000
+add remote read request select UID where ID = 28000000
+add remote read request select UID where ID = 28800000
+add remote read request select UID where ID = 11200000
+add remote read request select UID where ID = 6400000
+recv error 0 from node 1
+add remote read request select UID where ID = 4000000
+add remote read request select ID where Salary = 6800000
+recv error 0 from node 0
+recv header error -1 from node 0, retry request
+Line 102 37600000 1
+test_all: /home/jz/EngineN/test/test_all.cpp:104: test_engine_read(void*, size_t)::<lambda()>: Assertion `ret == 4' failed.
+recv header error -1 from node 0, retry request
+Line 102 39200000 1
+recv header error -1 from node 0, retry request
+Line 102 38400000 1
+recv header error -1 from node 0, retry request
