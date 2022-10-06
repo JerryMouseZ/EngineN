@@ -139,9 +139,11 @@ int main(int argc, char **argv)
   Engine *engine = (Engine *)context;
   int num = atoi(argv[4]);
   if (argv[3][0] == 'w') {
+    fprintf(stderr, "index = %d start backup write\n", index);
     test_engine_write(context, index, num);
   } else {
     int backup_index = engine->get_backup_index();
+    fprintf(stderr, "index = %d start backup read\n", index);
     test_engine_read(context, backup_index, num);
   }
   engine_deinit(context);
