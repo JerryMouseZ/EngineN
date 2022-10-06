@@ -79,7 +79,7 @@ void test_engine_read(int index, size_t num)
   fprintf(stderr, "per thread %d\n", per_thread);
   std::thread *threads[50];
   for (int tid = 0; tid < 50; ++tid) {
-    threads[tid] = new std::thread([=]{
+    /* threads[tid] = new std::thread([=]{ */
       long data_begin = (index / 2) * num + tid * per_thread, data_end = (index / 2) * num + (tid + 1) * per_thread;
       fprintf(stderr, "from %ld to %ld\n", data_begin, data_end);
       for (long i = data_begin; i < data_end; ++i) {
@@ -121,12 +121,12 @@ void test_engine_read(int index, size_t num)
         }
         assert(ret == 2);
       }
-      });
+      /* }); */
   }
-  for (int tid = 0; tid < 50; tid++) {
-    threads[tid]->join();
-    delete threads[tid];
-  }
+  /* for (int tid = 0; tid < 50; tid++) { */
+  /*   threads[tid]->join(); */
+  /*   delete threads[tid]; */
+  /* } */
   engine_deinit(context);
 }
 

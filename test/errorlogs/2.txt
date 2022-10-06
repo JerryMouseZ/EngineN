@@ -1,0 +1,250 @@
+host info : 192.168.1.40 9015
+192.168.1.40:9015: [2 <- 0] req_recv_fd[1] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[2] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[3] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[4] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[5] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[6] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[7] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[8] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[9] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[10] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[11] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[12] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[13] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[14] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[15] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[16] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[17] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[18] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[19] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[20] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[21] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[22] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[23] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[24] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[25] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[26] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[27] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[28] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[29] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[30] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[31] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[32] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[33] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[34] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[35] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[36] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[37] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[38] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[39] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[40] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[41] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[42] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[43] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[44] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[45] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[46] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[47] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[48] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[49] from 192.168.1.38
+192.168.1.40:9015: [2 <- 0] req_recv_fd[50] from 192.168.1.38
+192.168.1.40:9015: data_recv_fd[1] from 192.168.1.41
+192.168.1.40:9015: data_fd[0] = 24
+192.168.1.40:9015: data_recv_fd[2] from 192.168.1.41
+192.168.1.40:9015: data_fd[1] = 77
+192.168.1.40:9015: data_recv_fd[3] from 192.168.1.41
+192.168.1.40:9015: data_fd[2] = 79
+192.168.1.40:9015: data_recv_fd[4] from 192.168.1.41
+192.168.1.40:9015: data_fd[3] = 81
+192.168.1.40:9015: data_recv_fd[5] from 192.168.1.41
+192.168.1.40:9015: data_recv_fd[6] from 192.168.1.41
+192.168.1.40:9015: data_fd[4] = 83
+192.168.1.40:9015: data_recv_fd[7] from 192.168.1.41
+192.168.1.40:9015: data_fd[5] = 86
+192.168.1.40:9015: data_recv_fd[8] from 192.168.1.41
+192.168.1.40:9015: data_fd[6] = 88
+192.168.1.40:9015: data_recv_fd[9] from 192.168.1.41
+192.168.1.40:9015: data_fd[7] = 90
+192.168.1.40:9015: data_recv_fd[10] from 192.168.1.41
+192.168.1.40:9015: data_fd[8] = 92
+192.168.1.40:9015: data_recv_fd[11] from 192.168.1.41
+192.168.1.40:9015: data_fd[9] = 94
+192.168.1.40:9015: data_fd[10] = 96
+192.168.1.40:9015: data_fd[11] = 97
+192.168.1.40:9015: data_fd[12] = 98
+192.168.1.40:9015: data_fd[13] = 99
+192.168.1.40:9015: data_fd[14] = 100
+192.168.1.40:9015: data_fd[15] = 101
+192.168.1.40:9015: data_recv_fd[12] from 192.168.1.41
+192.168.1.40:9015: data_recv_fd[13] from 192.168.1.41
+192.168.1.40:9015: data_recv_fd[14] from 192.168.1.41
+192.168.1.40:9015: data_recv_fd[15] from 192.168.1.41
+192.168.1.40:9015: data_recv_fd[16] from 192.168.1.41
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[1] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[2] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[3] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[4] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[5] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[6] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[7] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[8] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[9] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[10] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[11] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[12] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[13] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[14] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[15] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[16] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[17] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[18] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[19] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[20] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[21] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[22] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[23] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[24] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[25] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[26] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[27] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[28] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[29] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[30] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[31] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[32] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[33] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[34] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[35] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[36] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[37] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[38] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[39] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[40] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[41] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[42] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[43] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[44] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[45] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[46] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[47] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[48] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[49] from 192.168.1.39
+192.168.1.40:9015: [2 <- 1] req_weak_recv_fd[50] from 192.168.1.39
+192.168.1.40:9015 start peer data sync
+192.168.1.40:9015 send_meta done
+192.168.1.40:9015 recv_meta done
+	[0] user: [625000, 625000)
+	[1] user: [625000, 625000)
+	[2] user: [625000, 625000)
+	[3] user: [625000, 625000)
+	[4] user: [625000, 625000)
+	[5] user: [625000, 625000)
+	[6] user: [625000, 625000)
+	[7] user: [625000, 625000)
+	[8] user: [625000, 625000)
+	[9] user: [625000, 625000)
+	[10] user: [625000, 625000)
+	[11] user: [625000, 625000)
+	[12] user: [625000, 625000)
+	[13] user: [625000, 625000)
+	[14] user: [625000, 625000)
+	[15] user: [625000, 625000)
+192.168.1.40:9015: peer data sync elapse time: 0.001420 s
+init time 19.066599 s
+select UID where ID = 0, res = 0
+select UID where ID = 24000000, res = 1
+select ID where UID = -3829018349614690541, res = 1
+select ID where salary = 4000000, res = 1
+add remote read request select UID where ID = 0
+select UID where ID = 26400000, res = 1
+select UID where ID = 3200000, res = 0
+select UID where ID = 25600000, res = 1
+select UID where ID = 5600000, res = 0
+select UID where ID = 8800000, res = 0
+select UID where ID = 28800000, res = 1
+select UID where ID = 8000000, res = 0
+select UID where ID = 37600000, res = 0
+select ID where UID = 2480615513540737663, res = 1
+select ID where salary = 8800000, res = 1
+select UID where ID = 6400000, res = 0
+add remote read request select UID where ID = 37600000
+add remote read request select ID where Salary = 8800000
+select UID where ID = 10400000, res = 0
+select UID where ID = 7200000, res = 0
+select UID where ID = 12800000, res = 0
+select UID where ID = 12000000, res = 0
+select UID where ID = 14400000, res = 0
+add remote read request select UID where ID = 7200000
+add remote read request select UID where ID = 6400000
+add remote read request select UID where ID = 14400000
+add remote read request select UID where ID = 12800000
+select UID where ID = 16800000, res = 0
+select UID where ID = 17600000, res = 0
+add remote read request select UID where ID = 16800000
+select UID where ID = 19200000, res = 0
+select UID where ID = 20000000, res = 1
+select UID where ID = 20800000, res = 1
+select ID where UID = -194696302139611935, res = 1
+select ID where salary = 0, res = 1
+select UID where ID = 15200000, res = 0
+select UID where ID = 22400000, res = 1
+select UID where ID = 23200000, res = 1
+select UID where ID = 21600000, res = 1
+select ID where UID = -3679611117910030183, res = 1
+select ID where salary = 3200000, res = 1
+select UID where ID = 1600000, res = 0
+select ID where UID = -5817459473239152673, res = 1
+select ID where salary = 1600000, res = 1
+add remote read request select ID where Salary = 3200000
+add remote read request select ID where Salary = 1600000
+add remote read request select ID where Salary = 4000000
+select ID where UID = 3705626102305402579, res = 1
+select UID where ID = 27200000, res = 1
+recv request select ID where Salary = 3200000
+select ID where salary = 3200000, res = 1
+send res ret = 1
+recv request select ID where Salary = 5600000
+select ID where UID = -1806027442277018659, res = 1
+select UID where ID = 9600000, res = 0
+select ID where salary = 5600000, res = 1
+add remote read request select UID where ID = 9600000
+add remote read request select ID where Salary = 5600000
+select UID where ID = 2400000, res = 0
+select UID where ID = 29600000, res = 1
+add remote read request select UID where ID = 8800000
+select ID where salary = 5600000, res = 1
+send res ret = 1
+select UID where ID = 32000000, res = 0
+recv request select ID where Salary = 6400000
+select ID where salary = 6400000, res = 1
+select UID where ID = 30400000, res = 0
+send res ret = 1
+select UID where ID = 33600000, res = 0
+recv request select UID where ID = 20000000
+select UID where ID = 35200000, res = 0
+select UID where ID = 36800000, res = 0
+add remote read request select UID where ID = 8000000
+select UID where ID = 38400000, res = 0
+add remote read request select UID where ID = 35200000
+select UID where ID = 39200000, res = 0
+select UID where ID = 11200000, res = 0
+recv request select UID where ID = 12000000
+select UID where ID = 13600000, res = 0
+add remote read request select UID where ID = 39200000
+add remote read request select UID where ID = 10400000
+add remote read request select UID where ID = 12000000
+select UID where ID = 18400000, res = 0
+add remote read request select UID where ID = 13600000
+add remote read request select UID where ID = 17600000
+Line 75  17600000
+add remote read request select UID where ID = 18400000
+test_all: /home/jz/EngineN/test/test_all.cpp:76: test_engine_read(void*, size_t)::<lambda()>: Assertion `ret' failed.
+add remote read request select UID where ID = 19200000
+add remote read request select ID where Salary = 0
+select UID where ID = 12000000, res = 0
+Line 102 20000000 2
+send res ret = 0
+recv request select UID where ID = 12800000
+test_all: /home/jz/EngineN/test/test_all.cpp:104: test_engine_read(void*, size_t)::<lambda()>: Assertion `ret == 4' failed.
+add remote read request select UID where ID = 15200000
