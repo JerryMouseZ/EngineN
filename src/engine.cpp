@@ -87,7 +87,6 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
     qs[i].reset_thread_states();
   }
 
-#pragma omp parallel for num_threads(16)
   for (int qid = 0; qid < MAX_NR_CONSUMER; qid++) {
     DEBUG_PRINTF(INIT, "start build local index[%d] range [0, %ld)\n", qid, qs[qid].head->load());
     build_index(qid, 0, qs[qid].head->load(), id_r, uid_r, sala_r, &datas[qid]);

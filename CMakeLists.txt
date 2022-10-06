@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.1)
 project("interface")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-find_package(OpenMP)
 
 add_compile_options(-g -O3)
 
@@ -22,6 +21,6 @@ SHARED
         src/remote.cpp
 )
 
-target_link_libraries(interface uring OpenMP::OpenMP_CXX)
+target_link_libraries(interface uring)
 
 message(${CMAKE_SOURCE_DIR})
