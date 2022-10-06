@@ -12,3 +12,4 @@ test_data_sync
 test_all
 liburing/liburing.a
 test_crash
+test_unaligned
