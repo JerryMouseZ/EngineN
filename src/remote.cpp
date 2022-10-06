@@ -304,8 +304,8 @@ void Engine::disconnect() {
     close(req_weak_recv_fds[i]);
   }
 
+  fprintf(stderr, "queue exit\n");
   for (int i = 0; i < 10; ++i) {
-    fprintf(stderr, "queue exit\n");
     io_uring_queue_exit(&req_recv_ring[i]);
     io_uring_queue_exit(&req_weak_recv_ring[i]);
   }
