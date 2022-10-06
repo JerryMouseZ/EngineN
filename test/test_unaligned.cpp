@@ -29,7 +29,8 @@ void test_engine_write(int index, size_t num, int iter)
   sprintf(aep_path, "/mnt/aep/node%d", index);
   sprintf(disk_path, "/mnt/disk/node%d", index);
   void *context = engine_init(nullptr, nullptr, 0, aep_path, disk_path);
-  long data_begin = iter * num, data_end = (iter + 1) * (num + 1);
+  long data_begin = iter * num, data_end = (iter + 1) * num;
+  fprintf(stderr, "from %ld to %ld\n", data_begin, data_end);
   for (long i = data_begin; i < data_end; ++i) {
     TestUser user;
     memset(&user, 0, sizeof(TestUser));
@@ -61,7 +62,6 @@ void test_engine_read(int index, size_t num)
   void *context = engine_init(nullptr, nullptr, 0, aep_path, disk_path);
   long data_begin = 0, data_end = num;
 
-  fprintf(stderr, "from %ld to %ld\n", data_begin, data_end);
   for (long i = data_begin; i < data_end; ++i) {
     TestUser user;
 
