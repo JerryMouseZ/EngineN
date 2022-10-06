@@ -36,9 +36,6 @@ public:
   size_t local_read(int32_t select_column,
               int32_t where_column, const void *column_key, size_t column_key_len, void *res);
 
-  size_t backup_read(int32_t select_column,
-                          int32_t where_column, const void *column_key, size_t column_key_len, void *res);
-  
   size_t read(int32_t select_column,
               int32_t where_column, const void *column_key, size_t column_key_len, void *res);
 
