@@ -211,9 +211,6 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
     if (recv_success) {
       if (recv_chunks[i] || recv_unaligned1[i] || recv_unaligned2[i]) {
         remote_state.get_next_user_index()[i] = remote[i].local_user_cnt;
-        DEBUG_PRINTF(INIT, "start build remote index[%d] range [0, %d)\n", 
-          i, remote[i].local_user_cnt);
-        build_index(i, 0, remote[i].local_user_cnt, remote_id_r, remote_uid_r, remote_sala_r, &remote_datas[i]);
       }
     }
   };
@@ -225,6 +222,9 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
 
   for (int i = 0; i < 16; ++i) {
     exchange_workers[i]->join();
+    DEBUG_PRINTF(INIT, "start build remote index[%d] range [0, %d)\n", 
+      i, remote[i].local_user_cnt);
+    build_index(i, 0, remote[i].local_user_cnt, remote_id_r, remote_uid_r, remote_sala_r, &remote_datas[i]);
     delete exchange_workers[i];
   }
   if (recv_success) {
