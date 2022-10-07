@@ -66,20 +66,23 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index, boo
     ret = io_uring_queue_init(QUEUE_DEPTH, &req_weak_recv_ring[i], 0);
     DEBUG_PRINTF(ret == 0, "queue init error %d:%s\n", errno, strerror(errno));
     assert(ret == 0);
+    ret = io_uring_queue_init(QUEUE_DEPTH, &req_backup_recv_ring[i], 0);
+    DEBUG_PRINTF(ret == 0, "queue init error %d:%s\n", errno, strerror(errno));
+    assert(ret == 0);
   }
   signal(SIGPIPE, SIG_IGN);
   listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
   sockaddr_in client_addr;
   socklen_t client_addr_len = sizeof(client_addr);
   char client_addr_str[60];
-  std::thread listen_thread(listener, listen_fd, &infos, data_recv_fd, get_backup_index(), host_index, req_recv_fds, req_weak_recv_fds, get_request_index(), get_another_request_index());
+  std::thread listen_thread(listener, listen_fd, &infos, req_backup_recv_fds, get_backup_index(), host_index, req_recv_fds, req_weak_recv_fds, get_request_index(), get_another_request_index());
 
   // 建立同步数据的连接
   for (int i = 0; i < 4; ++i)
     alive[i] = true;
   
-  for (int i = 0; i < 16; ++i) {
-    data_fd[i] = connect_to_server(infos[host_index].first.c_str(), infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
+  for (int i = 0; i < 50; ++i) {
+    req_backup_send_fds[i] = connect_to_server(infos[host_index].first.c_str(), infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
     DEBUG_PRINTF(LOG, "%s: data_fd[%d] = %d\n", this_host_info, i, data_fd[i]);
   }
 
@@ -93,25 +96,41 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index, boo
 
   listen_thread.join();
   // move to after connect
-  do_peer_data_sync();
+  /* do_peer_data_sync(); */
   start_handlers(); // 先start handlers
 }
 
 
-size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const void *column_key, size_t column_key_len, void *res) {
+size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const void *column_key, size_t column_key_len, void *res, int seq) {
   if (unlikely(!have_reader_id())) {
     init_reader_id();
   }
   int fd = -1;
   int current_req_node = -1;
-  if (alive[get_request_index()]) {
-    fd = req_send_fds[reader_id];
-    current_req_node = get_request_index();
-  } else if (alive[get_another_request_index()]) {
-    fd = req_weak_send_fds[reader_id];
-    current_req_node = get_another_request_index();
+  if (seq == 0) {
+    if (alive[get_request_index()]) {
+      fd = req_send_fds[reader_id];
+      current_req_node = get_request_index();
+    } else {
+      return 0;
+    }
+  }
+  else if (seq == 1) {
+    if (alive[get_another_request_index()]) {
+      fd = req_weak_send_fds[reader_id];
+      current_req_node = get_another_request_index();
+    } else {
+      return 0;
+    }
+  }
+  else if (seq == 2){
+    if (alive[get_backup_index()]) {
+      fd = req_weak_send_fds[reader_id];
+      current_req_node = get_backup_index();
+    } else {
+      return 0;
+    }
   } else {
-    // 两个节点都失效了，返回0
     return 0;
   }
 
@@ -124,7 +143,7 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
   if (len < 0) {
     fprintf(stderr, "send error %d to node %d, retry request\n", len, current_req_node);
     alive[current_req_node] = false;
-    return remote_read(select_column, where_column, column_key, column_key_len, res);
+    return remote_read(select_column, where_column, column_key, column_key_len, res, seq + 1);
   }
   assert(len == sizeof(data_request));
 
@@ -138,19 +157,23 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
   if (len <= 0) {
     fprintf(stderr, "recv header error %d from node %d, retry request\n", len, current_req_node);
     alive[current_req_node] = false;
-    return remote_read(select_column, where_column, column_key, column_key_len, res);
+    return remote_read(select_column, where_column, column_key, column_key_len, res, seq + 1);
   }
   assert(len == sizeof(header));
 
-  if (header.res_len == 0)
-    return 0;
+  if (header.res_len == 0) {
+    return remote_read(select_column, where_column, column_key, column_key_len, res, seq + 1);
+  }
   len = recv_all(fd, res, header.res_len, MSG_WAITALL);
   if (len <= 0) {
     fprintf(stderr, "recv body error %d from node %d, retry request\n", len, current_req_node);
     alive[current_req_node] = false;
-    return remote_read(select_column, where_column, column_key, column_key_len, res);
+    return remote_read(select_column, where_column, column_key, column_key_len, res, seq + 1);
   }
   assert(len == header.res_len);
+  if (where_column == Salary) {
+    return header.ret + remote_read(select_column, where_column, column_key, column_key_len, (char *)res + header.res_len, seq + 1);
+  }
   return header.ret;
 }
 
@@ -271,6 +294,7 @@ void Engine::start_handlers() {
   for (int i = 0; i < 10; ++i) {
     req_handler[i] = new std::thread(req_handler_fn, get_request_index(), req_recv_fds + i * 5, &req_recv_ring[i]);
     req_weak_handler[i] = new std::thread(req_handler_fn, get_another_request_index(), req_weak_recv_fds + i * 5, &req_weak_recv_ring[i]);
+    req_backup_handler[i] = new std::thread(req_handler_fn, get_backup_index(), req_backup_recv_fds + i * 5, &req_backup_recv_ring[i]);
   }
 }
 
@@ -290,7 +314,7 @@ void Engine::disconnect() {
     shutdown(req_weak_send_fds[i], SHUT_RDWR);
     shutdown(req_weak_recv_fds[i], SHUT_RDWR);
   }
-  
+
   for (int i = 0; i < 16; ++i) {
     close(data_fd[i]);
     close(data_recv_fd[i]);
@@ -308,6 +332,7 @@ void Engine::disconnect() {
   for (int i = 0; i < 10; ++i) {
     io_uring_queue_exit(&req_recv_ring[i]);
     io_uring_queue_exit(&req_weak_recv_ring[i]);
+    io_uring_queue_exit(&req_backup_recv_ring[i]);
   }
 }
 
