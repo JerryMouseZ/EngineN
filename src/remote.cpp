@@ -125,7 +125,7 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
   }
   else if (seq == 2){
     if (alive[get_backup_index()]) {
-      fd = req_weak_send_fds[reader_id];
+      fd = req_backup_send_fds[reader_id];
       current_req_node = get_backup_index();
     } else {
       return 0;
