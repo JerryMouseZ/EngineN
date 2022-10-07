@@ -133,9 +133,9 @@ int main(int argc, char **argv)
       base++;
     }
   }
-  char aep_path[16], disk_path[16];
-  sprintf(aep_path, "/mnt/aep/node%d", index);
-  sprintf(disk_path, "/mnt/disk/node%d", index);
+  char aep_path[30], disk_path[30];
+  sprintf(aep_path, "/mnt/aep/node%d/", index);
+  sprintf(disk_path, "/mnt/disk/node%d/", index);
   std::string host_info = std::string(ips[index]) + argv[2];
   void *context = engine_init(host_info.c_str() , const_peer_info, 3, aep_path, disk_path);
   Engine *engine = (Engine *)context;

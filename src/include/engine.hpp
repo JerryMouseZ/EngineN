@@ -58,7 +58,7 @@ public:
 private:
   static std::string column_str(int column);
 
-  void connect(std::vector<info_type> &infos, int num, int host_index, bool is_new_create);
+  void connect(std::vector<info_type> &infos, int num, bool is_new_create);
 
   void start_handlers();
 
@@ -102,8 +102,10 @@ private:
 
   io_uring req_recv_ring[10];
   io_uring req_weak_recv_ring[10];
+  io_uring req_recv_ringall[4 * 10];
 
   int host_index;
+  int neighbor_index[3];
   int listen_fd;
   volatile bool alive[4];
   /* int send_fds[4]; */
@@ -114,6 +116,7 @@ private:
   /* std::thread *rep_recvier; */
   std::thread *req_handler[10];
   std::thread *req_weak_handler[10];
+  std::thread *req_handlerall[4 * 10];
   /* volatile bool exited; */
   RemoteState remote_state; // 用来存当前有多少remote的user吧
 
@@ -121,4 +124,6 @@ private:
   int req_weak_send_fds[50];
   int req_recv_fds[50];
   int req_weak_recv_fds[50];
+  int **send_fdall;
+  int **recv_fdall;
 };
