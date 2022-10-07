@@ -55,7 +55,7 @@ void DataMap::put(int64_t value) {
   if (value > INT32_MAX || value < INT32_MIN)
     return;
   uint32_t val = value;
-  int index = val << 3;
+  int index = val >> 3;
   uint8_t iner_bit = 1 << (index & 7);
   uint8_t old = value_map[index];
   uint8_t update = old | iner_bit;
@@ -69,7 +69,7 @@ uint8_t DataMap::get(int64_t value) {
   if (value > INT32_MAX || value < INT32_MIN)
     return 1;
   uint32_t val = value;
-  int index = val << 3;
+  int index = val >> 3;
   uint8_t iner_bit = 1 << (index & 7);
   uint8_t old = value_map[index];
   return old & iner_bit;
