@@ -79,16 +79,6 @@ private:
   UserArray *pmem_users = nullptr;
 };
 
-struct query{
-  pthread_mutex_t mutex;
-  pthread_cond_t cond;
-  void *res;
-  uint64_t unique_id; // 这个是给对端确认的，对面原样发回来就知道
-  uint8_t select_column;
-  uint8_t where_column;
-  void *column_key;
-};
-
 
 class RemoteState {
 public:
@@ -100,41 +90,52 @@ private:
   volatile uint32_t *next_user_index;
 };
 
-struct TransControl {
-  char *src;
-  uint64_t rest;
-  const char *name = nullptr;
+/* struct TransControl { */
+/*   char *src; */
+/*   uint64_t rest; */
+/*   const char *name = nullptr; */
 
-  bool update_check_finished(uint64_t cnt) {
-    if (name) {
-      DEBUG_PRINTF(VLOG, "%s: %s cnt/rest = %ld/%ld\n", this_host_info, name, cnt, rest);
-    }
-    if (rest == cnt) {
-      return true;
-    }
-    rest -= cnt;
-    src += cnt;
-    return false;
-  }
-};
+/*   bool update_check_finished(uint64_t cnt) { */
+/*     if (name) { */
+/*       DEBUG_PRINTF(VLOG, "%s: %s cnt/rest = %ld/%ld\n", this_host_info, name, cnt, rest); */
+/*     } */
+/*     if (rest == cnt) { */
+/*       return true; */
+/*     } */
+/*     rest -= cnt; */
+/*     src += cnt; */
+/*     return false; */
+/*   } */
+/* }; */
 
-struct ArrayTransControl {
-  TransControl ctrls[MAX_NR_CONSUMER];
-  const char *name = nullptr;
-  int cur;
+/* struct ArrayTransControl { */
+/*   TransControl ctrls[MAX_NR_CONSUMER]; */
+/*   const char *name = nullptr; */
+/*   int cur; */
 
-  bool update_check_finished(uint64_t cnt) {
-    DEBUG_PRINTF(VLOG, "%s: %s [%d] cnt/rest = %ld/%ld\n", this_host_info, name, cur, cnt, ctrls[cur].rest);
-    bool finished = ctrls[cur].update_check_finished(cnt);
-    if (finished) {
-      while (++cur < MAX_NR_CONSUMER) {
-        if (ctrls[cur].rest > 0) {
-          break;
-        }
-      }
-      return cur == MAX_NR_CONSUMER;
-    } else {
-      return false;
-    }
-  }
-};
+/*   bool update_check_finished(uint64_t cnt) { */
+/*     DEBUG_PRINTF(VLOG, "%s: %s [%d] cnt/rest = %ld/%ld\n", this_host_info, name, cur, cnt, ctrls[cur].rest); */
+/*     bool finished = ctrls[cur].update_check_finished(cnt); */
+/*     if (finished) { */
+/*       while (++cur < MAX_NR_CONSUMER) { */
+/*         if (ctrls[cur].rest > 0) { */
+/*           break; */
+/*         } */
+/*       } */
+/*       return cur == MAX_NR_CONSUMER; */
+/*     } else { */
+/*       return false; */
+/*     } */
+/*   } */
+/* }; */
+/* struct query{ */
+/*   pthread_mutex_t mutex; */
+/*   pthread_cond_t cond; */
+/*   void *res; */
+/*   uint64_t unique_id; // 这个是给对端确认的，对面原样发回来就知道 */
+/*   uint8_t select_column; */
+/*   uint8_t where_column; */
+/*   void *column_key; */
+/* }; */
+
+
