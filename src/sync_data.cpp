@@ -170,11 +170,6 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
         if (send_chunks[i]) {
           UserArray *users = datas[i].get_pmem_users();
           src = &users[start_chunk];
-          /* for (int j = start_chunk; j < start_chunk + send_chunks[i]; ++j) { */
-          /*   for (int k = 0; k < 15; ++k) { */
-          /*     fprintf(stderr, "sending id = %ld\n", users[j].data[k].id); */
-          /*   } */
-          /* } */
           len = 4096 * send_chunks[i];
           ret = send_all(data_fd[i], src, len, 0);
           if (ret != len) {
@@ -187,9 +182,6 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
         if (send_unaligned2[i]) {
           UserArray *users = datas[i].get_pmem_users();
           src = &users[start_chunk];
-          /* for (int j = 0; j < send_unaligned2[i]; ++j) { */
-          /*   fprintf(stderr, "sending id = %ld\n", users[start_chunk].data[j].id); */
-          /* } */
           len = send_unaligned2[i] * sizeof(User);
           ret = send_all(data_fd[i], src, len, 0);
           if (ret != len) {
@@ -216,25 +208,24 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
   };
 
 
-  std::thread *exchange_workers[16];
-
+  /* std::thread *exchange_workers[16]; */
+#pragma omp parallel for num_threads(16)
   for (int i = 0; i < 16; ++i) {
-    exchange_workers[i] = new std::thread(exchange_fn, i);
+    exchange_fn(i);
   }
 
+  if (!recv_success) {
+    return -1;
+  }
+
+#pragma omp parallel for num_threads(16)
   for (int i = 0; i < 16; ++i) {
-    exchange_workers[i]->join();
     DEBUG_PRINTF(INIT, "start build remote index[%d] range [0, %d)\n", 
-      i, remote[i].local_user_cnt);
+                 i, remote[i].local_user_cnt);
     build_index(i, 0, remote[i].local_user_cnt, remote_id_r, remote_uid_r, remote_sala_r, &remote_datas[i]);
-    delete exchange_workers[i];
   }
 
-  if (recv_success) {
-    return 0;
-  }
-
-  return -1;
+  return 0;
 }
 
 // 其实就是要发16个queue而已，我们可以开16个线程来做这件事

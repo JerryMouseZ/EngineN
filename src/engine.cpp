@@ -71,25 +71,24 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
   uid_r = new Index(datas, qs);
   sala_r = new Index(datas, qs);
 
-  bool q_is_new_create;
+  bool q_is_new_create[MAX_NR_CONSUMER];
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     DEBUG_PRINTF(INIT, "start open queue[%d]\n", i);
-    if (qs[i].open(disk_path + "queue" + std::to_string(i), &q_is_new_create, datas[i].get_pmem_users(), i)) {
+    if (qs[i].open(disk_path + "queue" + std::to_string(i), &q_is_new_create[i], datas[i].get_pmem_users(), i)) {
       return false;
     }
+  }
 
-    if (!q_is_new_create && qs[i].need_rollback()) {
+#pragma omp parallel for num_threads(16)
+  for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+    if (!q_is_new_create[i] && qs[i].need_rollback()) {
       fprintf(stderr, "rollback commit : %ld -> %ld\n", *qs[i].tail, qs[i].head->load());
       qs[i].compact_head();
       qs[i].tail_commit();
     }
-
     qs[i].reset_thread_states();
-  }
-
-  for (int qid = 0; qid < MAX_NR_CONSUMER; qid++) {
-    DEBUG_PRINTF(INIT, "start build local index[%d] range [0, %ld)\n", qid, qs[qid].head->load());
-    build_index(qid, 0, qs[qid].head->load(), id_r, uid_r, sala_r, &datas[qid]);
+    DEBUG_PRINTF(INIT, "start build local index[%d] range [0, %ld)\n", i, qs[i].head->load());
+    build_index(i, 0, qs[i].head->load(), id_r, uid_r, sala_r, &datas[i]);
   }
 
   consumers = new std::thread[MAX_NR_CONSUMER];
@@ -101,7 +100,7 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
                                ;
                                });
   }
-  
+
   // for remote
   bool remote_state_is_new_create;
   DEBUG_PRINTF(INIT, "start open remote_state\n");
@@ -136,7 +135,7 @@ void Engine::write(const User *user) {
   }
 
   DEBUG_PRINTF(VLOG, "write %ld %ld %ld %ld\n", user->id, std::hash<std::string>()(std::string(user->name, 128)), std::hash<std::string>()(std::string(user->user_id, 128)), user->salary);
-  
+
   uint32_t qid = user->id % MAX_NR_CONSUMER;
   uint32_t index = qs[qid].push(user);
   size_t encoded_index = (qid << 28) | index;
