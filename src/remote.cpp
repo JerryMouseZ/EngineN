@@ -44,20 +44,22 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
 
   // 按ip地址排序
   std::sort(infos.begin(), infos.end(), [](const info_type &a, const info_type &b){ return a.first < b.first; });
-  int my_index = -1;
+  int neighbor_cnt = 0;
   for (int i = 0; i < peer_host_info_num + 1; ++i) {
     if (infos[i].first == host_ip) {
-      my_index = i;
-      break;
+      host_index = i;
+    } else {
+      neighbor_index[neighbor_cnt++] = i;
+      DEBUG_PRINTF(INIT, "%s: neighbor_index[%d] = %d\n", this_host_info, neighbor_cnt - 1, neighbor_index[neighbor_cnt - 1]);
     }
   }
 
-  connect(infos, peer_host_info_num + 1, my_index, is_new_create);
+  connect(infos, peer_host_info_num + 1, is_new_create);
 }
 
+#ifndef BROADCAST
 
-void Engine::connect(std::vector<info_type> &infos, int num, int host_index, bool is_new_create) {
-  this->host_index = host_index;
+void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create) {
   int ret;
   for (int i = 0; i < 10; ++i) {
     ret = io_uring_queue_init(QUEUE_DEPTH, &req_recv_ring[i], 0);
@@ -100,6 +102,48 @@ void Engine::connect(std::vector<info_type> &infos, int num, int host_index, boo
   start_handlers(); // 先start handlers
 }
 
+#else
+
+void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create) {
+  int ret;
+  for (int i = 0; i < 4 * 10; ++i) {
+    ret = io_uring_queue_init(QUEUE_DEPTH, &req_recv_ringall[i], 0);
+    DEBUG_PRINTF(ret == 0, "queue init error %d:%s\n", errno, strerror(errno));
+    assert(ret == 0);
+  }
+  signal(SIGPIPE, SIG_IGN);
+  listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
+  sockaddr_in client_addr;
+  socklen_t client_addr_len = sizeof(client_addr);
+  char client_addr_str[60];
+
+  // 建立同步数据的连接
+  for (int i = 0; i < 4; ++i)
+    alive[i] = true;
+
+  std::thread listen_thread(listener, listen_fd, &infos, recv_fdall);
+
+  auto this_host_ip = infos[host_index].first.c_str();
+
+  // 每个neighbor都发50个
+  for (int nb_i = 0; nb_i < 3; nb_i++) {
+    int neighbor_idx = neighbor_index[nb_i];
+    for (int i = 0; i < MAX_NR_PRODUCER; i++) {
+      send_fdall[neighbor_idx][i] = 
+       connect_to_server(this_host_ip, infos[neighbor_idx].first.c_str(), infos[neighbor_idx].second);
+      DEBUG_PRINTF(INIT, "%s: neighbor index = %d senf_fd[%d] = %d to %s\n",
+        this_host_info, neighbor_idx, i, send_fdall[neighbor_idx][i], infos[neighbor_idx].first.c_str());
+    }
+  }
+
+  listen_thread.join();
+
+  start_handlers(); // 先start handlers
+}
+
+#endif
+
+#ifndef BROADCAST
 
 size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const void *column_key, size_t column_key_len, void *res, int seq) {
   if (unlikely(!have_reader_id())) {
@@ -177,6 +221,92 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
   return header.ret;
 }
 
+#else
+
+size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const void *column_key, size_t column_key_len, void *res) {
+  if (unlikely(!have_reader_id())) {
+    init_reader_id();
+  }
+
+  bool multiple = where_column == Salary;
+  bool single_already_recived = false;
+  int ret = 0;
+
+  data_request data;
+  data.fifo_id = 1;
+  data.select_column = select_column;
+  data.where_column = where_column;
+  memcpy(data.key, column_key, column_key_len);
+
+  int send_success_cnt = 0;
+  int len, neighbor_idx;
+  for (int nb_i = 0; nb_i < 3; nb_i++) {
+    neighbor_idx = neighbor_index[nb_i];
+
+    if (!alive[neighbor_idx]) {
+      continue;
+    }
+
+    len = send_all(send_fdall[neighbor_idx][reader_id], &data, sizeof(data), MSG_NOSIGNAL);
+    if (len < 0) {
+      DEBUG_PRINTF(0, "%s: send error %d to node %d, mark as inalive\n", this_host_info, len, neighbor_idx);
+      alive[neighbor_idx] = false;
+      continue;
+    }
+    assert(len == sizeof(data_request));
+
+    send_success_cnt++;
+  }
+
+  if (send_success_cnt == 0) {
+    return 0;
+  }
+
+  response_header header;
+  for (int nb_i = 0; nb_i < 3; nb_i++) {
+    neighbor_idx = neighbor_index[nb_i];
+
+    if (!alive[neighbor_idx]) {
+      continue;
+    }
+
+    len = recv_all(send_fdall[neighbor_idx][reader_id], &header, sizeof(header), MSG_WAITALL);
+    if (len <= 0) {
+      DEBUG_PRINTF(0, "%s: recv header error %d to node %d, mark as inalive\n", this_host_info, len, neighbor_idx);
+      alive[neighbor_idx] = false;
+      continue;
+    }
+    assert(len == sizeof(header));
+
+    if (header.res_len == 0) {
+      continue;
+    }
+
+    if (single_already_recived) {
+      DEBUG_PRINTF(0, "%s: wierd, single result read already gets result, previous result will be overwritten\n", this_host_info);
+    }
+
+    len = recv_all(send_fdall[neighbor_idx][reader_id], res, header.res_len, MSG_WAITALL);
+    if (len <= 0) {
+      alive[neighbor_idx] = false;
+      continue;
+    }
+    assert(len == header.res_len);
+
+    // 请求成功
+    if (multiple) {
+      ret += header.ret;      
+      res = ((char *)res) + len;
+    } else {
+      ret = header.ret;      
+      single_already_recived = true;
+    }
+  }
+
+  return ret;
+}
+
+#endif
 
 struct recv_cqe_data{
   int type;
@@ -204,6 +334,8 @@ int get_column_len(int column) {
   return -1;
 }
 
+#ifndef BROADCAST
+
 void Engine::ask_peer_quit() {
   data_request req;
   req.select_column = 22;
@@ -214,6 +346,22 @@ void Engine::ask_peer_quit() {
     send_all(req_backup_send_fds[i * 5], &req, sizeof(req), MSG_NOSIGNAL);
   }
 }
+
+#else
+
+void Engine::ask_peer_quit() {
+  data_request req;
+  req.select_column = 22;
+  req.where_column = 22;
+  for (int nb_i = 0; nb_i < 3; nb_i++) {
+    int neighbor_idx = neighbor_index[nb_i];
+    for (int i = 0; i < 10; ++i) {
+      send_all(send_fdall[neighbor_idx][i * 5], &req, sizeof(req), MSG_NOSIGNAL);
+    }
+  }
+}
+
+#endif
 
 void Engine::request_handler(int node, int *fds, io_uring &ring){
   // 用一个ring来存request，然后可以异步处理，是一个SPMC的模型，那就不能用之前的队列了
@@ -284,6 +432,7 @@ void Engine::request_handler(int node, int *fds, io_uring &ring){
   } // end while
 }
 
+#ifndef BROADCAST
 
 void Engine::start_handlers() {
   auto req_handler_fn = [&](int index, int *fds, io_uring *ring) {
@@ -296,6 +445,26 @@ void Engine::start_handlers() {
     req_backup_handler[i] = new std::thread(req_handler_fn, get_backup_index(), req_backup_recv_fds + i * 5, &req_backup_recv_ring[i]);
   }
 }
+
+#else
+
+void Engine::start_handlers() {
+  auto req_handler_fn = [&](int index, int *fds, io_uring *ring) {
+    request_handler(index, fds, *ring);
+  };
+
+  for (int nb_i = 0; nb_i < 3; ++nb_i) {
+    int neighbor_idx = neighbor_index[nb_i];
+    for (int i = 0; i < 10; i++) {
+      int hdi = neighbor_idx * 10 + i;
+      req_handlerall[hdi] = new std::thread(req_handler_fn, neighbor_idx, recv_fdall[neighbor_idx] + i * 5, &req_recv_ringall[hdi]);
+    }
+  }
+}
+
+#endif
+
+#ifndef BROADCAST
 
 void Engine::disconnect() {
   // wake up request sender
@@ -339,6 +508,46 @@ void Engine::disconnect() {
     io_uring_queue_exit(&req_backup_recv_ring[i]);
   }
 }
+
+#else
+
+void Engine::disconnect() {
+  // wake up request sender
+  ask_peer_quit();
+  DEBUG_PRINTF(0, "socket close, waiting handlers\n");
+
+  for (int nb_i = 0; nb_i < 3 ; ++nb_i) {
+    int neighbor_idx = neighbor_index[nb_i];
+    for (int i = 0; i < 10; i++) {
+      req_handlerall[neighbor_idx * 10 + i]->join();
+    }
+  }
+
+  for (int nb_i = 0; nb_i < 3 ; ++nb_i) {
+    int neighbor_idx = neighbor_index[nb_i];
+    for (int i = 0; i < MAX_NR_PRODUCER; i++) {
+      shutdown(send_fdall[neighbor_idx][i], SHUT_RDWR);
+      shutdown(recv_fdall[neighbor_idx][i], SHUT_RDWR);
+    }
+  }
+  
+  close(listen_fd);
+
+  for (int nb_i = 0; nb_i < 3 ; ++nb_i) {
+    int neighbor_idx = neighbor_index[nb_i];
+    for (int i = 0; i < MAX_NR_PRODUCER; i++) {
+      close(send_fdall[neighbor_idx][i]);
+      close(recv_fdall[neighbor_idx][i]);
+    }
+  }
+ 
+  fprintf(stderr, "queue exit\n");
+  for (int i = 0; i < 4 * 10; ++i) {
+    io_uring_queue_exit(&req_recv_ringall[i]);
+  }
+}
+
+#endif
 
 int Engine::get_backup_index() {
   switch(host_index) {
