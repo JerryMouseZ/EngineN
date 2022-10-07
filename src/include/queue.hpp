@@ -5,6 +5,7 @@
 #include <sched.h>
 #include <unistd.h>
 #include <libpmem.h>
+#include <assert.h>
 #include <pthread.h>
 #include <string>
 #include <set>
@@ -137,7 +138,7 @@ public:
     if (likely(waiting_cnt == CMT_BATCH_CNT)) {
       do_commit(&data[ca_pos], caid);    
     } else {
-      pmem_memcpy_persist(&pmem_data[ca_pos].data[inner_ca_pos], &data[ca_pos].data[inner_ca_pos], waiting_cnt * sizeof(T));
+      pmem_memcpy_persist(&pmem_data[caid].data[inner_ca_pos], &data[ca_pos].data[inner_ca_pos], waiting_cnt * sizeof(T));
       /* do_unaligned_rest_commit(&data[ca_pos].data[inner_ca_pos], caid, DataArray::N_DATA - waiting_cnt, waiting_cnt); */
     }
 
@@ -147,6 +148,28 @@ public:
 
     return true;
   }
+
+  bool pop_nonexit() {
+    uint64_t pos = *tail;
+    uint64_t caid = pos / CMT_BATCH_CNT;
+    uint64_t inner_ca_pos = pos % CMT_BATCH_CNT;
+    uint64_t ca_pos = caid & QMASK;
+
+    uint64_t waiting_cnt = CMT_BATCH_CNT;
+    if (unlikely(pos % CMT_BATCH_CNT != 0)) {
+      waiting_cnt -= (pos % CMT_BATCH_CNT);
+    }
+
+    if (likely(waiting_cnt == CMT_BATCH_CNT)) {
+      do_commit(&data[ca_pos], caid);    
+    } else {
+      pmem_memcpy_persist(&pmem_data[caid].data[inner_ca_pos], &data[ca_pos].data[inner_ca_pos], waiting_cnt * sizeof(T));
+    }
+    std::atomic_thread_fence(std::memory_order_release);
+    *tail = pos + waiting_cnt;
+    return true;
+  }
+
 
   void do_commit(const DataArray *src, uint64_t ca_index) {
     pmem_memcpy_persist(&pmem_data[ca_index], src, CMT_ALIGN);
@@ -169,73 +192,37 @@ public:
 
   void tail_commit() {
     DEBUG_PRINTF(*last_head == head->load(), "Queue %u last_head(%lu) != head(%lu) before tail commit\n", id, *last_head, head->load());
-
     uint64_t tail_value = *tail;
     uint64_t head_value = head->load(std::memory_order_relaxed);
-    uint64_t start_caid, end_caid, end_ca_cnt, start_ca_pos, end_ca_pos;
-
-    DEBUG_PRINTF(QDEBUG, "Queue %u tail_commit: Start at tail = %lu, head = %lu\n", id, tail_value, head_value);
-
-    if (tail_value == head_value) {
-      DEBUG_PRINTF(QINFO, "Queue %u tail_commit: No thing to commit, tail > head: tail = %lu, head: %lu\n", id, tail_value, head_value);
+    if (head_value == tail_value)
       return;
-    } else if (tail_value > head_value) {
-      DEBUG_PRINTF(QINFO, "Queue %u tail_commit: Wierd, last_tail > head: tail = %lu, head: %lu\n", id, tail_value, head_value);
+    int can_pop_cnt = (head_value - tail_value) / CMT_BATCH_CNT;
+    // 先把不对齐的部分给pop掉
+    if (can_pop_cnt) {
+      pop_nonexit();
+    }
+    
+    // 更新一下tail，can_pop_cnt有可能会增加，因为第一次pop的数量不是一个batch，然后pop对齐的部分
+    tail_value = *tail;
+    can_pop_cnt = (head_value - tail_value) / CMT_BATCH_CNT;
+    while (can_pop_cnt) {
+      pop_nonexit();
+      --can_pop_cnt;
+    }
+    
+    // tail还是有可能不对齐，因为一次都没有pop，但是现在可以保证head和tail在同一个chunk了
+    tail_value = *tail;
+    uint64_t caid = tail_value / CMT_BATCH_CNT;
+    uint64_t ca_pos = caid & QMASK;
+    uint64_t inner_ca_pos = tail_value % CMT_BATCH_CNT;
+    int count = (head_value - tail_value);
+    if (count == 0) {
+      assert(*tail == head_value);
       return;
     }
-
-    if (tail_value % CMT_BATCH_CNT != 0) {
-      DEBUG_PRINTF(QINFO, "Queue %u tail_commit: tail not aligned to CMT_CNT: tail = %lu\n", id, tail_value);
-      uint64_t tail_mod = tail_value % CMT_BATCH_CNT;
-      uint64_t tail_unaligned_rest = CMT_BATCH_CNT - tail_mod;
-      bool end_here = (head_value - tail_value <= tail_unaligned_rest);
-      uint64_t unaligned_cmt_cnt = end_here
-        ? head_value - tail_value
-        : tail_unaligned_rest;
-
-      uint64_t caid = tail_value / CMT_BATCH_CNT;
-
-      do_unaligned_rest_commit(&data[caid & QMASK], caid, tail_mod, unaligned_cmt_cnt);
-
-      if (end_here) {
-        goto end_tail_commit;
-      } else {
-        tail_value += unaligned_cmt_cnt;
-      }
-    }
-
-    start_caid = tail_value / CMT_BATCH_CNT;
-    end_caid = head_value / CMT_BATCH_CNT;
-    end_ca_cnt = head_value % CMT_BATCH_CNT;
-
-    start_ca_pos = start_caid & QMASK;
-    end_ca_pos = end_caid & QMASK;
-
-    DEBUG_PRINTF(QINFO, "Queue %u tail_commit: Start qpos: %lu, End qpos: %lu, nonfull_cnt = %lu, QSIZE = %lu\n", id, start_ca_pos, end_ca_pos, end_ca_cnt, QSIZE);
-
-    if (start_ca_pos <= end_ca_pos) {
-      DEBUG_PRINTF(QDEBUG, "No wind\n");
-      for (auto i = 0; i < end_ca_pos - start_ca_pos; i++) {
-        do_commit(&data[start_ca_pos + i], start_caid + i);
-      }
-    } else {
-      DEBUG_PRINTF(QDEBUG, "Wind\n");
-      for (auto i = 0; i < QSIZE - start_ca_pos; i++) {
-        do_commit(&data[start_ca_pos + i], start_caid + i);
-      }
-      for (auto i = 0; i < end_ca_pos; i++) {
-        do_commit(&data[i], start_caid + i + QSIZE - start_ca_pos);
-      }
-    }
-
-    if (end_ca_cnt != 0) {
-      do_unaligned_commit(&data[end_ca_pos], end_caid, end_ca_cnt);
-    }
-
-end_tail_commit:
+    pmem_memcpy_persist(&pmem_data[caid].data[inner_ca_pos], &data[ca_pos].data[inner_ca_pos], count * sizeof(T));
     std::atomic_thread_fence(std::memory_order_release);
     *tail = head_value;
-
     DEBUG_PRINTF(QDEBUG, "Queue %u: End tail commit\n", id);
   }
 
@@ -259,8 +246,8 @@ end_tail_commit:
     // 双指针，左边指当前的数据，右边指向可以填充的数据，因为第一个数据肯定是要被填充了，所以不用去找第一个left
     int hole_cnt = hole_index.size();
     int left = last_value, right = last_value;
-    for (; left <= head_value && hole_cnt > 0; ++left) {
-      // 找到第一个不是洞的数据
+    for (; left < head_value && hole_cnt > 0; ++left) { // 小于就行了，因为等于的时候也没有数据可以填充了
+                                                        // 找到第一个不是洞的数据
       while (right <= head_value && hole_index.find(right) != hole_index.end()) {
         ++right;
       }
