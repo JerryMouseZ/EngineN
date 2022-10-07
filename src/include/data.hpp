@@ -90,6 +90,20 @@ private:
   volatile uint32_t *next_user_index;
 };
 
+// 太难啦，弄个简单点的
+// 0-11 : 0-11
+// 12-35 : 12:23
+// 36-63 : 24:30
+// file_size: 32 << 3 = 29
+const size_t map_size = 1 << 29;
+class DataMap {
+public:
+  DataMap();
+  void put(int64_t value);
+  uint8_t get(int64_t value);
+private:
+  uint8_t *value_map;
+};
 /* struct TransControl { */
 /*   char *src; */
 /*   uint64_t rest; */

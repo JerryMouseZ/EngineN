@@ -1,4 +1,6 @@
 #include "include/data.hpp"
+#include <cstddef>
+#include <cstdint>
 #include <cstdio>
 
 bool UserString::operator==(const UserString &other) {
@@ -41,4 +43,34 @@ const User* Data::data_read(uint32_t index) {
 
 UserArray* Data::get_pmem_users() {
   return pmem_users;
+}
+
+
+DataMap::DataMap() {
+    value_map = (uint8_t *)map_anonymouse(map_size);
+}
+
+
+void DataMap::put(int64_t value) {
+  if (value > INT32_MAX || value < INT32_MIN)
+    return;
+  uint32_t val = value;
+  int index = val << 3;
+  uint8_t iner_bit = 1 << (index & 7);
+  uint8_t old = value_map[index];
+  uint8_t update = old | iner_bit;
+  while (!__sync_bool_compare_and_swap(&value_map[index], old, update)) {
+    old = value_map[index];
+    update = old | iner_bit;
+  }
+}
+
+uint8_t DataMap::get(int64_t value) {
+  if (value > INT32_MAX || value < INT32_MIN)
+    return 1;
+  uint32_t val = value;
+  int index = val << 3;
+  uint8_t iner_bit = 1 << (index & 7);
+  uint8_t old = value_map[index];
+  return old & iner_bit;
 }

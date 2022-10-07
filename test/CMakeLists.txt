@@ -18,6 +18,10 @@ include_directories(../liburing/src/include)
 add_executable(test_local test_local.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
 target_link_libraries(test_local pmem pthread uring OpenMP::OpenMP_CXX)
 
+add_executable(test_single test_single.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
+target_link_libraries(test_single pmem pthread uring OpenMP::OpenMP_CXX)
+
+
 add_executable(test_unaligned test_unaligned.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
 target_link_libraries(test_unaligned pmem pthread uring OpenMP::OpenMP_CXX)
 

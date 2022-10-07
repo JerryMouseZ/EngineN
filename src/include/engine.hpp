@@ -121,4 +121,8 @@ private:
   int req_weak_send_fds[50];
   int req_recv_fds[50];
   int req_weak_recv_fds[50];
+
+  // bitmap
+  DataMap *id_bmap;
+  DataMap *sala_bmap;
 };

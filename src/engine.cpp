@@ -21,6 +21,8 @@ Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr)
     new (&qs[i])UserQueue;
   }
   DEBUG_PRINTF(qs, "Fail to mmap consumer queues\n");
+  id_bmap = new DataMap();
+  sala_bmap = new DataMap();
 }
 
 Engine::~Engine() {
@@ -66,7 +68,6 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
   }
   
   // remote data
-
   id_r = new Index(datas, qs);
   uid_r = new Index(datas, qs);
   sala_r = new Index(datas, qs);
@@ -126,6 +127,8 @@ void Engine::build_index(int qid, int begin, int end, Index *id_index, Index *ui
     id_index->put(user->id, encoded_index);
     uid_index->put(std::hash<UserString>()(*(UserString *)(user->user_id)), encoded_index);
     salary_index->put(user->salary, encoded_index);
+    id_bmap->put(user->id);
+    sala_bmap->put(user->salary);
   }
 }
 
@@ -143,6 +146,9 @@ void Engine::write(const User *user) {
   id_r->put(user->id, encoded_index);
   uid_r->put(std::hash<UserString>()(*(UserString *)(user->user_id)), encoded_index);
   sala_r->put(user->salary, encoded_index);
+
+  id_bmap->put(user->id);
+  sala_bmap->put(user->salary);
 }
 
 constexpr int key_len[4] = {8, 128, 128, 8};
@@ -153,7 +159,8 @@ size_t Engine::local_read(int32_t select_column,
   size_t result = 0;
   switch(where_column) {
   case Id:
-    result = id_r->get(column_key, where_column, select_column, res, false);
+    if (id_bmap->get(*(int64_t *) column_key))
+      result = id_r->get(column_key, where_column, select_column, res, false);
     if (!result)
       result = remote_id_r->get(column_key, where_column, select_column, res, false);
     DEBUG_PRINTF(VLOG, "select %s where ID = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
@@ -170,8 +177,10 @@ size_t Engine::local_read(int32_t select_column,
     DEBUG_PRINTF(VLOG, "select %s where Name = %ld, res = %ld\n", column_str(select_column).c_str(), std::hash<std::string>()(std::string((char *) column_key, 128)), result);
     break;
   case Salary:
-    result = sala_r->get(column_key, where_column, select_column, res, true);
-    res = ((char *)res) + result * key_len[select_column];
+    if (sala_bmap->get(*(int64_t *) column_key)) {
+      result = sala_r->get(column_key, where_column, select_column, res, true);
+      res = ((char *)res) + result * key_len[select_column];
+    }
     result += remote_sala_r->get(column_key, where_column, select_column, res, true);
     DEBUG_PRINTF(VLOG, "select %s where salary = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
     break;
