@@ -45,7 +45,7 @@ public:
 
   void do_sync();
 
-  size_t remote_read(uint8_t select_column, uint8_t where_column, const void *column_key, size_t key_len, void *res, int seq);
+  size_t remote_read(uint8_t select_column, uint8_t where_column, const void *column_key, size_t key_len, void *res);
 
   int get_request_index();
 
@@ -58,7 +58,7 @@ public:
 private:
   static std::string column_str(int column);
 
-  void connect(std::vector<info_type> &infos, int num, int host_index, bool is_new_create);
+  void connect(std::vector<info_type> &infos, int num, bool is_new_create);
 
   void start_handlers();
 
@@ -102,9 +102,10 @@ private:
 
   io_uring req_recv_ring[10];
   io_uring req_weak_recv_ring[10];
-  io_uring req_backup_recv_ring[10];
+  io_uring req_recv_ringall[4 * 10];
 
   int host_index;
+  int neighbor_index[3];
   int listen_fd;
   volatile bool alive[4];
   /* int send_fds[4]; */
@@ -115,7 +116,7 @@ private:
   /* std::thread *rep_recvier; */
   std::thread *req_handler[10];
   std::thread *req_weak_handler[10];
-  std::thread *req_backup_handler[10];
+  std::thread *req_handlerall[4 * 10];
   /* volatile bool exited; */
   RemoteState remote_state; // 用来存当前有多少remote的user吧
 
@@ -123,10 +124,6 @@ private:
   int req_weak_send_fds[50];
   int req_recv_fds[50];
   int req_weak_recv_fds[50];
-  int req_backup_send_fds[50];
-  int req_backup_recv_fds[50];
-
-  // bitmap
-  DataMap *id_bmap;
-  DataMap *sala_bmap;
+  int **send_fdall;
+  int **recv_fdall;
 };
