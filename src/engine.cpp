@@ -161,14 +161,14 @@ size_t Engine::local_read(int32_t select_column,
   case Id:
     if (id_bmap->get(*(int64_t *) column_key))
       result = id_r->get(column_key, where_column, select_column, res, false);
-    if (!result)
-      result = remote_id_r->get(column_key, where_column, select_column, res, false);
+    /* if (!result) */
+    /*   result = remote_id_r->get(column_key, where_column, select_column, res, false); */
     DEBUG_PRINTF(VLOG, "select %s where ID = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
     break;
   case Userid:
     result = uid_r->get(column_key, where_column, select_column, res, false);
-    if (!result)
-      result = remote_uid_r->get(column_key, where_column, select_column, res, false);
+    /* if (!result) */
+    /*   result = remote_uid_r->get(column_key, where_column, select_column, res, false); */
     DEBUG_PRINTF(VLOG, "select %s where UID = %ld, res = %ld\n", column_str(select_column).c_str(), std::hash<std::string>()(std::string((char *) column_key, 128)), result);
     break;
   case Name:
@@ -181,7 +181,7 @@ size_t Engine::local_read(int32_t select_column,
       result = sala_r->get(column_key, where_column, select_column, res, true);
       res = ((char *)res) + result * key_len[select_column];
     }
-    result += remote_sala_r->get(column_key, where_column, select_column, res, true);
+    /* result += remote_sala_r->get(column_key, where_column, select_column, res, true); */
     DEBUG_PRINTF(VLOG, "select %s where salary = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
     break;
   default:
@@ -196,7 +196,7 @@ size_t Engine::read(int32_t select_column,
   result = local_read(select_column, where_column, column_key, column_key_len, res);
   if (result == 0 || where_column == Salary) {
     res = (char *) res + result * key_len[select_column];
-    result += remote_read(select_column, where_column, column_key, column_key_len, res);
+    result += remote_read(select_column, where_column, column_key, column_key_len, res, 0);
   }
   return result;
 }

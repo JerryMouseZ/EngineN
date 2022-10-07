@@ -133,7 +133,7 @@ void listener(int listen_fd, std::vector<info_type> *infos, int *data_recv_fd, i
   sockaddr_in client_addr;
   socklen_t client_addr_len = sizeof(sockaddr_in);
   int num = 0, req_recv_fd_cnt = 0, req_weak_recv_fd_cnt = 0, data_recv_fd_cnt = 0;
-  while (num < 16 + 2 * 50) {
+  while (num < 50 + 2 * 50) {
     int client_fd = accept(listen_fd, (sockaddr *)&client_addr, &client_addr_len);
     if (client_fd < 0) {
       usleep(50);

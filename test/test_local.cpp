@@ -78,8 +78,8 @@ void test_engine_read(int index, size_t num)
   fprintf(stderr, "per thread %d\n", per_thread);
   std::thread *threads[50];
   for (int tid = 0; tid < 50; ++tid) {
-    /* threads[tid] = new std::thread([=]{ */
-      long data_begin = (index / 2) * num + tid * per_thread, data_end = (index / 2) * num + (tid + 1) * per_thread;
+    threads[tid] = new std::thread([=]{
+      long data_begin = index * num + tid * per_thread, data_end = index * num + (tid + 1) * per_thread;
       fprintf(stderr, "from %ld to %ld\n", data_begin, data_end);
       for (long i = data_begin; i < data_end; ++i) {
         TestUser user;
@@ -112,20 +112,20 @@ void test_engine_read(int index, size_t num)
 
         // Select Id from ... where Salary
         memset(&user, 0, sizeof(user));
-        long salary = i % (num / 2);
+        long salary = i % num;
         int64_t ids[4];
         ret = engine_read(context, Id, Salary, &salary, sizeof(salary), ids);
-        if (ret != 2) {
+        if (ret != 1) {
           fprintf(stderr, "Line %d %ld %d\n", __LINE__, i, ret);
         }
-        assert(ret == 2);
+        assert(ret == 1);
       }
-      /* }); */
+      });
   }
-  /* for (int tid = 0; tid < 50; tid++) { */
-  /*   threads[tid]->join(); */
-  /*   delete threads[tid]; */
-  /* } */
+  for (int tid = 0; tid < 50; tid++) {
+    threads[tid]->join();
+    delete threads[tid];
+  }
   engine_deinit(context);
 }
 
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
 
   int num = atol(argv[3]);
   if (argv[2][0] == 'r') {
-    test_engine_read(atoi(argv[1]), num * 2); // 现在local应该有两个人的数量
+    test_engine_read(atoi(argv[1]), num); // 现在local应该有两个人的数量
   } else if (argv[2][0] == 'w'){
     test_engine_write(atoi(argv[1]), num);
   } else {
