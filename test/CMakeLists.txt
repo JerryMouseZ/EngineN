@@ -21,6 +21,8 @@ target_link_libraries(test_local pmem pthread uring OpenMP::OpenMP_CXX)
 add_executable(test_single test_single.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
 target_link_libraries(test_single pmem pthread uring OpenMP::OpenMP_CXX)
 
+add_executable(test_single_no test_single_no.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
+target_link_libraries(test_single_no pmem pthread uring OpenMP::OpenMP_CXX)
 
 add_executable(test_unaligned test_unaligned.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
 target_link_libraries(test_unaligned pmem pthread uring OpenMP::OpenMP_CXX)
@@ -38,6 +40,9 @@ target_link_libraries(test_request pmem pthread uring OpenMP::OpenMP_CXX)
 
 add_executable(test_all test_all.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
 target_link_libraries(test_all pmem pthread uring OpenMP::OpenMP_CXX)
+
+add_executable(test_full test_full.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
+target_link_libraries(test_full pmem pthread uring OpenMP::OpenMP_CXX)
 
 add_executable(test_backup test_backup.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
 target_link_libraries(test_backup pmem pthread uring OpenMP::OpenMP_CXX)
