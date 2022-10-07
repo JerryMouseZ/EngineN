@@ -14,3 +14,5 @@ liburing/liburing.a
 test_crash
 test_unaligned
 test_single
+test_full
+test_single_no
