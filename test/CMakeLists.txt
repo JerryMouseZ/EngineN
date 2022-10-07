@@ -41,6 +41,9 @@ target_link_libraries(test_request pmem pthread uring OpenMP::OpenMP_CXX)
 add_executable(test_all test_all.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
 target_link_libraries(test_all pmem pthread uring OpenMP::OpenMP_CXX)
 
+add_executable(test_all_kill test_all_kill.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
+target_link_libraries(test_all_kill pmem pthread uring OpenMP::OpenMP_CXX)
+
 add_executable(test_full test_full.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
 target_link_libraries(test_full pmem pthread uring OpenMP::OpenMP_CXX)
 
