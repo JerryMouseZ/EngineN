@@ -36,7 +36,11 @@ int add_read_request(io_uring &ring, int client_socket, iovec *iov, __u64 udata)
 io_uring_cqe *wait_cqe_fast(struct io_uring *ring);
 
 using info_type = std::pair<std::string, int>;
+#ifndef BROADCAST
 void listener(int listen_fd, std::vector<info_type> *infos, int *data_recv_fd, int data_peer_index, int host_index, int req_recv_fds[], int req_weak_recv_fds[], int req_recv_index, int req_weak_recv_index);
+#else
+void listener(int listen_fd, std::vector<info_type> *infos, int **recv_fdall);
+#endif
 
 struct data_request{
   uint32_t fifo_id;

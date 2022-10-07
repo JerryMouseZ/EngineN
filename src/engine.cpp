@@ -20,6 +20,16 @@ Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr)
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     new (&qs[i])UserQueue;
   }
+  send_fdall = new int*[4];
+  recv_fdall = new int*[4];
+  for (int i = 0; i < 4; i++) {
+    send_fdall[i] = new int[MAX_NR_PRODUCER];
+    recv_fdall[i] = new int[MAX_NR_PRODUCER];
+    for (int j = 0; j < MAX_NR_PRODUCER; j++) {
+      send_fdall[i][j] = -1;
+      recv_fdall[i][j] = -1;
+    }
+  }
   DEBUG_PRINTF(qs, "Fail to mmap consumer queues\n");
 }
 
@@ -154,14 +164,18 @@ size_t Engine::local_read(int32_t select_column,
   switch(where_column) {
   case Id:
     result = id_r->get(column_key, where_column, select_column, res, false);
+#ifndef BROADCAST
     if (!result)
       result = remote_id_r->get(column_key, where_column, select_column, res, false);
+#endif
     DEBUG_PRINTF(VLOG, "select %s where ID = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
     break;
   case Userid:
     result = uid_r->get(column_key, where_column, select_column, res, false);
+#ifndef BROADCAST
     if (!result)
       result = remote_uid_r->get(column_key, where_column, select_column, res, false);
+#endif
     DEBUG_PRINTF(VLOG, "select %s where UID = %ld, res = %ld\n", column_str(select_column).c_str(), std::hash<std::string>()(std::string((char *) column_key, 128)), result);
     break;
   case Name:
@@ -171,8 +185,10 @@ size_t Engine::local_read(int32_t select_column,
     break;
   case Salary:
     result = sala_r->get(column_key, where_column, select_column, res, true);
+#ifndef BROADCAST
     res = ((char *)res) + result * key_len[select_column];
     result += remote_sala_r->get(column_key, where_column, select_column, res, true);
+#endif
     DEBUG_PRINTF(VLOG, "select %s where salary = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
     break;
   default:
