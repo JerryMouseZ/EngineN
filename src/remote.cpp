@@ -209,10 +209,9 @@ void Engine::ask_peer_quit() {
   req.select_column = 22;
   req.where_column = 22;
   for (int i = 0; i < 10; ++i) {
-    /* fprintf(stderr, "ask node %d to quit\n", get_request_index()); */
     send_all(req_send_fds[i * 5], &req, sizeof(req), MSG_NOSIGNAL);
-    /* fprintf(stderr, "ask node %d to quit\n", get_another_request_index()); */
     send_all(req_weak_send_fds[i * 5], &req, sizeof(req), MSG_NOSIGNAL);
+    send_all(req_backup_send_fds[i * 5], &req, sizeof(req), MSG_NOSIGNAL);
   }
 }
 
@@ -306,24 +305,29 @@ void Engine::disconnect() {
   for (int i = 0; i < 10; ++i) {
     req_handler[i]->join();
     req_weak_handler[i]->join();
+    req_backup_handler[i]->join();
   }
 
   for (int i = 0; i < 50; ++i) {
     shutdown(req_send_fds[i], SHUT_RDWR);
     shutdown(req_recv_fds[i], SHUT_RDWR);
+    shutdown(req_backup_send_fds[i], SHUT_RDWR);
+    shutdown(req_backup_recv_fds[i], SHUT_RDWR);
     shutdown(req_weak_send_fds[i], SHUT_RDWR);
     shutdown(req_weak_recv_fds[i], SHUT_RDWR);
   }
 
-  for (int i = 0; i < 16; ++i) {
-    close(data_fd[i]);
-    close(data_recv_fd[i]);
-  }
+  /* for (int i = 0; i < 16; ++i) { */
+  /*   close(data_fd[i]); */
+  /*   close(data_recv_fd[i]); */
+  /* } */
   close(listen_fd);
 
   for (int i = 0; i < 50; ++i) {
     close(req_send_fds[i]);
     close(req_recv_fds[i]);
+    close(req_backup_send_fds[i]);
+    close(req_backup_recv_fds[i]);
     close(req_weak_send_fds[i]);
     close(req_weak_recv_fds[i]);
   }
