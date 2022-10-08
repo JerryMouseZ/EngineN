@@ -13,7 +13,6 @@
 
 #include "index.hpp"
 #include "data.hpp"
-#include <liburing.h>
 #include "comm.h"
 #include "uv.h"
 
@@ -100,10 +99,6 @@ private:
   // write buffer
   UserQueue *qs;
   std::thread *consumers;
-
-  io_uring req_recv_ring[10];
-  io_uring req_weak_recv_ring[10];
-  io_uring req_recv_ringall[4 * 10];
 
   int host_index;
   int neighbor_index[3];

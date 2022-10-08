@@ -5,7 +5,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <netinet/in.h>
-#include <liburing.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -24,17 +23,8 @@ int recv_all(int fd, void *dst, size_t n, int flag);
 
 int setup_listening_socket(const char *ip, int port);
 
-int add_accept_request(io_uring &ring, int server_socket, struct sockaddr_in *client_addr, socklen_t *client_addr_len);
 
 int connect_to_server(const char *this_host_ip, const char *ip, int port);
-
-int add_write_request(io_uring &ring, int client_socket, iovec *iov, __u64 udata);
-
-/* int add_read_request(io_uring &ring, int client_socket, void *buffer, size_t len, __u64 udata); */
-
-int add_read_request(io_uring &ring, int client_socket, iovec *iov, __u64 udata);
-
-io_uring_cqe *wait_cqe_fast(struct io_uring *ring);
 
 using info_type = std::pair<std::string, int>;
 void listener(int listen_fd, std::vector<info_type> *infos, int **recv_fdall);
@@ -75,4 +65,11 @@ extern int req_send_index;
 extern int req_recv_index;
 extern int req_weak_send_index;
 extern int req_weak_recv_index;
+
+/* int add_accept_request(io_uring &ring, int server_socket, struct sockaddr_in *client_addr, socklen_t *client_addr_len); */
+/* int add_write_request(io_uring &ring, int client_socket, iovec *iov, __u64 udata); */
+/* int add_read_request(io_uring &ring, int client_socket, iovec *iov, __u64 udata); */
+/* io_uring_cqe *wait_cqe_fast(struct io_uring *ring); */
+
+
 #endif
