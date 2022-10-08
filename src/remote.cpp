@@ -3,7 +3,6 @@
 #include "include/data.hpp"
 #include "include/thread_id.hpp"
 #include "include/util.hpp"
-#include "liburing.h"
 #include <bits/types/struct_iovec.h>
 #include <cassert>
 #include <cerrno>
@@ -14,7 +13,6 @@
 #include <cstring>
 #include <ctime>
 #include <fcntl.h>
-#include <liburing.h>
 #include <pthread.h>
 #include <sys/socket.h>
 #include <thread>
@@ -63,11 +61,6 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
 
 void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create) {
   int ret;
-  for (int i = 0; i < 4 * 10; ++i) {
-    ret = io_uring_queue_init(QUEUE_DEPTH, &req_recv_ringall[i], 0);
-    DEBUG_PRINTF(ret == 0, "queue init error %d:%s\n", errno, strerror(errno));
-    assert(ret == 0);
-  }
   signal(SIGPIPE, SIG_IGN);
   listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
   sockaddr_in client_addr;
@@ -331,53 +324,6 @@ void Engine::start_handlers() {
 }
 
 
-#ifndef BROADCAST
-
-void Engine::disconnect() {
-  // wake up request sender
-  ask_peer_quit();
-  DEBUG_PRINTF(0, "socket close, waiting handlers\n");
-
-  for (int i = 0; i < 10; ++i) {
-    req_handler[i]->join();
-    req_weak_handler[i]->join();
-    req_backup_handler[i]->join();
-  }
-
-  for (int i = 0; i < 50; ++i) {
-    shutdown(req_send_fds[i], SHUT_RDWR);
-    shutdown(req_recv_fds[i], SHUT_RDWR);
-    shutdown(req_backup_send_fds[i], SHUT_RDWR);
-    shutdown(req_backup_recv_fds[i], SHUT_RDWR);
-    shutdown(req_weak_send_fds[i], SHUT_RDWR);
-    shutdown(req_weak_recv_fds[i], SHUT_RDWR);
-  }
-
-  /* for (int i = 0; i < 16; ++i) { */
-  /*   close(data_fd[i]); */
-  /*   close(data_recv_fd[i]); */
-  /* } */
-  close(listen_fd);
-
-  for (int i = 0; i < 50; ++i) {
-    close(req_send_fds[i]);
-    close(req_recv_fds[i]);
-    close(req_backup_send_fds[i]);
-    close(req_backup_recv_fds[i]);
-    close(req_weak_send_fds[i]);
-    close(req_weak_recv_fds[i]);
-  }
-
-  fprintf(stderr, "queue exit\n");
-  for (int i = 0; i < 10; ++i) {
-    io_uring_queue_exit(&req_recv_ring[i]);
-    io_uring_queue_exit(&req_weak_recv_ring[i]);
-    io_uring_queue_exit(&req_backup_recv_ring[i]);
-  }
-}
-
-#else
-
 void Engine::disconnect() {
   // wake up request sender
   ask_peer_quit();
@@ -407,14 +353,8 @@ void Engine::disconnect() {
       close(recv_fdall[neighbor_idx][i]);
     }
   }
-
-  fprintf(stderr, "queue exit\n");
-  for (int i = 0; i < 4 * 10; ++i) {
-    io_uring_queue_exit(&req_recv_ringall[i]);
-  }
 }
 
-#endif
 
 int Engine::get_backup_index() {
   switch(host_index) {

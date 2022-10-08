@@ -7,7 +7,6 @@
 #include <thread>
 #include "../inc/interface.h"
 #include "../src/include/engine.hpp"
-#include "include/comm.h"
 #include <assert.h>
 #include <unistd.h>
 

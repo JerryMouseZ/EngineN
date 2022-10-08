@@ -1,7 +1,4 @@
 #include "include/comm.h"
-#include "liburing.h"
-#include <asm-generic/socket.h>
-#include <bits/types/struct_iovec.h>
 #include <cstring>
 #include <ctime>
 #include <netinet/in.h>
@@ -54,13 +51,13 @@ int setup_listening_socket(const char *ip, int port) {
 }
 
 
-int add_accept_request(io_uring &ring, int server_socket, struct sockaddr_in *client_addr, socklen_t *client_addr_len) {
-  struct io_uring_sqe *sqe = io_uring_get_sqe(&ring);
-  io_uring_prep_accept(sqe, server_socket, (struct sockaddr *) client_addr,
-                       client_addr_len, 0);
-  io_uring_submit(&ring);
-  return 0;
-}
+/* int add_accept_request(io_uring &ring, int server_socket, struct sockaddr_in *client_addr, socklen_t *client_addr_len) { */
+/*   struct io_uring_sqe *sqe = io_uring_get_sqe(&ring); */
+/*   io_uring_prep_accept(sqe, server_socket, (struct sockaddr *) client_addr, */
+/*                        client_addr_len, 0); */
+/*   io_uring_submit(&ring); */
+/*   return 0; */
+/* } */
 
 
 int connect_to_server(const char *this_host_ip, const char *ip, int port) {
@@ -111,24 +108,24 @@ int connect_to_server(const char *this_host_ip, const char *ip, int port) {
 }
 
 
-int add_read_request(io_uring &ring, int client_socket, iovec *iov, __u64 udata) {
-  struct io_uring_sqe *sqe = io_uring_get_sqe(&ring);
-  assert(sqe);
-  io_uring_prep_readv(sqe, client_socket, iov, 1, 0);
-  io_uring_sqe_set_data64(sqe, udata);
-  /* io_uring_submit(&ring); */
-  return 0;
-}
+/* int add_read_request(io_uring &ring, int client_socket, iovec *iov, __u64 udata) { */
+/*   struct io_uring_sqe *sqe = io_uring_get_sqe(&ring); */
+/*   assert(sqe); */
+/*   io_uring_prep_readv(sqe, client_socket, iov, 1, 0); */
+/*   io_uring_sqe_set_data64(sqe, udata); */
+/*   /1* io_uring_submit(&ring); *1/ */
+/*   return 0; */
+/* } */
 
 
-int add_write_request(io_uring &ring, int client_socket, iovec *iov, __u64 udata) {
-  struct io_uring_sqe *sqe = io_uring_get_sqe(&ring);
-  assert(sqe);
-  io_uring_prep_writev(sqe, client_socket, iov, 1, 0);
-  io_uring_sqe_set_data64(sqe, udata);
-  /* io_uring_submit(&ring); */
-  return 0;
-}
+/* int add_write_request(io_uring &ring, int client_socket, iovec *iov, __u64 udata) { */
+/*   struct io_uring_sqe *sqe = io_uring_get_sqe(&ring); */
+/*   assert(sqe); */
+/*   io_uring_prep_writev(sqe, client_socket, iov, 1, 0); */
+/*   io_uring_sqe_set_data64(sqe, udata); */
+/*   /1* io_uring_submit(&ring); *1/ */
+/*   return 0; */
+/* } */
 
 using info_type = std::pair<std::string, int>;
 void listener(int listen_fd, std::vector<info_type> *infos, int **recv_fdall) {
@@ -168,22 +165,22 @@ void listener(int listen_fd, std::vector<info_type> *infos, int **recv_fdall) {
 
 
 
-io_uring_cqe *wait_cqe_fast(struct io_uring *ring)
-{
-  struct io_uring_cqe *cqe;
-  unsigned head;
-  int ret;
+/* io_uring_cqe *wait_cqe_fast(struct io_uring *ring) */
+/* { */
+/*   struct io_uring_cqe *cqe; */
+/*   unsigned head; */
+/*   int ret; */
 
-  io_uring_for_each_cqe(ring, head, cqe)
-    return cqe;
+/*   io_uring_for_each_cqe(ring, head, cqe) */
+/*     return cqe; */
 
-  ret = io_uring_wait_cqe(ring, &cqe);
-  if (ret) {
-    fprintf(stderr, "wait cqe %d\n", ret);
-    return nullptr;
-  }
-  return cqe;
-}
+/*   ret = io_uring_wait_cqe(ring, &cqe); */
+/*   if (ret) { */
+/*     fprintf(stderr, "wait cqe %d\n", ret); */
+/*     return nullptr; */
+/*   } */
+/*   return cqe; */
+/* } */
 
 int send_all(int fd, const void *src, size_t n, int flag) {
   auto rest = n;
