@@ -130,59 +130,6 @@ int add_write_request(io_uring &ring, int client_socket, iovec *iov, __u64 udata
 }
 
 using info_type = std::pair<std::string, int>;
-
-#ifndef BROADCAST
-
-void listener(int listen_fd, std::vector<info_type> *infos, int *data_recv_fd, int data_peer_index, int host_index, int req_recv_fds[], int req_weak_recv_fds[], int req_recv_index, int req_weak_recv_index) {
-  sockaddr_in client_addr;
-  socklen_t client_addr_len = sizeof(sockaddr_in);
-  int num = 0, req_recv_fd_cnt = 0, req_weak_recv_fd_cnt = 0, data_recv_fd_cnt = 0;
-  while (num < 50 + 2 * 50) {
-    int client_fd = accept(listen_fd, (sockaddr *)&client_addr, &client_addr_len);
-    if (client_fd < 0) {
-      usleep(50);
-      continue;
-    }
-
-    // set nodelay
-    int enable = 1;
-    int ret;
-    ret = setsockopt(client_fd, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable));
-    assert(ret != -1);
-
-    for (int j = 0; j < 4; ++j) {
-      sockaddr_in addr;
-      inet_pton(AF_INET, (*infos)[j].first.c_str(), &addr.sin_addr);
-      if (memcmp(&addr.sin_addr, &client_addr.sin_addr, sizeof(sockaddr_in::sin_addr)) == 0) {
-        if (j == data_peer_index ) {
-          data_recv_fd[data_recv_fd_cnt++] = client_fd;
-          DEBUG_PRINTF(LOG, "%s: data_recv_fd[%d] from %s\n",
-            this_host_info, data_recv_fd_cnt, (*infos)[j].first.c_str());
-        } 
-        else if (j == req_recv_index) {
-          req_recv_fds[req_recv_fd_cnt++] = client_fd;
-          DEBUG_PRINTF(LOG, "%s: [%d <- %d] req_recv_fd[%d] from %s\n",
-            this_host_info, host_index, j, req_recv_fd_cnt, (*infos)[j].first.c_str());
-        } 
-        else if (j == req_weak_recv_index) {
-          req_weak_recv_fds[req_weak_recv_fd_cnt++] = client_fd;
-          DEBUG_PRINTF(LOG, "%s: [%d <- %d] req_weak_recv_fd[%d] from %s\n",
-            this_host_info, host_index, j, req_weak_recv_fd_cnt, (*infos)[j].first.c_str());
-        } 
-        else {
-          char clientname[20];
-          fprintf(stderr, "Client Adress = %s\n", inet_ntop(AF_INET,&client_addr.sin_addr,
-                    clientname, sizeof(clientname)));
-          assert(0);
-        }
-      }
-    }
-    num++;
-  }
-}
-
-#else 
-
 void listener(int listen_fd, std::vector<info_type> *infos, int **recv_fdall) {
   sockaddr_in client_addr;
   socklen_t client_addr_len = sizeof(sockaddr_in);
@@ -197,11 +144,11 @@ void listener(int listen_fd, std::vector<info_type> *infos, int **recv_fdall) {
       continue;
     }
 
-    // set nodelay
-    int enable = 1;
-    int ret;
-    ret = setsockopt(client_fd, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable));
-    assert(ret != -1);
+    /* // set nodelay */
+    /* int enable = 1; */
+    /* int ret; */
+    /* ret = setsockopt(client_fd, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable)); */
+    /* assert(ret != -1); */
 
     for (int j = 0; j < 4; ++j) {
       sockaddr_in addr;
@@ -217,7 +164,7 @@ void listener(int listen_fd, std::vector<info_type> *infos, int **recv_fdall) {
   }
 }
 
-#endif
+
 
 io_uring_cqe *wait_cqe_fast(struct io_uring *ring)
 {

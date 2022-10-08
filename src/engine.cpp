@@ -20,11 +20,7 @@ Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr)
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     new (&qs[i])UserQueue;
   }
-  send_fdall = new int*[4];
-  recv_fdall = new int*[4];
   for (int i = 0; i < 4; i++) {
-    send_fdall[i] = new int[MAX_NR_PRODUCER];
-    recv_fdall[i] = new int[MAX_NR_PRODUCER];
     for (int j = 0; j < MAX_NR_PRODUCER; j++) {
       send_fdall[i][j] = -1;
       recv_fdall[i][j] = -1;

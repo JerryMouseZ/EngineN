@@ -124,6 +124,6 @@ private:
   int req_weak_send_fds[50];
   int req_recv_fds[50];
   int req_weak_recv_fds[50];
-  int **send_fdall;
-  int **recv_fdall;
+  int send_fdall[4][50];
+  int recv_fdall[4][50];
 };
