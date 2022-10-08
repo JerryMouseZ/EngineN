@@ -57,53 +57,6 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
   connect(infos, peer_host_info_num + 1, is_new_create);
 }
 
-#ifndef BROADCAST
-
-void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create) {
-  int ret;
-  for (int i = 0; i < 10; ++i) {
-    ret = io_uring_queue_init(QUEUE_DEPTH, &req_recv_ring[i], 0);
-    DEBUG_PRINTF(ret == 0, "queue init error %d:%s\n", errno, strerror(errno));
-    assert(ret == 0);
-    ret = io_uring_queue_init(QUEUE_DEPTH, &req_weak_recv_ring[i], 0);
-    DEBUG_PRINTF(ret == 0, "queue init error %d:%s\n", errno, strerror(errno));
-    assert(ret == 0);
-    ret = io_uring_queue_init(QUEUE_DEPTH, &req_backup_recv_ring[i], 0);
-    DEBUG_PRINTF(ret == 0, "queue init error %d:%s\n", errno, strerror(errno));
-    assert(ret == 0);
-  }
-  signal(SIGPIPE, SIG_IGN);
-  listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
-  sockaddr_in client_addr;
-  socklen_t client_addr_len = sizeof(client_addr);
-  char client_addr_str[60];
-  std::thread listen_thread(listener, listen_fd, &infos, req_backup_recv_fds, get_backup_index(), host_index, req_recv_fds, req_weak_recv_fds, get_request_index(), get_another_request_index());
-
-  // 建立同步数据的连接
-  for (int i = 0; i < 4; ++i)
-    alive[i] = true;
-  
-  for (int i = 0; i < 50; ++i) {
-    req_backup_send_fds[i] = connect_to_server(infos[host_index].first.c_str(), infos[get_backup_index()].first.c_str(), infos[get_backup_index()].second);
-    DEBUG_PRINTF(LOG, "%s: data_fd[%d] = %d\n", this_host_info, i, data_fd[i]);
-  }
-
-  for (int i = 0; i < 50; ++i) {
-    req_send_fds[i] = connect_to_server(infos[host_index].first.c_str(), infos[get_request_index()].first.c_str(), infos[get_request_index()].second);
-  }
-
-  for (int i = 0; i < 50; ++i) {
-    req_weak_send_fds[i] = connect_to_server(infos[host_index].first.c_str(), infos[get_another_request_index()].first.c_str(), infos[get_another_request_index()].second);
-  }
-
-  listen_thread.join();
-  // move to after connect
-  /* do_peer_data_sync(); */
-  start_handlers(); // 先start handlers
-}
-
-#else
-
 void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create) {
   int ret;
   for (int i = 0; i < 4 * 10; ++i) {
@@ -137,11 +90,9 @@ void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create)
   }
 
   listen_thread.join();
-
   start_handlers(); // 先start handlers
 }
 
-#endif
 
 #ifndef BROADCAST
 
