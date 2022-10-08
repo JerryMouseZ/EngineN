@@ -7,9 +7,6 @@ find_package(OpenMP)
 add_compile_options(-g -O3)
 
 include_directories(src)
-include_directories(libuv/include)
-
-add_subdirectory(libuv)
 
 add_library(interface
 SHARED

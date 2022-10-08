@@ -205,7 +205,7 @@ size_t Engine::read(int32_t select_column,
 }
 
 
-std::string Engine::column_str(int column)
+std::string column_str(int column)
 {
   switch(column) {
   case Id:

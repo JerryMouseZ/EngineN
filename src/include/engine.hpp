@@ -23,6 +23,7 @@ struct DataTransMeta {
   uint32_t recived_user_cnt; // 之前已经接收过的user数量
 };
 
+std::string column_str(int column);
 
 class Engine
 {
@@ -31,11 +32,11 @@ public:
   ~Engine();
 
   bool open(std::string aep_path, std::string disk_path);
-  
+
   void write(const User *user);
 
   size_t local_read(int32_t select_column,
-              int32_t where_column, const void *column_key, size_t column_key_len, void *res);
+                    int32_t where_column, const void *column_key, size_t column_key_len, void *res);
 
   size_t read(int32_t select_column,
               int32_t where_column, const void *column_key, size_t column_key_len, void *res);
@@ -57,7 +58,6 @@ public:
   void do_peer_data_sync();
 
 private:
-  static std::string column_str(int column);
 
   void connect(std::vector<info_type> &infos, int num, bool is_new_create);
 
@@ -67,8 +67,8 @@ private:
 
   /* void response_recvier(); */
 
-  void request_handler(int index, int req_recv_fds[], io_uring &ring);
-  
+  void request_handler(int index, int *req_recv_fds);
+
   void term_sending_request();
 
   void invalidate_fd(int sock);
@@ -77,7 +77,7 @@ private:
 
   void ask_peer_quit();
   // for backup
-  
+
   int do_exchange_meta(DataTransMeta send_meta[MAX_NR_CONSUMER], DataTransMeta recv_meta[MAX_NR_CONSUMER]);
   int do_exchange_data(DataTransMeta send_meta[MAX_NR_CONSUMER], DataTransMeta recv_meta[MAX_NR_CONSUMER]);
   void build_index(int qid, int begin, int end, Index *id_index, Index *uid_index, Index *salary_index, Data *datap);
@@ -127,5 +127,4 @@ private:
   int req_weak_recv_fds[50];
   int send_fdall[4][50];
   int recv_fdall[4][50];
-  uv_tcp_t recv_uvh[4][50];
 };
