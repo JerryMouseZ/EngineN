@@ -74,7 +74,7 @@ void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create)
   for (int i = 0; i < 4; ++i)
     alive[i] = true;
 
-  std::thread listen_thread(listener, listen_fd, &infos, recv_fdall);
+  std::thread listen_thread(listener, listen_fd, &infos, recv_uvh);
 
   auto this_host_ip = infos[host_index].first.c_str();
 

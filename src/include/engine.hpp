@@ -15,6 +15,7 @@
 #include "data.hpp"
 #include <liburing.h>
 #include "comm.h"
+#include "uv.h"
 
 extern thread_local UserQueue *consumer_q;
 struct DataTransMeta {
@@ -126,4 +127,5 @@ private:
   int req_weak_recv_fds[50];
   int send_fdall[4][50];
   int recv_fdall[4][50];
+  uv_tcp_t recv_uvh[4][50];
 };
