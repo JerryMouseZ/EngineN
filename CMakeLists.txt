@@ -7,9 +7,9 @@ find_package(OpenMP)
 add_compile_options(-g -O3)
 
 include_directories(src)
-include_directories(liburing/src/include)
+include_directories(libuv/include)
 
-add_subdirectory(liburing)
+add_subdirectory(libuv)
 
 add_library(interface
 SHARED
@@ -22,6 +22,6 @@ SHARED
         src/remote.cpp
 )
 
-target_link_libraries(interface uring OpenMP::OpenMP_CXX)
+target_link_libraries(interface OpenMP::OpenMP_CXX uv)
 
 message(${CMAKE_SOURCE_DIR})
