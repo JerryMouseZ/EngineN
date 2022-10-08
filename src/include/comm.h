@@ -37,7 +37,7 @@ int add_read_request(io_uring &ring, int client_socket, iovec *iov, __u64 udata)
 io_uring_cqe *wait_cqe_fast(struct io_uring *ring);
 
 using info_type = std::pair<std::string, int>;
-void listener(int listen_fd, std::vector<info_type> *infos, uv_tcp_t **recv_fdall);
+void listener(int listen_fd, std::vector<info_type> *infos, int **recv_fdall);
 
 struct data_request{
   uint32_t fifo_id;

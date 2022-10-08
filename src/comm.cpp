@@ -131,7 +131,7 @@ int add_write_request(io_uring &ring, int client_socket, iovec *iov, __u64 udata
 }
 
 using info_type = std::pair<std::string, int>;
-void listener(int listen_fd, std::vector<info_type> *infos, uv_tcp_t **recv_fdall) {
+void listener(int listen_fd, std::vector<info_type> *infos, int **recv_fdall) {
   sockaddr_in client_addr;
   socklen_t client_addr_len = sizeof(sockaddr_in);
   int num = 0;
@@ -155,8 +155,8 @@ void listener(int listen_fd, std::vector<info_type> *infos, uv_tcp_t **recv_fdal
       sockaddr_in addr;
       inet_pton(AF_INET, (*infos)[j].first.c_str(), &addr.sin_addr);
       if (memcmp(&addr.sin_addr, &client_addr.sin_addr, sizeof(sockaddr_in::sin_addr)) == 0) {
-        uv_tcp_open(&recv_fdall[j][cnts[j]++], client_fd);
-        /* recv_fdall[j][cnts[j]++] = client_fd; */
+        /* uv_tcp_open(&recv_fdall[j][cnts[j]++], client_fd); */
+        recv_fdall[j][cnts[j]++] = client_fd;
         DEBUG_PRINTF(LOG, "%s: neighbor index = %d recv_fd[%d] = %d from %s\n",
           this_host_info, j, cnts[j] - 1, client_fd, (*infos)[j].first.c_str());
         break;
