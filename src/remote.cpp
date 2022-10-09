@@ -207,8 +207,8 @@ void Engine::ask_peer_quit() {
   req.where_column = 22;
   for (int nb_i = 0; nb_i < 3; nb_i++) {
     int neighbor_idx = neighbor_index[nb_i];
-    for (int i = 0; i < 10; ++i) {
-      send_all(send_fdall[neighbor_idx][i * 5], &req, sizeof(req), MSG_NOSIGNAL);
+    for (int i = 0; i < 50; ++i) {
+      send_all(send_fdall[neighbor_idx][i], &req, sizeof(req), MSG_NOSIGNAL);
     }
   }
 }
