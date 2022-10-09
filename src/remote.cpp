@@ -71,7 +71,7 @@ void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create)
   for (int i = 0; i < 4; ++i)
     alive[i] = true;
 
-  std::thread listen_thread(listener, listen_fd, &infos, recv_fdall);
+  std::thread listen_thread(listener, listen_fd, &infos, recv_fdall, sync_recv_fdall);
 
   auto this_host_ip = infos[host_index].first.c_str();
 
@@ -83,6 +83,17 @@ void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create)
        connect_to_server(this_host_ip, infos[neighbor_idx].first.c_str(), infos[neighbor_idx].second);
       DEBUG_PRINTF(INIT, "%s: neighbor index = %d senf_fd[%d] = %d to %s\n",
         this_host_info, neighbor_idx, i, send_fdall[neighbor_idx][i], infos[neighbor_idx].first.c_str());
+    }
+  }
+
+  // 每个neighbor都发16个
+  for (int nb_i = 0; nb_i < 3; nb_i++) {
+    int neighbor_idx = neighbor_index[nb_i];
+    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+      sync_send_fdall[neighbor_idx][i] = 
+       connect_to_server(this_host_ip, infos[neighbor_idx].first.c_str(), infos[neighbor_idx].second);
+      DEBUG_PRINTF(INIT, "%s: neighbor index = %d sync_send_fd[%d] = %d to %s\n",
+        this_host_info, neighbor_idx, i, sync_send_fdall[neighbor_idx][i], infos[neighbor_idx].first.c_str());
     }
   }
 

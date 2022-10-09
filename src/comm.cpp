@@ -128,14 +128,14 @@ int connect_to_server(const char *this_host_ip, const char *ip, int port) {
 /* } */
 
 using info_type = std::pair<std::string, int>;
-void listener(int listen_fd, std::vector<info_type> *infos, int recv_fdall[4][50]) {
+void listener(int listen_fd, std::vector<info_type> *infos, int recv_fdall[4][50], int sync_recv_fdall[4][MAX_NR_CONSUMER]) {
   sockaddr_in client_addr;
   socklen_t client_addr_len = sizeof(sockaddr_in);
   int num = 0;
   int cnts[4];
   memset(cnts, 0, sizeof(cnts));
 
-  while (num < 3 * MAX_NR_PRODUCER) {
+  while (num < 3 * (MAX_NR_PRODUCER + MAX_NR_CONSUMER)) {
     int client_fd = accept(listen_fd, (sockaddr *)&client_addr, &client_addr_len);
     if (client_fd < 0) {
       usleep(50);
@@ -148,14 +148,23 @@ void listener(int listen_fd, std::vector<info_type> *infos, int recv_fdall[4][50
     /* ret = setsockopt(client_fd, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable)); */
     /* assert(ret != -1); */
 
+    int idx;
     for (int j = 0; j < 4; ++j) {
       sockaddr_in addr;
       inet_pton(AF_INET, (*infos)[j].first.c_str(), &addr.sin_addr);
       if (memcmp(&addr.sin_addr, &client_addr.sin_addr, sizeof(sockaddr_in::sin_addr)) == 0) {
         /* uv_tcp_open(&recv_fdall[j][cnts[j]++], client_fd); */
-        recv_fdall[j][cnts[j]++] = client_fd;
-        DEBUG_PRINTF(LOG, "%s: neighbor index = %d recv_fd[%d] = %d from %s\n",
-          this_host_info, j, cnts[j] - 1, client_fd, (*infos)[j].first.c_str());
+        if (cnts[j] < MAX_NR_PRODUCER) {
+          recv_fdall[j][cnts[j]++] = client_fd;
+          DEBUG_PRINTF(LOG, "%s: neighbor index = %d recv_fd[%d] = %d from %s\n",
+            this_host_info, j, cnts[j] - 1, client_fd, (*infos)[j].first.c_str());
+        } else {
+          idx = cnts[j] - MAX_NR_PRODUCER;
+          sync_recv_fdall[j][idx] = client_fd;
+          cnts[j]++;
+          DEBUG_PRINTF(LOG, "%s: neighbor index = %d sync_recv_fd[%d] = %d from %s\n",
+            this_host_info, j, idx, client_fd, (*infos)[j].first.c_str());
+        }
         break;
       }
     }
