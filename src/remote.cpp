@@ -227,18 +227,18 @@ void Engine::ask_peer_quit() {
 
 struct uv_param{
   Engine *engine;
-  /* void *buf; */
+  void *buf;
   void *resp_buf;
   /* uv_write_t req; */
-  /* uv_buf_t uv_buf; */
+  uv_buf_t uv_buf;
 };
 
 void alloc_buffer(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
-  buf->base = (char *) malloc(suggested_size);
-  buf->len = suggested_size;
-  /* uv_param *param = (uv_param *)handle->data; */
-  /* buf->base = (char *)param->buf; */
+  /* buf->base = (char *) malloc(sizeof(data_request)); */
   /* buf->len = sizeof(data_request); */
+  uv_param *param = (uv_param *)handle->data;
+  buf->base = (char *)param->buf;
+  buf->len = sizeof(data_request);
 }
 
 typedef struct {
@@ -253,6 +253,7 @@ void echo_write(uv_write_t *req, int status) {
   if (status) {
     fprintf(stderr, "Write error %s\n", uv_strerror(status));
   }
+  free(req);
 }
 
 void process_request(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
@@ -261,11 +262,9 @@ void process_request(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
     if (nread != UV_EOF)
       fprintf(stderr, "Read error %s\n", uv_err_name(nread));
     uv_read_stop(client);
-    free(buf->base);
     return;
   }
   if (nread == 0) {
-    uv_read_stop(client);
     return;
   }
   assert(nread == sizeof(data_request));
@@ -294,15 +293,17 @@ void process_request(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
   res_buffer->header.ret = num;
   res_buffer->header.res_len = get_column_len(select_column) * num;
   
-  uv_write_t *wq = (uv_write_t *) malloc(sizeof(uv_write_t));
-  uv_buf_t *wbuf = (uv_buf_t *) malloc(sizeof(uv_buf_t));
+  uv_buf_t *wbuf = &param->uv_buf;
   wbuf->len = sizeof(response_header) + res_buffer->header.res_len;
   wbuf->base = (char *)res_buffer;
-  uv_write(wq, client, wbuf, 1, echo_write);
+  if (uv_try_write(client, wbuf, 1) < 0) {
+    uv_write_t *wq = (uv_write_t *) malloc(sizeof(uv_write_t));
+    uv_write(wq, client, wbuf, 1, echo_write);
+  }
 }
 
 void init_uv(uv_tcp_t *handler, void *recv_buf, void *resp_buf, Engine *engine, uv_param *param) {
-  /* param->buf = recv_buf; */
+  param->buf = recv_buf;
   param->resp_buf = resp_buf;
   param->engine = engine;
   handler->data = param;

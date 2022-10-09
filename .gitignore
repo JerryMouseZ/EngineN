@@ -17,3 +17,9 @@ test_sala
 .vscode
 compile_commands.json
 liburing/liburing.a
+libuv/CMakeFiles/
+libuv/CTestTestfile.cmake
+libuv/DartConfiguration.tcl
+libuv/libuv-static.pc
+libuv/libuv.so.1
+libuv/libuv.so.1.0.0

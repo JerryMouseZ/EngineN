@@ -39,11 +39,11 @@ static const uint32_t ENTRY_NUM = 6;
 struct Bucket {
   // reset to zero at memset
   std::atomic<uint32_t> next_free;
-  uint16_t is_overflow;
   uint32_t bucket_next; // offset = (bucket_next - 1) * sizeof(Bucket) + 8
   // 54
   uint32_t entries[ENTRY_NUM];
   uint32_t inlinekeys[ENTRY_NUM];
+  uint16_t is_overflow;
   uint8_t extra[ENTRY_NUM];
 };
 
