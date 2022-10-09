@@ -219,7 +219,7 @@ struct uv_param{
   void *buf;
   void *resp_buf;
   /* uv_write_t req; */
-  /* uv_buf_t uv_buf; */
+  uv_buf_t uv_buf;
 };
 
 void alloc_buffer(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
@@ -242,6 +242,7 @@ void echo_write(uv_write_t *req, int status) {
   if (status) {
     fprintf(stderr, "Write error %s\n", uv_strerror(status));
   }
+  free(req);
 }
 
 void process_request(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
@@ -282,7 +283,7 @@ void process_request(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
   res_buffer->header.res_len = get_column_len(select_column) * num;
   
   uv_write_t *wq = (uv_write_t *) malloc(sizeof(uv_write_t));
-  uv_buf_t *wbuf = (uv_buf_t *) malloc(sizeof(uv_buf_t));
+  uv_buf_t *wbuf = &param->uv_buf;
   wbuf->len = sizeof(response_header) + res_buffer->header.res_len;
   wbuf->base = (char *)res_buffer;
   uv_write(wq, client, wbuf, 1, echo_write);
