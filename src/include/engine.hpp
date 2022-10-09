@@ -122,4 +122,6 @@ private:
   int req_weak_recv_fds[50];
   int send_fdall[4][50];
   int recv_fdall[4][50];
+  int sync_send_fdall[4][MAX_NR_CONSUMER];
+  int sync_recv_fdall[4][MAX_NR_CONSUMER];
 };

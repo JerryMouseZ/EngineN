@@ -25,6 +25,10 @@ Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr)
       send_fdall[i][j] = -1;
       recv_fdall[i][j] = -1;
     }
+    for (int j = 0; j < MAX_NR_CONSUMER; j++) {
+      sync_send_fdall[i][j] = -1;
+      sync_recv_fdall[i][j] = -1;
+    }
   }
   DEBUG_PRINTF(qs, "Fail to mmap consumer queues\n");
 }
