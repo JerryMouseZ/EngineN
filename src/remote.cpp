@@ -71,7 +71,7 @@ void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create)
   for (int i = 0; i < 4; ++i)
     alive[i] = true;
 
-  std::thread listen_thread(listener, listen_fd, &infos, (int **)recv_fdall);
+  std::thread listen_thread(listener, listen_fd, &infos, recv_fdall);
 
   auto this_host_ip = infos[host_index].first.c_str();
 
@@ -233,7 +233,6 @@ typedef struct {
 } write_req_t;
 
 void on_close(uv_handle_t* handle) {
-    free(handle);
 }
 
 void echo_write(uv_write_t *req, int status) {
