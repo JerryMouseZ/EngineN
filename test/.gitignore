@@ -18,3 +18,9 @@ test_full
 test_single_no
 test_all_kill
 liburing
+libuv/CMakeFiles/
+libuv/CTestTestfile.cmake
+libuv/DartConfiguration.tcl
+libuv/libuv-static.pc
+libuv/libuv.so.1
+libuv/libuv.so.1.0.0

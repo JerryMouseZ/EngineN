@@ -6,8 +6,9 @@ find_package(OpenMP)
 
 add_compile_options(-g -O3)
 
-include_directories(src)
+add_subdirectory(libuv)
 
+include_directories(src)
 add_library(interface
 SHARED
         src/interface.cpp
