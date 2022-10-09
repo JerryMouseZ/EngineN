@@ -282,11 +282,13 @@ void process_request(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
   res_buffer->header.ret = num;
   res_buffer->header.res_len = get_column_len(select_column) * num;
   
-  uv_write_t *wq = (uv_write_t *) malloc(sizeof(uv_write_t));
   uv_buf_t *wbuf = &param->uv_buf;
   wbuf->len = sizeof(response_header) + res_buffer->header.res_len;
   wbuf->base = (char *)res_buffer;
-  uv_write(wq, client, wbuf, 1, echo_write);
+  if (uv_try_write(client, wbuf, 1) < 0) {
+    uv_write_t *wq = (uv_write_t *) malloc(sizeof(uv_write_t));
+    uv_write(wq, client, wbuf, 1, echo_write);
+  }
 }
 
 void init_uv(uv_tcp_t *handler, void *recv_buf, void *resp_buf, Engine *engine, uv_param *param) {
