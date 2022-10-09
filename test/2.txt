@@ -1,0 +1,929 @@
+==1341798== Memcheck, a memory error detector
+==1341798== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==1341798== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==1341798== Command: ./test_all 2 9000 r 150000
+==1341798== 
+start open datas[0]
+==1341798== Warning: set address range perms: large range [0x59c6000, 0x3aa21000) (defined)
+==1341798== Warning: set address range perms: large range [0x59c6000, 0x3aa21000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x5a00000, 0x3a85b000) (defined)
+start open datas[1]
+==1341798== Warning: set address range perms: large range [0x59c87000, 0x8ece2000) (defined)
+==1341798== Warning: set address range perms: large range [0x59c87000, 0x8ece2000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x59e00000, 0x8ec5b000) (defined)
+start open datas[2]
+==1341798== Warning: set address range perms: large range [0x8ec5b000, 0xc3cb6000) (defined)
+==1341798== Warning: set address range perms: large range [0x8ec5b000, 0xc3cb6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x8ee00000, 0xc3c5b000) (defined)
+start open datas[3]
+==1341798== Warning: set address range perms: large range [0xc3c5b000, 0xf8cb6000) (defined)
+==1341798== Warning: set address range perms: large range [0xc3c5b000, 0xf8cb6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0xc3e00000, 0xf8c5b000) (defined)
+start open datas[4]
+==1341798== Warning: set address range perms: large range [0xf8c5b000, 0x12dcb6000) (defined)
+==1341798== Warning: set address range perms: large range [0xf8c5b000, 0x12dcb6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0xf8e00000, 0x12dc5b000) (defined)
+start open datas[5]
+==1341798== Warning: set address range perms: large range [0x12dc5b000, 0x162cb6000) (defined)
+==1341798== Warning: set address range perms: large range [0x12dc5b000, 0x162cb6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x12de00000, 0x162c5b000) (defined)
+start open datas[6]
+==1341798== Warning: set address range perms: large range [0x162c5b000, 0x197cb6000) (defined)
+==1341798== Warning: set address range perms: large range [0x162c5b000, 0x197cb6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x162e00000, 0x197c5b000) (defined)
+start open datas[7]
+==1341798== Warning: set address range perms: large range [0x197c5b000, 0x1cccb6000) (defined)
+==1341798== Warning: set address range perms: large range [0x197c5b000, 0x1cccb6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x197e00000, 0x1ccc5b000) (defined)
+start open datas[8]
+==1341798== Warning: set address range perms: large range [0x1ccc5b000, 0x201cb6000) (defined)
+==1341798== Warning: set address range perms: large range [0x1ccc5b000, 0x201cb6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x1cce00000, 0x201c5b000) (defined)
+start open datas[9]
+==1341798== Warning: set address range perms: large range [0x201c5b000, 0x236cb6000) (defined)
+==1341798== Warning: set address range perms: large range [0x201c5b000, 0x236cb6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x201e00000, 0x236c5b000) (defined)
+start open datas[10]
+==1341798== Warning: set address range perms: large range [0x236c5b000, 0x26bcb6000) (defined)
+==1341798== Warning: set address range perms: large range [0x236c5b000, 0x26bcb6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x236e00000, 0x26bc5b000) (defined)
+start open datas[11]
+==1341798== Warning: set address range perms: large range [0x26bc5b000, 0x2a0cb6000) (defined)
+==1341798== Warning: set address range perms: large range [0x26bc5b000, 0x2a0cb6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x26be00000, 0x2a0c5b000) (defined)
+start open datas[12]
+==1341798== Warning: set address range perms: large range [0x2a0c5b000, 0x2d5cb6000) (defined)
+==1341798== Warning: set address range perms: large range [0x2a0c5b000, 0x2d5cb6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x2a0e00000, 0x2d5c5b000) (defined)
+start open datas[13]
+==1341798== Warning: set address range perms: large range [0x2d5c5b000, 0x30acb6000) (defined)
+==1341798== Warning: set address range perms: large range [0x2d5c5b000, 0x30acb6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x2d5e00000, 0x30ac5b000) (defined)
+start open datas[14]
+==1341798== Warning: set address range perms: large range [0x30ac5b000, 0x33fcb6000) (defined)
+==1341798== Warning: set address range perms: large range [0x30ac5b000, 0x33fcb6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x30ae00000, 0x33fc5b000) (defined)
+start open datas[15]
+==1341798== Warning: set address range perms: large range [0x33fc5b000, 0x374cb6000) (defined)
+==1341798== Warning: set address range perms: large range [0x33fc5b000, 0x374cb6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x33fe00000, 0x374c5b000) (defined)
+==1341798== Warning: set address range perms: large range [0x374c5b000, 0x3b8c5b000) (defined)
+==1341798== Warning: set address range perms: large range [0x3b8c5b000, 0x3fcc5b000) (defined)
+==1341798== Warning: set address range perms: large range [0x3fcc5b000, 0x440c5b000) (defined)
+start open queue[0]
+start open queue[1]
+start open queue[2]
+start open queue[3]
+start open queue[4]
+start open queue[5]
+start open queue[6]
+start open queue[7]
+start open queue[8]
+start open queue[9]
+start open queue[10]
+start open queue[11]
+start open queue[12]
+start open queue[13]
+start open queue[14]
+start open queue[15]
+start build local index[4] range [0, 9375)
+start build local index[0] range [0, 9375)
+start build local index[12] range [0, 9375)
+start build local index[1] range [0, 9375)
+start build local index[6] range [0, 9375)
+start build local index[7] range [0, 9375)
+start build local index[9] range [0, 9375)
+start build local index[13] range [0, 9375)
+start build local index[5] range [0, 9375)
+start build local index[8] range [0, 9375)
+start build local index[14] range [0, 9375)
+start build local index[15] range [0, 9375)
+start build local index[2] range [0, 9375)
+start build local index[10] range [0, 9375)
+start build local index[11] range [0, 9375)
+start build local index[3] range [0, 9375)
+start open remote_state
+start open remote_datas[0]
+==1341798== Warning: set address range perms: large range [0x48988f000, 0x4be8ea000) (defined)
+==1341798== Warning: set address range perms: large range [0x48988f000, 0x4be8ea000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x489a00000, 0x4be85b000) (defined)
+start open remote_datas[1]
+==1341798== Warning: set address range perms: large range [0x4be85b000, 0x4f38b6000) (defined)
+==1341798== Warning: set address range perms: large range [0x4be85b000, 0x4f38b6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x4bea00000, 0x4f385b000) (defined)
+start open remote_datas[2]
+==1341798== Warning: set address range perms: large range [0x4f385b000, 0x5288b6000) (defined)
+==1341798== Warning: set address range perms: large range [0x4f385b000, 0x5288b6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x4f3a00000, 0x52885b000) (defined)
+start open remote_datas[3]
+==1341798== Warning: set address range perms: large range [0x52885b000, 0x55d8b6000) (defined)
+==1341798== Warning: set address range perms: large range [0x52885b000, 0x55d8b6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x528a00000, 0x55d85b000) (defined)
+start open remote_datas[4]
+==1341798== Warning: set address range perms: large range [0x55d85b000, 0x5928b6000) (defined)
+==1341798== Warning: set address range perms: large range [0x55d85b000, 0x5928b6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x55da00000, 0x59285b000) (defined)
+start open remote_datas[5]
+==1341798== Warning: set address range perms: large range [0x59285b000, 0x5c78b6000) (defined)
+==1341798== Warning: set address range perms: large range [0x59285b000, 0x5c78b6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x592a00000, 0x5c785b000) (defined)
+start open remote_datas[6]
+==1341798== Warning: set address range perms: large range [0x5c785b000, 0x5fc8b6000) (defined)
+==1341798== Warning: set address range perms: large range [0x5c785b000, 0x5fc8b6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x5c7a00000, 0x5fc85b000) (defined)
+start open remote_datas[7]
+==1341798== Warning: set address range perms: large range [0x5fc85b000, 0x6318b6000) (defined)
+==1341798== Warning: set address range perms: large range [0x5fc85b000, 0x6318b6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x5fca00000, 0x63185b000) (defined)
+start open remote_datas[8]
+==1341798== Warning: set address range perms: large range [0x63185b000, 0x6668b6000) (defined)
+==1341798== Warning: set address range perms: large range [0x63185b000, 0x6668b6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x631a00000, 0x66685b000) (defined)
+start open remote_datas[9]
+==1341798== Warning: set address range perms: large range [0x66685b000, 0x69b8b6000) (defined)
+==1341798== Warning: set address range perms: large range [0x66685b000, 0x69b8b6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x666a00000, 0x69b85b000) (defined)
+start open remote_datas[10]
+==1341798== Warning: set address range perms: large range [0x69b85b000, 0x6d08b6000) (defined)
+==1341798== Warning: set address range perms: large range [0x69b85b000, 0x6d08b6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x69ba00000, 0x6d085b000) (defined)
+start open remote_datas[11]
+==1341798== Warning: set address range perms: large range [0x6d085b000, 0x7058b6000) (defined)
+==1341798== Warning: set address range perms: large range [0x6d085b000, 0x7058b6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x6d0a00000, 0x70585b000) (defined)
+start open remote_datas[12]
+==1341798== Warning: set address range perms: large range [0x70585b000, 0x73a8b6000) (defined)
+==1341798== Warning: set address range perms: large range [0x70585b000, 0x73a8b6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x705a00000, 0x73a85b000) (defined)
+start open remote_datas[13]
+==1341798== Warning: set address range perms: large range [0x73a85b000, 0x76f8b6000) (defined)
+==1341798== Warning: set address range perms: large range [0x73a85b000, 0x76f8b6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x73aa00000, 0x76f85b000) (defined)
+start open remote_datas[14]
+==1341798== Warning: set address range perms: large range [0x76f85b000, 0x7a48b6000) (defined)
+==1341798== Warning: set address range perms: large range [0x76f85b000, 0x7a48b6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x76fa00000, 0x7a485b000) (defined)
+start open remote_datas[15]
+==1341798== Warning: set address range perms: large range [0x7a485b000, 0x7d98b6000) (defined)
+==1341798== Warning: set address range perms: large range [0x7a485b000, 0x7d98b6000) (noaccess)
+==1341798== Warning: set address range perms: large range [0x7a4a00000, 0x7d985b000) (defined)
+==1341798== Warning: set address range perms: large range [0x7d985b000, 0x81d85b000) (defined)
+==1341798== Warning: set address range perms: large range [0x81d85b000, 0x86185b000) (defined)
+==1341798== Warning: set address range perms: large range [0x865c5c000, 0x8a9c5c000) (defined)
+host info : 192.168.1.40 9000
+192.168.1.40:9000: neighbor_index[0] = 0
+192.168.1.40:9000: neighbor_index[1] = 1
+192.168.1.40:9000: neighbor_index[2] = 3
+192.168.1.40:9000: neighbor index = 0 senf_fd[0] = 4 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[1] = 5 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 1 recv_fd[0] = 6 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[0] = 8 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[0] = 9 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[1] = 10 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 senf_fd[2] = 7 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 recv_fd[1] = 11 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[1] = 13 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[2] = 14 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[2] = 15 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[2] = 16 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[3] = 17 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[3] = 18 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[3] = 12 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[3] = 19 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[4] = 21 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[4] = 22 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[4] = 23 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[5] = 24 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[5] = 25 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[5] = 26 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[6] = 27 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 senf_fd[4] = 20 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 recv_fd[6] = 28 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[6] = 30 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 senf_fd[5] = 29 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[6] = 32 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[7] = 33 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[8] = 34 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[9] = 35 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[10] = 36 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[11] = 37 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[12] = 38 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[13] = 39 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[14] = 40 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[15] = 41 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[16] = 42 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[17] = 43 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[18] = 44 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[19] = 45 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[20] = 46 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[21] = 47 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[22] = 48 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[23] = 49 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[24] = 50 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[25] = 51 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[26] = 52 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[27] = 53 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[28] = 54 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[29] = 55 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[30] = 56 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[31] = 57 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[32] = 58 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[33] = 59 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[34] = 60 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[35] = 61 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[36] = 62 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[37] = 63 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[38] = 64 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[39] = 65 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[40] = 66 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[41] = 67 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[42] = 68 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[43] = 69 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[44] = 70 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[45] = 71 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[46] = 72 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[47] = 73 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[48] = 74 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 senf_fd[49] = 75 to 192.168.1.38
+192.168.1.40:9000: neighbor index = 1 senf_fd[0] = 76 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[1] = 77 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[2] = 78 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[3] = 79 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[4] = 80 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[5] = 81 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[6] = 82 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[7] = 83 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[8] = 84 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[9] = 85 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[10] = 86 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[11] = 87 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[12] = 88 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[13] = 89 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[14] = 90 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[15] = 91 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[16] = 92 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[17] = 93 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[18] = 94 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[19] = 95 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[20] = 96 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[21] = 97 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[22] = 98 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[23] = 99 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[24] = 100 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[25] = 101 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[26] = 102 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[27] = 103 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[28] = 104 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[29] = 105 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[30] = 106 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[31] = 107 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[32] = 108 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[33] = 109 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[34] = 110 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[35] = 111 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[36] = 112 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[37] = 113 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[38] = 114 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[39] = 115 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[40] = 116 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[41] = 117 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[42] = 118 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[43] = 119 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[44] = 120 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[45] = 121 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[46] = 122 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[47] = 123 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[48] = 124 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 senf_fd[49] = 125 to 192.168.1.39
+192.168.1.40:9000: neighbor index = 3 senf_fd[0] = 126 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[1] = 127 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[2] = 128 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[3] = 129 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[4] = 130 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[5] = 131 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[6] = 132 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[7] = 133 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[8] = 134 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[9] = 135 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[10] = 136 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[11] = 137 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[12] = 138 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[13] = 139 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[14] = 140 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[15] = 141 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[16] = 142 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[17] = 143 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[18] = 144 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[19] = 145 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[20] = 146 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[21] = 147 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[22] = 148 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[23] = 149 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[24] = 150 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[25] = 151 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[26] = 152 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[27] = 153 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[28] = 154 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[29] = 155 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[30] = 156 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[31] = 157 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[32] = 158 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[33] = 159 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[34] = 160 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[35] = 161 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[36] = 162 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[37] = 163 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[38] = 164 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[39] = 165 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[40] = 166 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[41] = 167 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[42] = 168 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[43] = 169 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[44] = 170 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[45] = 171 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[46] = 172 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[47] = 173 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[48] = 174 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 senf_fd[49] = 175 to 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[7] = 31 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 3 recv_fd[7] = 176 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 recv_fd[7] = 177 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[8] = 178 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[8] = 179 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[8] = 180 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[9] = 181 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 recv_fd[9] = 182 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 1 recv_fd[9] = 183 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 3 recv_fd[10] = 184 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 recv_fd[10] = 185 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 1 recv_fd[10] = 186 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[11] = 187 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[11] = 188 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[11] = 189 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 recv_fd[12] = 190 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[12] = 191 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[12] = 192 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[13] = 193 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 3 recv_fd[13] = 194 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 recv_fd[13] = 195 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 1 recv_fd[14] = 196 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 3 recv_fd[14] = 197 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 recv_fd[14] = 198 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 1 recv_fd[15] = 199 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[15] = 200 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[15] = 201 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[16] = 202 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[16] = 203 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[16] = 204 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[17] = 205 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[17] = 206 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[17] = 207 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 recv_fd[18] = 208 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 1 recv_fd[18] = 209 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 3 recv_fd[18] = 210 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[19] = 211 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[19] = 212 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[19] = 213 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[20] = 214 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 3 recv_fd[20] = 215 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 recv_fd[20] = 216 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 1 recv_fd[21] = 217 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[21] = 218 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[21] = 219 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 recv_fd[22] = 220 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[22] = 221 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[22] = 222 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[23] = 223 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[23] = 224 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[23] = 225 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[24] = 226 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[24] = 227 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[24] = 228 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 recv_fd[25] = 229 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[25] = 230 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[25] = 231 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[26] = 232 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 3 recv_fd[26] = 233 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 recv_fd[26] = 234 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 1 recv_fd[27] = 235 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[27] = 236 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[27] = 237 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[28] = 238 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[28] = 239 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[28] = 240 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 recv_fd[29] = 241 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 1 recv_fd[29] = 242 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 3 recv_fd[29] = 243 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[30] = 244 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[30] = 245 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[30] = 246 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[31] = 247 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 3 recv_fd[31] = 248 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 recv_fd[31] = 249 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 1 recv_fd[32] = 250 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 3 recv_fd[32] = 251 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 recv_fd[32] = 252 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[33] = 253 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[33] = 254 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[33] = 255 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[34] = 256 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[34] = 257 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[34] = 258 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 1 recv_fd[35] = 259 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 3 recv_fd[35] = 260 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 recv_fd[35] = 261 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[36] = 262 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[36] = 263 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[36] = 264 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[37] = 265 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[37] = 266 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[37] = 267 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 1 recv_fd[38] = 268 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 3 recv_fd[38] = 269 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 recv_fd[38] = 270 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 1 recv_fd[39] = 271 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 3 recv_fd[39] = 272 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 recv_fd[39] = 273 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[40] = 274 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[40] = 275 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[40] = 276 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[41] = 277 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 recv_fd[41] = 278 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 1 recv_fd[41] = 279 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 1 recv_fd[42] = 280 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[42] = 281 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[42] = 282 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 3 recv_fd[43] = 283 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 recv_fd[43] = 284 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 1 recv_fd[43] = 285 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 3 recv_fd[44] = 286 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[44] = 287 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[44] = 288 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 0 recv_fd[45] = 289 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 1 recv_fd[45] = 290 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 3 recv_fd[45] = 291 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[46] = 292 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[46] = 293 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[46] = 294 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 1 recv_fd[47] = 295 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 0 recv_fd[47] = 296 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 3 recv_fd[47] = 297 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 recv_fd[48] = 298 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 1 recv_fd[48] = 299 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 3 recv_fd[48] = 300 from 192.168.1.41
+192.168.1.40:9000: neighbor index = 0 recv_fd[49] = 301 from 192.168.1.38
+192.168.1.40:9000: neighbor index = 1 recv_fd[49] = 302 from 192.168.1.39
+192.168.1.40:9000: neighbor index = 3 recv_fd[49] = 303 from 192.168.1.41
+init time 30.064743 s
+==1341798== Syscall param socketcall.sendto(msg) points to uninitialised byte(s)
+==1341798==    at 0x4E16AAE: __libc_send (send.c:28)
+==1341798==    by 0x4E16AAE: send (send.c:23)
+==1341798==    by 0x11CB71: send_all(int, void const*, unsigned long, int) (comm.cpp:189)
+==1341798==    by 0x11F591: Engine::remote_read(unsigned char, unsigned char, void const*, unsigned long, void*) (remote.cpp:118)
+==1341798==    by 0x125E26: Engine::read(int, int, void const*, unsigned long, void*) (engine.cpp:202)
+==1341798==    by 0x11BB3C: engine_read (interface.cpp:42)
+==1341798==    by 0x1199F1: test_engine_read(void*, unsigned long) (test_all.cpp:73)
+==1341798==    by 0x11A267: main (test_all.cpp:146)
+==1341798==  Address 0x1ffefffc8e is on thread 1's stack
+==1341798==  in frame #2, created by Engine::remote_read(unsigned char, unsigned char, void const*, unsigned long, void*) (remote.cpp:94)
+==1341798== 
+recv request select ID where Salary = 0
+==1341798== Thread 33:
+==1341798== Syscall param write(buf) points to uninitialised byte(s)
+==1341798==    at 0x4E03A6F: __libc_write (write.c:26)
+==1341798==    by 0x4E03A6F: write (write.c:24)
+==1341798==    by 0x4A3B91C: ??? (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x4A3BAA8: ??? (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x4A3EE21: uv_write2 (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x11FE5F: process_request(uv_stream_s*, long, uv_buf_t const*) (remote.cpp:284)
+==1341798==    by 0x4A46E87: ??? (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x4A474D7: ??? (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x4A4C11D: ??? (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x4A35C87: uv_run (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x120184: Engine::request_handler(int, int*) (remote.cpp:312)
+==1341798==    by 0x1201C6: Engine::start_handlers()::{lambda(int, int*)#1}::operator()(int, int*) const (remote.cpp:317)
+==1341798==    by 0x122014: void std::__invoke_impl<void, Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>(std::__invoke_other, Engine::start_handlers()::{lambda(int, int*)#1}&&, int&&, int*&&) (invoke.h:61)
+==1341798==  Address 0x48988c686 is on thread 33's stack
+==1341798==  in frame #9, created by Engine::request_handler(int, int*) (remote.cpp:295)
+==1341798== 
+recv request select UID where ID = 0
+recv request select UID where ID = 0
+recv request select ID where UID = 0
+recv request select ID where UID = 0
+recv request select ID where Salary = 0
+recv request select UID where ID = 1
+recv request select ID where Salary = 1
+recv request select ID where UID = 1
+recv request select ID where Salary = 2
+==1341798== Thread 53:
+==1341798== Invalid free() / delete / delete[] / realloc()
+==1341798==    at 0x484B27F: free (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x4A3EABF: ??? (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x4A47667: ??? (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x4A35767: uv_run (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x120184: Engine::request_handler(int, int*) (remote.cpp:312)
+==1341798==    by 0x1201C6: Engine::start_handlers()::{lambda(int, int*)#1}::operator()(int, int*) const (remote.cpp:317)
+==1341798==    by 0x122014: void std::__invoke_impl<void, Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>(std::__invoke_other, Engine::start_handlers()::{lambda(int, int*)#1}&&, int&&, int*&&) (invoke.h:61)
+==1341798==    by 0x121F3F: std::__invoke_result<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>::type std::__invoke<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>(Engine::start_handlers()::{lambda(int, int*)#1}&&, int&&, int*&&) (invoke.h:96)
+==1341798==    by 0x121E46: void std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> >::_M_invoke<0ul, 1ul, 2ul>(std::_Index_tuple<0ul, 1ul, 2ul>) (std_thread.h:253)
+==1341798==    by 0x121DC7: std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> >::operator()() (std_thread.h:260)
+==1341798==    by 0x121D87: std::thread::_State_impl<std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> > >::_M_run() (std_thread.h:211)
+==1341798==    by 0x4B7F2B2: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==1341798==  Address 0xffffffff00000000 is not stack'd, malloc'd or (recently) free'd
+==1341798== 
+==1341798== Use of uninitialised value of size 8
+==1341798==    at 0x4A3EAE0: ??? (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798== 
+==1341798== Jump to the invalid address stated on the next line
+==1341798==    at 0x9: ???
+==1341798==    by 0x4A3EAE1: ??? (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x4A47667: ??? (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x4A35767: uv_run (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x120184: Engine::request_handler(int, int*) (remote.cpp:312)
+==1341798==    by 0x1201C6: Engine::start_handlers()::{lambda(int, int*)#1}::operator()(int, int*) const (remote.cpp:317)
+==1341798==    by 0x122014: void std::__invoke_impl<void, Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>(std::__invoke_other, Engine::start_handlers()::{lambda(int, int*)#1}&&, int&&, int*&&) (invoke.h:61)
+==1341798==    by 0x121F3F: std::__invoke_result<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>::type std::__invoke<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>(Engine::start_handlers()::{lambda(int, int*)#1}&&, int&&, int*&&) (invoke.h:96)
+==1341798==    by 0x121E46: void std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> >::_M_invoke<0ul, 1ul, 2ul>(std::_Index_tuple<0ul, 1ul, 2ul>) (std_thread.h:253)
+==1341798==    by 0x121DC7: std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> >::operator()() (std_thread.h:260)
+==1341798==    by 0x121D87: std::thread::_State_impl<std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> > >::_M_run() (std_thread.h:211)
+==1341798==    by 0x4B7F2B2: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==1341798==  Address 0x9 is not stack'd, malloc'd or (recently) free'd
+==1341798== 
+==1341798== 
+==1341798== Process terminating with default action of signal 11 (SIGSEGV)
+==1341798==  Bad permissions for mapped region at address 0x9
+==1341798==    at 0x9: ???
+==1341798==    by 0x4A3EAE1: ??? (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x4A47667: ??? (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x4A35767: uv_run (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x120184: Engine::request_handler(int, int*) (remote.cpp:312)
+==1341798==    by 0x1201C6: Engine::start_handlers()::{lambda(int, int*)#1}::operator()(int, int*) const (remote.cpp:317)
+==1341798==    by 0x122014: void std::__invoke_impl<void, Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>(std::__invoke_other, Engine::start_handlers()::{lambda(int, int*)#1}&&, int&&, int*&&) (invoke.h:61)
+==1341798==    by 0x121F3F: std::__invoke_result<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>::type std::__invoke<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>(Engine::start_handlers()::{lambda(int, int*)#1}&&, int&&, int*&&) (invoke.h:96)
+==1341798==    by 0x121E46: void std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> >::_M_invoke<0ul, 1ul, 2ul>(std::_Index_tuple<0ul, 1ul, 2ul>) (std_thread.h:253)
+==1341798==    by 0x121DC7: std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> >::operator()() (std_thread.h:260)
+==1341798==    by 0x121D87: std::thread::_State_impl<std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> > >::_M_run() (std_thread.h:211)
+==1341798==    by 0x4B7F2B2: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==1341798== 
+==1341798== HEAP SUMMARY:
+==1341798==     in use at exit: 293,951 bytes in 327 blocks
+==1341798==   total heap usage: 152,974 allocs, 152,648 frees, 20,891,092 bytes allocated
+==1341798== 
+==1341798== Thread 1:
+==1341798== 16 bytes in 1 blocks are still reachable in loss record 1 of 37
+==1341798==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x4A6684C: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==1341798==    by 0x4A7904A: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==1341798==    by 0x4A64FE1: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==1341798==    by 0x400647D: call_init.part.0 (dl-init.c:70)
+==1341798==    by 0x4006567: call_init (dl-init.c:33)
+==1341798==    by 0x4006567: _dl_init (dl-init.c:117)
+==1341798==    by 0x40202E9: ??? (in /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)
+==1341798==    by 0x4: ???
+==1341798==    by 0x1FFF0005DA: ???
+==1341798==    by 0x1FFF0005E5: ???
+==1341798==    by 0x1FFF0005E7: ???
+==1341798==    by 0x1FFF0005EC: ???
+==1341798== 
+==1341798== 31 bytes in 1 blocks are still reachable in loss record 2 of 37
+==1341798==    at 0x4849013: operator new(unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x4BEEF3D: std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_mutate(unsigned long, unsigned long, char const*, unsigned long) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==1341798==    by 0x4BF08BF: std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_append(char const*, unsigned long) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==1341798==    by 0x11AED9: std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, char const*) (basic_string.h:6208)
+==1341798==    by 0x11A18F: main (test_all.cpp:139)
+==1341798== 
+==1341798== 32 bytes in 1 blocks are still reachable in loss record 3 of 37
+==1341798==    at 0x4849013: operator new(unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x12521F: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:76)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 32 bytes in 1 blocks are still reachable in loss record 4 of 37
+==1341798==    at 0x4849013: operator new(unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x127631: Index::Index(Data*, LocklessQueue<User, 4096ul>*) (index.hpp:219)
+==1341798==    by 0x125242: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:76)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 32 bytes in 1 blocks are still reachable in loss record 5 of 37
+==1341798==    at 0x4849013: operator new(unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x125257: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:77)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 32 bytes in 1 blocks are still reachable in loss record 6 of 37
+==1341798==    at 0x4849013: operator new(unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x127631: Index::Index(Data*, LocklessQueue<User, 4096ul>*) (index.hpp:219)
+==1341798==    by 0x12527A: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:77)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 32 bytes in 1 blocks are still reachable in loss record 7 of 37
+==1341798==    at 0x4849013: operator new(unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x12528F: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:78)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 32 bytes in 1 blocks are still reachable in loss record 8 of 37
+==1341798==    at 0x4849013: operator new(unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x127631: Index::Index(Data*, LocklessQueue<User, 4096ul>*) (index.hpp:219)
+==1341798==    by 0x1252B2: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:78)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 32 bytes in 1 blocks are still reachable in loss record 9 of 37
+==1341798==    at 0x4849013: operator new(unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x1256CC: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:121)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 32 bytes in 1 blocks are still reachable in loss record 10 of 37
+==1341798==    at 0x4849013: operator new(unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x127631: Index::Index(Data*, LocklessQueue<User, 4096ul>*) (index.hpp:219)
+==1341798==    by 0x1256EA: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:121)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 32 bytes in 1 blocks are still reachable in loss record 11 of 37
+==1341798==    at 0x4849013: operator new(unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x1256FF: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:122)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 32 bytes in 1 blocks are still reachable in loss record 12 of 37
+==1341798==    at 0x4849013: operator new(unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x127631: Index::Index(Data*, LocklessQueue<User, 4096ul>*) (index.hpp:219)
+==1341798==    by 0x12571D: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:122)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 32 bytes in 1 blocks are still reachable in loss record 13 of 37
+==1341798==    at 0x4849013: operator new(unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x125732: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:123)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 32 bytes in 1 blocks are still reachable in loss record 14 of 37
+==1341798==    at 0x4849013: operator new(unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x127631: Index::Index(Data*, LocklessQueue<User, 4096ul>*) (index.hpp:219)
+==1341798==    by 0x125750: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:123)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 128 bytes in 16 blocks are still reachable in loss record 15 of 37
+==1341798==    at 0x4849013: operator new(unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x127E3A: LocklessQueue<User, 4096ul>::LocklessQueue() (queue.hpp:46)
+==1341798==    by 0x124C38: Engine::Engine() (engine.cpp:21)
+==1341798==    by 0x11B80A: engine_init (interface.cpp:16)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 136 bytes in 1 blocks are still reachable in loss record 16 of 37
+==1341798==    at 0x48487A9: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x4A668AC: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==1341798==    by 0x4A77ACC: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==1341798==    by 0x4A6DA10: GOMP_parallel (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==1341798==    by 0x125456: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:88)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 136 bytes in 1 blocks are still reachable in loss record 17 of 37
+==1341798==    at 0x484A2F3: operator new[](unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x125460: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:100)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 192 bytes in 1 blocks are still reachable in loss record 18 of 37
+==1341798==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x4A6684C: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==1341798==    by 0x4A76D9B: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==1341798==    by 0x4A6D9F9: GOMP_parallel (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==1341798==    by 0x125456: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:88)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 240 bytes in 30 blocks are still reachable in loss record 19 of 37
+==1341798==    at 0x4849013: operator new(unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x120289: Engine::start_handlers() (remote.cpp:324)
+==1341798==    by 0x11F3CA: Engine::connect(std::vector<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, int>, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, int> > >&, int, bool) (remote.cpp:90)
+==1341798==    by 0x11EFE3: Engine::connect(char const*, char const* const*, unsigned long, bool) (remote.cpp:59)
+==1341798==    by 0x11B8C6: engine_init (interface.cpp:19)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 256 bytes in 16 blocks are still reachable in loss record 20 of 37
+==1341798==    at 0x4849013: operator new(unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x1261B0: std::thread::thread<Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)::{lambda()#1}, , void>(Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)::{lambda()#1}&&) (std_thread.h:143)
+==1341798==    by 0x1254D0: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:102)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 264 bytes in 1 blocks are still reachable in loss record 21 of 37
+==1341798==    at 0x484A2F3: operator new[](unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x1250EF: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:68)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 264 bytes in 1 blocks are still reachable in loss record 22 of 37
+==1341798==    at 0x484A2F3: operator new[](unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x12559A: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:115)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 640 bytes in 16 blocks are still reachable in loss record 23 of 37
+==1341798==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x487530B: _Malloc (in /usr/local/lib/libpmem.so.1.0.0)
+==1341798==    by 0x487AC61: util_range_register (in /usr/local/lib/libpmem.so.1.0.0)
+==1341798==    by 0x487F448: pmem_map_register (in /usr/local/lib/libpmem.so.1.0.0)
+==1341798==    by 0x487E28D: pmem_map_fileU (in /usr/local/lib/libpmem.so.1.0.0)
+==1341798==    by 0x487E499: pmem_map_file (in /usr/local/lib/libpmem.so.1.0.0)
+==1341798==    by 0x11DFAF: Data::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) (data.cpp:29)
+==1341798==    by 0x1251D5: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:71)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 640 bytes in 16 blocks are still reachable in loss record 24 of 37
+==1341798==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x487530B: _Malloc (in /usr/local/lib/libpmem.so.1.0.0)
+==1341798==    by 0x487AC61: util_range_register (in /usr/local/lib/libpmem.so.1.0.0)
+==1341798==    by 0x487F448: pmem_map_register (in /usr/local/lib/libpmem.so.1.0.0)
+==1341798==    by 0x487E28D: pmem_map_fileU (in /usr/local/lib/libpmem.so.1.0.0)
+==1341798==    by 0x487E499: pmem_map_file (in /usr/local/lib/libpmem.so.1.0.0)
+==1341798==    by 0x11DFAF: Data::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) (data.cpp:29)
+==1341798==    by 0x125682: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:118)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 960 bytes in 30 blocks are still reachable in loss record 25 of 37
+==1341798==    at 0x4849013: operator new(unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x12081C: std::thread::thread<Engine::start_handlers()::{lambda(int, int*)#1}&, int&, int*, void>(Engine::start_handlers()::{lambda(int, int*)#1}&, int&, int*&&) (std_thread.h:143)
+==1341798==    by 0x1202A2: Engine::start_handlers() (remote.cpp:324)
+==1341798==    by 0x11F3CA: Engine::connect(std::vector<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, int>, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, int> > >&, int, bool) (remote.cpp:90)
+==1341798==    by 0x11EFE3: Engine::connect(char const*, char const* const*, unsigned long, bool) (remote.cpp:59)
+==1341798==    by 0x11B8C6: engine_init (interface.cpp:19)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 1,408 bytes in 4 blocks are possibly lost in loss record 26 of 37
+==1341798==    at 0x484DA83: calloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x40147D9: calloc (rtld-malloc.h:44)
+==1341798==    by 0x40147D9: allocate_dtv (dl-tls.c:375)
+==1341798==    by 0x40147D9: _dl_allocate_tls (dl-tls.c:634)
+==1341798==    by 0x4D84834: allocate_stack (allocatestack.c:430)
+==1341798==    by 0x4D84834: pthread_create@@GLIBC_2.34 (pthread_create.c:647)
+==1341798==    by 0x4B7F388: std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==1341798==    by 0x1260FB: std::thread::thread<prefault(char*, unsigned long, bool)::{lambda()#1}, , void>(prefault(char*, unsigned long, bool)::{lambda()#1}&&) (std_thread.h:143)
+==1341798==    by 0x12469D: prefault(char*, unsigned long, bool) (util.hpp:64)
+==1341798==    by 0x124902: map_file(char const*, unsigned long, bool*) (util.hpp:97)
+==1341798==    by 0x1284F0: LocklessQueue<User, 4096ul>::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, bool*, CommitArray<User, 4096ul>*, unsigned int) (queue.hpp:62)
+==1341798==    by 0x1253C4: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:83)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 1,408 bytes in 4 blocks are possibly lost in loss record 27 of 37
+==1341798==    at 0x484DA83: calloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x40147D9: calloc (rtld-malloc.h:44)
+==1341798==    by 0x40147D9: allocate_dtv (dl-tls.c:375)
+==1341798==    by 0x40147D9: _dl_allocate_tls (dl-tls.c:634)
+==1341798==    by 0x4D84834: allocate_stack (allocatestack.c:430)
+==1341798==    by 0x4D84834: pthread_create@@GLIBC_2.34 (pthread_create.c:647)
+==1341798==    by 0x4B7F388: std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==1341798==    by 0x11E2AF: std::thread::thread<prefault(char*, unsigned long, bool)::{lambda()#1}, , void>(prefault(char*, unsigned long, bool)::{lambda()#1}&&) (std_thread.h:143)
+==1341798==    by 0x11DB1B: prefault(char*, unsigned long, bool) (util.hpp:64)
+==1341798==    by 0x11E017: Data::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) (data.cpp:33)
+==1341798==    by 0x125682: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:118)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 1,920 bytes in 30 blocks are still reachable in loss record 28 of 37
+==1341798==    at 0x484DA83: calloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x4A46282: uv_loop_init (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x11FFA4: Engine::request_handler(int, int*) (remote.cpp:302)
+==1341798==    by 0x1201C6: Engine::start_handlers()::{lambda(int, int*)#1}::operator()(int, int*) const (remote.cpp:317)
+==1341798==    by 0x122014: void std::__invoke_impl<void, Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>(std::__invoke_other, Engine::start_handlers()::{lambda(int, int*)#1}&&, int&&, int*&&) (invoke.h:61)
+==1341798==    by 0x121F3F: std::__invoke_result<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>::type std::__invoke<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>(Engine::start_handlers()::{lambda(int, int*)#1}&&, int&&, int*&&) (invoke.h:96)
+==1341798==    by 0x121E46: void std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> >::_M_invoke<0ul, 1ul, 2ul>(std::_Index_tuple<0ul, 1ul, 2ul>) (std_thread.h:253)
+==1341798==    by 0x121DC7: std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> >::operator()() (std_thread.h:260)
+==1341798==    by 0x121D87: std::thread::_State_impl<std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> > >::_M_run() (std_thread.h:211)
+==1341798==    by 0x4B7F2B2: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==1341798==    by 0x4D83B42: start_thread (pthread_create.c:442)
+==1341798==    by 0x4E14BB3: clone (clone.S:100)
+==1341798== 
+==1341798== 3,120 bytes in 1 blocks are still reachable in loss record 29 of 37
+==1341798==    at 0x4849013: operator new(unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x11B7FF: engine_init (interface.cpp:16)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 3,872 bytes in 11 blocks are possibly lost in loss record 30 of 37
+==1341798==    at 0x484DA83: calloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x40147D9: calloc (rtld-malloc.h:44)
+==1341798==    by 0x40147D9: allocate_dtv (dl-tls.c:375)
+==1341798==    by 0x40147D9: _dl_allocate_tls (dl-tls.c:634)
+==1341798==    by 0x4D84834: allocate_stack (allocatestack.c:430)
+==1341798==    by 0x4D84834: pthread_create@@GLIBC_2.34 (pthread_create.c:647)
+==1341798==    by 0x4A771EF: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==1341798==    by 0x4A6DA10: GOMP_parallel (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==1341798==    by 0x125456: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:88)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 4,928 bytes in 1 blocks are still reachable in loss record 31 of 37
+==1341798==    at 0x484E120: memalign (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x4A668E8: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==1341798==    by 0x4A76C26: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==1341798==    by 0x4A6D9F9: GOMP_parallel (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==1341798==    by 0x125456: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:88)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 5,632 bytes in 16 blocks are possibly lost in loss record 32 of 37
+==1341798==    at 0x484DA83: calloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x40147D9: calloc (rtld-malloc.h:44)
+==1341798==    by 0x40147D9: allocate_dtv (dl-tls.c:375)
+==1341798==    by 0x40147D9: _dl_allocate_tls (dl-tls.c:634)
+==1341798==    by 0x4D84834: allocate_stack (allocatestack.c:430)
+==1341798==    by 0x4D84834: pthread_create@@GLIBC_2.34 (pthread_create.c:647)
+==1341798==    by 0x4B7F388: std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==1341798==    by 0x1261E7: std::thread::thread<Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)::{lambda()#1}, , void>(Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)::{lambda()#1}&&) (std_thread.h:143)
+==1341798==    by 0x1254D0: Engine::open(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (engine.cpp:102)
+==1341798==    by 0x11B871: engine_init (interface.cpp:17)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 9,152 bytes in 26 blocks are possibly lost in loss record 33 of 37
+==1341798==    at 0x484DA83: calloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x40147D9: calloc (rtld-malloc.h:44)
+==1341798==    by 0x40147D9: allocate_dtv (dl-tls.c:375)
+==1341798==    by 0x40147D9: _dl_allocate_tls (dl-tls.c:634)
+==1341798==    by 0x4D84834: allocate_stack (allocatestack.c:430)
+==1341798==    by 0x4D84834: pthread_create@@GLIBC_2.34 (pthread_create.c:647)
+==1341798==    by 0x4B7F388: std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==1341798==    by 0x120859: std::thread::thread<Engine::start_handlers()::{lambda(int, int*)#1}&, int&, int*, void>(Engine::start_handlers()::{lambda(int, int*)#1}&, int&, int*&&) (std_thread.h:143)
+==1341798==    by 0x1202A2: Engine::start_handlers() (remote.cpp:324)
+==1341798==    by 0x11F3CA: Engine::connect(std::vector<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, int>, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, int> > >&, int, bool) (remote.cpp:90)
+==1341798==    by 0x11EFE3: Engine::connect(char const*, char const* const*, unsigned long, bool) (remote.cpp:59)
+==1341798==    by 0x11B8C6: engine_init (interface.cpp:19)
+==1341798==    by 0x11A1E1: main (test_all.cpp:140)
+==1341798== 
+==1341798== 25,440 bytes in 30 blocks are still reachable in loss record 34 of 37
+==1341798==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x11FF7D: Engine::request_handler(int, int*) (remote.cpp:300)
+==1341798==    by 0x1201C6: Engine::start_handlers()::{lambda(int, int*)#1}::operator()(int, int*) const (remote.cpp:317)
+==1341798==    by 0x122014: void std::__invoke_impl<void, Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>(std::__invoke_other, Engine::start_handlers()::{lambda(int, int*)#1}&&, int&&, int*&&) (invoke.h:61)
+==1341798==    by 0x121F3F: std::__invoke_result<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>::type std::__invoke<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>(Engine::start_handlers()::{lambda(int, int*)#1}&&, int&&, int*&&) (invoke.h:96)
+==1341798==    by 0x121E46: void std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> >::_M_invoke<0ul, 1ul, 2ul>(std::_Index_tuple<0ul, 1ul, 2ul>) (std_thread.h:253)
+==1341798==    by 0x121DC7: std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> >::operator()() (std_thread.h:260)
+==1341798==    by 0x121D87: std::thread::_State_impl<std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> > >::_M_run() (std_thread.h:211)
+==1341798==    by 0x4B7F2B2: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==1341798==    by 0x4D83B42: start_thread (pthread_create.c:442)
+==1341798==    by 0x4E14BB3: clone (clone.S:100)
+==1341798== 
+==1341798== 37,200 bytes in 30 blocks are still reachable in loss record 35 of 37
+==1341798==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x11FF8E: Engine::request_handler(int, int*) (remote.cpp:301)
+==1341798==    by 0x1201C6: Engine::start_handlers()::{lambda(int, int*)#1}::operator()(int, int*) const (remote.cpp:317)
+==1341798==    by 0x122014: void std::__invoke_impl<void, Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>(std::__invoke_other, Engine::start_handlers()::{lambda(int, int*)#1}&&, int&&, int*&&) (invoke.h:61)
+==1341798==    by 0x121F3F: std::__invoke_result<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>::type std::__invoke<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>(Engine::start_handlers()::{lambda(int, int*)#1}&&, int&&, int*&&) (invoke.h:96)
+==1341798==    by 0x121E46: void std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> >::_M_invoke<0ul, 1ul, 2ul>(std::_Index_tuple<0ul, 1ul, 2ul>) (std_thread.h:253)
+==1341798==    by 0x121DC7: std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> >::operator()() (std_thread.h:260)
+==1341798==    by 0x121D87: std::thread::_State_impl<std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> > >::_M_run() (std_thread.h:211)
+==1341798==    by 0x4B7F2B2: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==1341798==    by 0x4D83B42: start_thread (pthread_create.c:442)
+==1341798==    by 0x4E14BB3: clone (clone.S:100)
+==1341798== 
+==1341798== 72,704 bytes in 1 blocks are still reachable in loss record 36 of 37
+==1341798==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x4B4D979: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==1341798==    by 0x400647D: call_init.part.0 (dl-init.c:70)
+==1341798==    by 0x4006567: call_init (dl-init.c:33)
+==1341798==    by 0x4006567: _dl_init (dl-init.c:117)
+==1341798==    by 0x40202E9: ??? (in /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)
+==1341798==    by 0x4: ???
+==1341798==    by 0x1FFF0005DA: ???
+==1341798==    by 0x1FFF0005E5: ???
+==1341798==    by 0x1FFF0005E7: ???
+==1341798==    by 0x1FFF0005EC: ???
+==1341798==    by 0x1FFF0005EE: ???
+==1341798== 
+==1341798== 122,880 bytes in 30 blocks are still reachable in loss record 37 of 37
+==1341798==    at 0x48487A9: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1341798==    by 0x4A36517: ??? (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x4A3D321: uv_signal_init (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x4A4646A: uv_loop_init (in /usr/lib/x86_64-linux-gnu/libuv.so.1.0.0)
+==1341798==    by 0x11FFA4: Engine::request_handler(int, int*) (remote.cpp:302)
+==1341798==    by 0x1201C6: Engine::start_handlers()::{lambda(int, int*)#1}::operator()(int, int*) const (remote.cpp:317)
+==1341798==    by 0x122014: void std::__invoke_impl<void, Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>(std::__invoke_other, Engine::start_handlers()::{lambda(int, int*)#1}&&, int&&, int*&&) (invoke.h:61)
+==1341798==    by 0x121F3F: std::__invoke_result<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>::type std::__invoke<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*>(Engine::start_handlers()::{lambda(int, int*)#1}&&, int&&, int*&&) (invoke.h:96)
+==1341798==    by 0x121E46: void std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> >::_M_invoke<0ul, 1ul, 2ul>(std::_Index_tuple<0ul, 1ul, 2ul>) (std_thread.h:253)
+==1341798==    by 0x121DC7: std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> >::operator()() (std_thread.h:260)
+==1341798==    by 0x121D87: std::thread::_State_impl<std::thread::_Invoker<std::tuple<Engine::start_handlers()::{lambda(int, int*)#1}, int, int*> > >::_M_run() (std_thread.h:211)
+==1341798==    by 0x4B7F2B2: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==1341798== 
+==1341798== LEAK SUMMARY:
+==1341798==    definitely lost: 0 bytes in 0 blocks
+==1341798==    indirectly lost: 0 bytes in 0 blocks
+==1341798==      possibly lost: 21,472 bytes in 61 blocks
+==1341798==    still reachable: 272,479 bytes in 266 blocks
+==1341798==                       of which reachable via heuristic:
+==1341798==                         newarray           : 664 bytes in 3 blocks
+==1341798==         suppressed: 0 bytes in 0 blocks
+==1341798== 
+==1341798== Use --track-origins=yes to see where uninitialised values come from
+==1341798== For lists of detected and suppressed errors, rerun with: -s
+==1341798== ERROR SUMMARY: 24 errors from 10 contexts (suppressed: 0 from 0)
