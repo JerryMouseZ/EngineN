@@ -27,7 +27,7 @@ int setup_listening_socket(const char *ip, int port);
 int connect_to_server(const char *this_host_ip, const char *ip, int port);
 
 using info_type = std::pair<std::string, int>;
-void listener(int listen_fd, std::vector<info_type> *infos, int **recv_fdall);
+void listener(int listen_fd, std::vector<info_type> *infos, int recv_fdall[4][50]);
 
 struct data_request{
   uint32_t fifo_id;
