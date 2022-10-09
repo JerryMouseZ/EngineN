@@ -2,7 +2,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <fcntl.h>
-#include <liburing.h>
 #include <sys/socket.h>
 #include <thread>
 #include "include/comm.h"

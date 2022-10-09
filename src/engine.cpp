@@ -3,7 +3,6 @@
 #include "include/config.hpp"
 #include "include/data.hpp"
 #include "include/util.hpp"
-#include "liburing.h"
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
