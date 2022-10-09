@@ -21,7 +21,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 set(CMAKE_C_STANDARD 90)
 
-option(LIBUV_BUILD_SHARED "Build shared lib" ON)
+option(LIBUV_BUILD_SHARED "Build shared lib" OFF)
 
 cmake_dependent_option(LIBUV_BUILD_TESTS
   "Build the unit tests when BUILD_TESTING is enabled and we are the root project" ON
@@ -386,28 +386,6 @@ if(APPLE OR CMAKE_SYSTEM_NAME MATCHES "DragonFly|FreeBSD|Linux|NetBSD|OpenBSD")
   list(APPEND uv_test_libraries util)
 endif()
 
-if(LIBUV_BUILD_SHARED)
-  add_library(uv SHARED ${uv_sources})
-  target_compile_definitions(uv
-    INTERFACE
-      USING_UV_SHARED=1
-    PRIVATE
-      BUILDING_UV_SHARED=1
-      ${uv_defines})
-  target_compile_options(uv PRIVATE ${uv_cflags})
-  target_include_directories(uv
-    PUBLIC
-      $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    PRIVATE
-      $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>)
-  if(CMAKE_SYSTEM_NAME STREQUAL "OS390")
-    target_include_directories(uv PUBLIC $<BUILD_INTERFACE:${ZOSLIB_DIR}/include>)
-    set_target_properties(uv PROPERTIES LINKER_LANGUAGE CXX)
-  endif()
-  target_link_libraries(uv ${uv_libraries})
-endif()
-
 add_library(uv_a STATIC ${uv_sources})
 target_compile_definitions(uv_a PRIVATE ${uv_defines})
 target_compile_options(uv_a PRIVATE ${uv_cflags})
@@ -680,20 +658,6 @@ install(FILES ${PROJECT_BINARY_DIR}/libuv-static.pc
 install(TARGETS uv_a EXPORT libuvConfig
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(EXPORT libuvConfig DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/libuv)
-
-if(LIBUV_BUILD_SHARED)
-  # The version in the filename is mirroring the behaviour of autotools.
-  set_target_properties(uv PROPERTIES
-          VERSION ${UV_VERSION_MAJOR}.0.0
-          SOVERSION ${UV_VERSION_MAJOR})
-  configure_file(libuv.pc.in libuv.pc @ONLY)
-  install(FILES ${PROJECT_BINARY_DIR}/libuv.pc
-          DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
-  install(TARGETS uv EXPORT libuvConfig
-          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-endif()
 
 if(MSVC)
   set(CMAKE_DEBUG_POSTFIX d)

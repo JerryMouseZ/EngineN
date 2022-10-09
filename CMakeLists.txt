@@ -4,11 +4,13 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(OpenMP)
 
-add_compile_options(-g -O3)
+add_compile_options(-g -O3 -fPIC)
 
 add_subdirectory(libuv)
 
 include_directories(src)
+include_directories(libuv/include)
+
 add_library(interface
 SHARED
         src/interface.cpp
@@ -20,6 +22,6 @@ SHARED
         src/remote.cpp
 )
 
-target_link_libraries(interface OpenMP::OpenMP_CXX uv)
+target_link_libraries(interface OpenMP::OpenMP_CXX uv_a)
 
 message(${CMAKE_SOURCE_DIR})
