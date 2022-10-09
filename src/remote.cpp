@@ -216,16 +216,18 @@ void Engine::ask_peer_quit() {
 
 struct uv_param{
   Engine *engine;
-  void *buf;
+  /* void *buf; */
   void *resp_buf;
-  uv_write_t req;
-  uv_buf_t uv_buf;
+  /* uv_write_t req; */
+  /* uv_buf_t uv_buf; */
 };
 
 void alloc_buffer(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
-  uv_param *param = (uv_param *)handle->data;
-  buf->base = (char *)param->buf;
-  buf->len = sizeof(data_request);
+  buf->base = (char *) malloc(suggested_size);
+  buf->len = suggested_size;
+  /* uv_param *param = (uv_param *)handle->data; */
+  /* buf->base = (char *)param->buf; */
+  /* buf->len = sizeof(data_request); */
 }
 
 typedef struct {
@@ -247,10 +249,12 @@ void process_request(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
   if (nread < 0) {
     if (nread != UV_EOF)
       fprintf(stderr, "Read error %s\n", uv_err_name(nread));
-    uv_close((uv_handle_t*) client, on_close);
+    uv_read_stop(client);
+    free(buf->base);
     return;
   }
   if (nread == 0) {
+    uv_read_stop(client);
     return;
   }
   assert(nread == sizeof(data_request));
@@ -265,27 +269,29 @@ void process_request(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
   key = req->key;
   fifo_id = req->fifo_id;
   if (select_column == 22 && where_column == 22) {
-    uv_close((uv_handle_t*) client, on_close);
+    uv_read_stop(client);
     return;
   }
   if (where_column == Id || where_column == Salary)
-    DEBUG_PRINTF(0, "recv request select %s where %s = %ld\n", column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
+    DEBUG_PRINTF(VLOG, "recv request select %s where %s = %ld\n", column_str(select_column).c_str(), column_str(where_column).c_str(), *(uint64_t *)key);
   else
-    DEBUG_PRINTF(0, "recv request select %s where %s = %s\n", column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
+    DEBUG_PRINTF(VLOG, "recv request select %s where %s = %s\n", column_str(select_column).c_str(), column_str(where_column).c_str(), (char *)key);
 
   response_buffer *res_buffer = (response_buffer *)param->resp_buf;
   int num = param->engine->local_read(select_column, where_column, key, 128, res_buffer->body);
   res_buffer->header.fifo_id = fifo_id;
   res_buffer->header.ret = num;
   res_buffer->header.res_len = get_column_len(select_column) * num;
-
-  param->uv_buf.len = sizeof(response_header) + res_buffer->header.res_len;
-  param->uv_buf.base = (char *)res_buffer;
-  uv_write(&param->req, client, &param->uv_buf, 1, echo_write);
+  
+  uv_write_t *wq = (uv_write_t *) malloc(sizeof(uv_write_t));
+  uv_buf_t *wbuf = (uv_buf_t *) malloc(sizeof(uv_buf_t));
+  wbuf->len = sizeof(response_header) + res_buffer->header.res_len;
+  wbuf->base = (char *)res_buffer;
+  uv_write(wq, client, wbuf, 1, echo_write);
 }
 
 void init_uv(uv_tcp_t *handler, void *recv_buf, void *resp_buf, Engine *engine, uv_param *param) {
-  param->buf = recv_buf;
+  /* param->buf = recv_buf; */
   param->resp_buf = resp_buf;
   param->engine = engine;
   handler->data = param;
