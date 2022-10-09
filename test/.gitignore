@@ -17,3 +17,4 @@ test_single
 test_full
 test_single_no
 test_all_kill
+liburing
