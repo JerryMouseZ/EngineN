@@ -9,6 +9,8 @@ add_compile_options(-g -O3)
 add_subdirectory(libuv)
 
 include_directories(src)
+include_directories(libuv/include)
+
 add_library(interface
 SHARED
         src/interface.cpp
