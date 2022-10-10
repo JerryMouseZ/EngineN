@@ -42,7 +42,7 @@ public:
 
   // for remote
   // 创建listen socket，尝试和别的机器建立两条连接
-  void connect(const char *host_info, const char *const *peer_host_info, size_t peer_host_info_num, bool is_new_create);
+  void connect(const char *host_info, const char *const *peer_host_info, size_t peer_host_info_num, bool is_new_create, const char *aep_dir);
 
   void do_sync();
 
@@ -55,6 +55,9 @@ public:
   int get_backup_index();
 
   void do_peer_data_sync();
+
+  void notify_local_queue_exit_sync(int neighbor_idx, int qid);
+  void notify_remote_queue_exit_sync(int neighbor_idx, int qid);
 
 private:
 
@@ -80,11 +83,21 @@ private:
   int do_exchange_meta(DataTransMeta send_meta[MAX_NR_CONSUMER], DataTransMeta recv_meta[MAX_NR_CONSUMER]);
   int do_exchange_data(DataTransMeta send_meta[MAX_NR_CONSUMER], DataTransMeta recv_meta[MAX_NR_CONSUMER]);
   void build_index(int qid, int begin, int end, Index *id_index, Index *uid_index, Index *salary_index, Data *datap);
+  void start_sync_handlers();
 
+  bool any_local_in_sync();
+  bool any_rm_in_sync();
+
+  void waiting_all_exit_sync();
+
+public:
+  std::atomic<uint64_t> local_in_sync_cnt;
+  std::atomic<uint64_t> remote_in_sync_cnt;
 
 private:
   Data *datas;
-  Data *remote_datas;
+
+  RemoteData remote_datas[4][MAX_NR_CONSUMER];
 
   // indexes
   Index *id_r;
@@ -92,12 +105,12 @@ private:
   Index *sala_r;
 
   // remote indexes
-  Index *remote_id_r;
-  Index *remote_uid_r;
-  Index *remote_sala_r;
+  Index remote_id_r[4];
+  Index remote_sala_r[4];
 
   // write buffer
   UserQueue *qs;
+  SyncQueue sync_qs[MAX_NR_CONSUMER];
   std::thread *consumers;
 
   int host_index;
@@ -113,6 +126,8 @@ private:
   std::thread *req_handler[10];
   std::thread *req_weak_handler[10];
   std::thread *req_handlerall[4 * 10];
+  std::thread *sync_send_thread[4][NR_SYNC_HANDLER_EACH_NB];
+  std::thread *sync_resp_thread;
   /* volatile bool exited; */
   RemoteState remote_state; // 用来存当前有多少remote的user吧
 

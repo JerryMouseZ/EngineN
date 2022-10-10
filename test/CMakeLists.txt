@@ -8,39 +8,42 @@ find_package(OpenMP)
 # add_compile_options(-g -O3 -Wno-address-of-packed-member)
 add_subdirectory(libuv)
 
-add_executable(test_local test_local.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
+add_executable(test_local test_local.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp ../src/sync_queue.cpp)
 target_link_libraries(test_local pmem pthread uv OpenMP::OpenMP_CXX)
 
-add_executable(test_single test_single.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
+add_executable(test_single test_single.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp ../src/sync_queue.cpp)
 target_link_libraries(test_single pmem pthread uv OpenMP::OpenMP_CXX)
 
-add_executable(test_single_no test_single_no.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
+add_executable(test_single_no test_single_no.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp ../src/sync_queue.cpp)
 target_link_libraries(test_single_no pmem pthread uv OpenMP::OpenMP_CXX)
 
-add_executable(test_unaligned test_unaligned.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
+add_executable(test_unaligned test_unaligned.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp ../src/sync_queue.cpp)
 target_link_libraries(test_unaligned pmem pthread uv OpenMP::OpenMP_CXX)
 
-add_executable(test_crash test_crash.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
+add_executable(test_crash test_crash.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp ../src/sync_queue.cpp)
 target_link_libraries(test_crash pmem pthread uv OpenMP::OpenMP_CXX)
 # add_executable(init init.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/engine.cpp)
 # target_link_libraries(init pmem pthread uv)
 
-add_executable(test_connect test_connect.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
+add_executable(test_connect test_connect.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp ../src/sync_queue.cpp)
 target_link_libraries(test_connect pmem pthread uv OpenMP::OpenMP_CXX)
 
-add_executable(test_request test_request.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
+add_executable(test_request test_request.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp ../src/sync_queue.cpp)
 target_link_libraries(test_request pmem pthread uv OpenMP::OpenMP_CXX)
 
-add_executable(test_all test_all.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
+add_executable(test_all test_all.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp ../src/sync_queue.cpp)
 target_link_libraries(test_all pmem pthread uv OpenMP::OpenMP_CXX)
 
-add_executable(test_all_kill test_all_kill.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
+add_executable(test_all_kill test_all_kill.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp ../src/sync_queue.cpp)
 target_link_libraries(test_all_kill pmem pthread uv OpenMP::OpenMP_CXX)
 
-add_executable(test_full test_full.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
+add_executable(test_full test_full.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp ../src/sync_queue.cpp)
 target_link_libraries(test_full pmem pthread uv OpenMP::OpenMP_CXX)
 
-add_executable(test_backup test_backup.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp)
+add_executable(test_sync_queue test_sync_queue.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp ../src/sync_queue.cpp)
+target_link_libraries(test_sync_queue pmem pthread uv OpenMP::OpenMP_CXX)
+
+add_executable(test_backup test_backup.cpp ../src/interface.cpp ../src/comm.cpp ../src/thread_data.cpp ../src/data.cpp ../src/remote.cpp ../src/engine.cpp ../src/sync_data.cpp ../src/sync_queue.cpp)
 target_link_libraries(test_backup pmem pthread uv OpenMP::OpenMP_CXX)
 # add_executable(test_data test_data.cpp ../src/comm.cpp)
 # target_link_libraries(test_data pmem pthread uv)

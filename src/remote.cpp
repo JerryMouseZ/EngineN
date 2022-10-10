@@ -23,7 +23,7 @@
 Engine *engine = nullptr;
 
 // 创建listen socket，尝试和别的机器建立两条连接
-void Engine::connect(const char *host_info, const char *const *peer_host_info, size_t peer_host_info_num, bool is_new_create) {
+void Engine::connect(const char *host_info, const char *const *peer_host_info, size_t peer_host_info_num, bool is_new_create, const char *aep_dir) {
   if (host_info == NULL || peer_host_info == NULL)
     return;
   this_host_info = host_info;
@@ -54,6 +54,18 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
       neighbor_index[neighbor_cnt++] = i;
       DEBUG_PRINTF(INIT, "%s: neighbor_index[%d] = %d\n", this_host_info, neighbor_cnt - 1, neighbor_index[neighbor_cnt - 1]);
     }
+  }
+
+  std::string aep_prefix = std::string(aep_dir) + "/user.remote_data_";
+  int neighbor_idx;
+  for (int nb_i = 0; nb_i < 3; nb_i++) {
+    neighbor_idx = neighbor_index[nb_i];
+    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+      DEBUG_PRINTF(INIT, "start open remote_datas[%d]\n", i);
+      remote_datas[neighbor_idx][i].open(aep_prefix + std::to_string(neighbor_idx) + "_" + std::to_string(i));
+    }
+
+    remote_id_r[neighbor_idx].open(remote_datas[neighbor_idx]);
   }
 
   connect(infos, peer_host_info_num + 1, is_new_create);
@@ -98,6 +110,9 @@ void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create)
   }
 
   listen_thread.join();
+  
+  start_sync_handlers();
+
   start_handlers(); // 先start handlers
 }
 

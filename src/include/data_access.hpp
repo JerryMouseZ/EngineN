@@ -4,12 +4,15 @@
 #include "queue.hpp"
 #include <cassert>
 
-using UserQueue = LocklessQueue<User, QCMT_ALIGN>;
+using UserQueue = LocklessQueue<QCMT_ALIGN>;
 
 extern thread_local User race_data;
 
 class DataAccess {
 public:
+  DataAccess()
+    : datas(nullptr), qs(nullptr) {}
+
   DataAccess(Data *datas, UserQueue *qs)
     : datas(datas), qs(qs) {}
 
@@ -55,3 +58,22 @@ private:
   Data *datas;
   UserQueue *qs;
 };
+
+class RemoteDataAccess {
+public:
+  RemoteDataAccess()
+    : rmdatas(nullptr) { }
+
+  RemoteDataAccess(RemoteData *rmdatas)
+    : rmdatas(rmdatas) {}
+
+  const RemoteUser *read(uint32_t encoded_index) {
+    uint32_t qid = encoded_index >> 28;
+    uint32_t index = encoded_index & ((1 << 28) - 1);
+    return rmdatas[qid].data_read(index);
+  }
+
+private:
+  RemoteData *rmdatas;
+};
+
