@@ -56,6 +56,8 @@ int Engine::do_exchange_meta(DataTransMeta send_meta[MAX_NR_CONSUMER], DataTrans
   return 0;
 }
 
+#if 0
+
 int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta remote[MAX_NR_CONSUMER]) {
   bool need_to_send = false,
        need_to_recv = false;
@@ -253,3 +255,5 @@ void Engine::do_peer_data_sync() {
   end_time_record(&dsync_time);
   print_elapse("peer data sync", dsync_time);
 }
+
+#endif

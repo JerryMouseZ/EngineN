@@ -108,6 +108,25 @@ static inline bool inlinecompare(size_t hashval, const void *key, const User *us
   return 0;
 }
 
+static inline bool rm_inlinecompare(size_t hashval, const void *key, const RemoteUser *user, int column, uint8_t extra, uint32_t inlinekey) {
+  size_t val = extra;
+  val <<= 32;
+  val += inlinekey;
+  hashval >>= 24;
+  if (val != hashval)
+    return 0;
+
+  switch(column) {
+  case Id:
+    return 1;
+  case Salary:
+    return 1;
+  default:
+    DEBUG_PRINTF(LOG, "column error");
+  }
+  return 0;
+}
+
 static void *res_copy(const User *user, void *res, int32_t select_column) {
   switch(select_column) {
   case Id: 
@@ -132,13 +151,48 @@ static void *res_copy(const User *user, void *res, int32_t select_column) {
   return res;
 }
 
+static void *rm_res_copy(const RemoteUser *user, void *res, int32_t select_column) {
+  switch(select_column) {
+  case Id: 
+    *(int64_t *) res = user->id;
+    res = (char *)res + 8; 
+    break;
+  case Salary: 
+    *(int64_t *) res = user->salary;
+    res = (char *)res + 8; 
+    break;
+  default: 
+    DEBUG_PRINTF(LOG, "column error"); // wrong
+  }
+  return res;
+}
 
 
 class OverflowIndex{
 public:
   volatile std::atomic<size_t> *next_location; // open to index
-  OverflowIndex(const DataAccess &accessor)
-    : accessor(accessor) {
+  OverflowIndex() {}
+
+  void open(const DataAccess &accessor) {
+    this->accessor = accessor;
+    ptr = reinterpret_cast<char *>(map_anonymouse(OVER_NUM * sizeof(Bucket) + 64));
+    madvise(ptr, OVER_NUM * sizeof(Bucket), MADV_RANDOM);
+    next_location = reinterpret_cast<std::atomic<size_t> *>(ptr);
+
+    next_location->store(64, std::memory_order_release);
+  }
+
+  void open(const RemoteDataAccess &rm_accessor) {
+    this->rm_accessor = rm_accessor;
+    ptr = reinterpret_cast<char *>(map_anonymouse(OVER_NUM * sizeof(Bucket) + 64));
+    madvise(ptr, OVER_NUM * sizeof(Bucket), MADV_RANDOM);
+    next_location = reinterpret_cast<std::atomic<size_t> *>(ptr);
+
+    next_location->store(64, std::memory_order_release);
+  }
+
+  void open(RemoteData *rmdatas) {
+    this->accessor = accessor;
     ptr = reinterpret_cast<char *>(map_anonymouse(OVER_NUM * sizeof(Bucket) + 64));
     madvise(ptr, OVER_NUM * sizeof(Bucket), MADV_RANDOM);
     next_location = reinterpret_cast<std::atomic<size_t> *>(ptr);
@@ -198,6 +252,31 @@ public:
 
   }
 
+  size_t cache_get(size_t over_offset, size_t hash_val, const void *key, int where_column, int select_column, void *res, bool multi) {
+    int count = 0;
+    Bucket *bucket = reinterpret_cast<Bucket *>(ptr + over_offset);
+    uint32_t num = std::min(ENTRY_NUM, bucket->next_free.load(std::memory_order_acquire));
+    for (int i = 0; i < num; ++i) {
+      uint64_t offset = bucket->entries[i];
+      const RemoteUser *tmp = rm_accessor.read(offset);
+      /* __builtin_prefetch(tmp, 0, 0); */
+      if (tmp && rm_inlinecompare(hash_val, key, tmp, where_column, bucket->extra[i], bucket->inlinekeys[i])) {
+        res = rm_res_copy(tmp, res, select_column);
+        count++;
+        if (!multi)
+          return count;
+      }
+    }
+
+    size_t index;
+    if ((index = bucket->bucket_next) == 0)
+      return count;
+
+    uint64_t next_offset = 64 + (index - 1) * sizeof(Bucket);
+    count += cache_get(next_offset, hash_val, key, where_column, select_column, res, multi);
+    return count;
+
+  }
   ~OverflowIndex() {
     if (ptr) {
       munmap(ptr, BUCKET_NUM * sizeof(Bucket) + 64);
@@ -207,17 +286,29 @@ public:
 private:
   char *ptr;
   DataAccess accessor;
+  RemoteDataAccess rm_accessor;
 };
 
 class Index
 {
 public:
-  Index(Data *datas, UserQueue *qs)
-    : accessor(datas, qs) {
-      hash_ptr = reinterpret_cast<char *>(map_anonymouse(BUCKET_NUM * sizeof(Bucket)));
-      madvise(hash_ptr, BUCKET_NUM * sizeof(Bucket), MADV_RANDOM);
-      overflowindex = new OverflowIndex(accessor);
-    }
+  Index() {
+    overflowindex = new OverflowIndex;
+  }
+
+  void open(Data *datas, UserQueue *qs) {
+    accessor = DataAccess(datas, qs);
+    hash_ptr = reinterpret_cast<char *>(map_anonymouse(BUCKET_NUM * sizeof(Bucket)));
+    madvise(hash_ptr, BUCKET_NUM * sizeof(Bucket), MADV_RANDOM);
+    overflowindex->open(accessor);
+  }
+
+  void open(RemoteData *rmdatas) {
+    rm_accessor = RemoteDataAccess(rmdatas);
+    hash_ptr = reinterpret_cast<char *>(map_anonymouse(BUCKET_NUM * sizeof(Bucket)));
+    madvise(hash_ptr, BUCKET_NUM * sizeof(Bucket), MADV_RANDOM);
+    overflowindex->open(rm_accessor);
+  }
 
   ~Index() {
     if (hash_ptr)
@@ -282,8 +373,39 @@ public:
     return count;
   }
 
+  int cache_get(const void *key, int where_column, int select_column, void *res, bool multi) {
+    size_t hash_val = key_hash(key, where_column);
+    size_t bucket_location = hash_val & (BUCKET_NUM - 1);
+    int count = 0;
+    Bucket *bucket = reinterpret_cast<Bucket *>(hash_ptr + bucket_location * sizeof(Bucket));
+    uint32_t num = std::min(ENTRY_NUM, bucket->next_free.load(std::memory_order_acquire));
+    for (int i = 0; i < num; ++i) {
+      size_t offset = bucket->entries[i];
+      const RemoteUser *tmp = rm_accessor.read(offset);
+      /* __builtin_prefetch(tmp, 0, 0); */
+      if (tmp && rm_inlinecompare(hash_val, key, tmp, where_column, bucket->extra[i], bucket->inlinekeys[i])) {
+        res = rm_res_copy(tmp, res, select_column);
+        count++;
+        if (!multi) {
+          return count;
+        }
+      }
+    }
+
+    size_t index;
+    if ((index = bucket->bucket_next) == 0) {
+      return count;
+    }
+
+    uint64_t next_offset = 64 + (index - 1) * sizeof(Bucket);
+    count += overflowindex->cache_get(next_offset, hash_val, key, where_column, select_column, res, multi);
+    return count;
+  }
+
+
 private:
   char *hash_ptr;
   OverflowIndex *overflowindex;
   DataAccess accessor;
+  RemoteDataAccess rm_accessor;
 };

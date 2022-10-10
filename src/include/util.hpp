@@ -33,7 +33,7 @@
 #define VLOG 1 // 控制打印每个请求信息的打印（select等等）
 #define QINFO 1 // 控制write buffer queue信息的打印
 #define QDEBUG 1 // 控制write buffer queue debug信息的打印
-#define INIT 0 // 控制初始化过程信息的打印
+#define INIT 1 // 控制初始化过程信息的打印
 #define WBREAD 0 // 当发生write buffer还没写回就尝试读时，block信息的打印
 
 #define BROADCAST 1

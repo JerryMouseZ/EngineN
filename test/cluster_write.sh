@@ -1,5 +1,5 @@
 #!/bin/bash
-for i in 0 1 2 3
-do
-./test_all $i 9000 w $1 &
-done
+./test_sync_queue 0 9000 w $1 &
+./test_sync_queue 1 9000 w $1 &
+./test_sync_queue 2 9000 w $1 &
+./test_sync_queue 3 9000 w $1

@@ -29,6 +29,8 @@ Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr)
       sync_recv_fdall[i][j] = -1;
     }
   }
+  local_in_sync_cnt = 3 * MAX_NR_CONSUMER; 
+  remote_in_sync_cnt = 3 * MAX_NR_CONSUMER; 
   DEBUG_PRINTF(qs, "Fail to mmap consumer queues\n");
 }
 
@@ -74,16 +76,18 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
     datas[i].open(aep_path + "user.data" + std::to_string(i));
   }
   
-  // remote data
-
-  id_r = new Index(datas, qs);
-  uid_r = new Index(datas, qs);
-  sala_r = new Index(datas, qs);
+  // local index
+  id_r = new Index;
+  id_r->open(datas, qs);
+  uid_r = new Index;
+  uid_r->open(datas, qs);
+  sala_r = new Index;
+  sala_r->open(datas, qs);
 
   bool q_is_new_create[MAX_NR_CONSUMER];
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     DEBUG_PRINTF(INIT, "start open queue[%d]\n", i);
-    if (qs[i].open(disk_path + "queue" + std::to_string(i), &q_is_new_create[i], datas[i].get_pmem_users(), i)) {
+    if (qs[i].open(disk_path + "queue" + std::to_string(i), &q_is_new_create[i], datas[i].get_pmem_users(), &sync_qs[i], i)) {
       return false;
     }
   }
@@ -114,16 +118,6 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
   bool remote_state_is_new_create;
   DEBUG_PRINTF(INIT, "start open remote_state\n");
   remote_state.open(disk_path + "remote_state", &remote_state_is_new_create);
-
-  remote_datas = new Data[MAX_NR_CONSUMER];
-  for (int i = 0; i < MAX_NR_CONSUMER; i++) {
-    DEBUG_PRINTF(INIT, "start open remote_datas[%d]\n", i);
-    remote_datas[i].open(aep_path + "user.remote_data" + std::to_string(i));
-  }
-
-  remote_id_r = new Index(remote_datas, nullptr);
-  remote_uid_r = new Index(remote_datas, nullptr);
-  remote_sala_r = new Index(remote_datas, nullptr);
 
   return remote_state_is_new_create;
 }
@@ -163,6 +157,11 @@ size_t Engine::local_read(int32_t select_column,
   switch(where_column) {
   case Id:
     result = id_r->get(column_key, where_column, select_column, res, false);
+    if (select_column == Salary) {
+      for (int i = 0; !result && i < 3; i++) {
+        result = remote_id_r[neighbor_index[i]].cache_get(column_key, where_column, select_column, res, false);
+      }
+    }
 #ifndef BROADCAST
     if (!result)
       result = remote_id_r->get(column_key, where_column, select_column, res, false);
@@ -184,6 +183,12 @@ size_t Engine::local_read(int32_t select_column,
     break;
   case Salary:
     result = sala_r->get(column_key, where_column, select_column, res, true);
+    if (select_column == Id) {
+      for (int i = 0; i < 3; i++) {
+        res = ((char *)res) + result * key_len[select_column];
+        result += remote_sala_r[neighbor_index[i]].cache_get(column_key, where_column, select_column, res, true);
+      }
+    }
 #ifndef BROADCAST
     res = ((char *)res) + result * key_len[select_column];
     result += remote_sala_r->get(column_key, where_column, select_column, res, true);
@@ -200,6 +205,11 @@ size_t Engine::read(int32_t select_column,
                     int32_t where_column, const void *column_key, size_t column_key_len, void *res) {
   size_t result = 0;
   result = local_read(select_column, where_column, column_key, column_key_len, res);
+
+  if ((select_column == Salary && where_column == Id) || (where_column == Salary && select_column == Id)) {
+    return result;
+  }
+
   if (result == 0 || where_column == Salary) {
     res = (char *) res + result * key_len[select_column];
     result += remote_read(select_column, where_column, column_key, column_key_len, res);

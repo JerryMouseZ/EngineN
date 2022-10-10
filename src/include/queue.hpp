@@ -16,6 +16,8 @@
 #include "util.hpp"
 #include "time.hpp"
 
+#include "sync_queue.hpp"
+
 // 测试性能，需要调参
 constexpr uint64_t QBITS = 14;
 // 测试正确性
@@ -30,16 +32,16 @@ struct alignas(CACHELINE_SIZE) cache_aligned_uint64 {
 
 constexpr uint64_t PER_QUEUE_CONSUMER = 1;
 
-template<typename T, uint64_t CMT_ALIGN>
+template<uint64_t CMT_ALIGN>
 class alignas(CACHELINE_SIZE) LocklessQueue {
 public:
-
+  using T = User;
   using DataArray = CommitArray<T, CMT_ALIGN>;
   using cmt_func_t = void (*)(const DataArray *, uint64_t);
   using tail_cmt_func_t = void (*)(const DataArray *, uint64_t, uint64_t);
 
   static constexpr uint64_t CMT_BATCH_CNT = DataArray::N_DATA;
-  static constexpr uint64_t UNALIGNED_META_SIZE = 3 * 64 + MAX_NR_PRODUCER * 64;
+  static constexpr uint64_t UNALIGNED_META_SIZE = 4 * 64 + MAX_NR_PRODUCER * 64;
   static constexpr uint64_t QMETA_SIZE = ROUND_UP(UNALIGNED_META_SIZE, CMT_ALIGN);
 
   LocklessQueue() 
@@ -57,7 +59,7 @@ public:
       consumer_maybe_waiting = false;
     }
 
-  int open(std::string fname, bool *is_new_create, DataArray *pmem_data, uint32_t id) {
+  int open(std::string fname, bool *is_new_create, DataArray *pmem_data, SyncQueue *sync_q, uint32_t id) {
 
     char *map_ptr = reinterpret_cast<char *>(map_file(fname.c_str(), QMETA_SIZE + QSIZE * sizeof(DataArray), is_new_create));
 
@@ -73,6 +75,7 @@ public:
     data = (DataArray *)(map_ptr + QMETA_SIZE);
     this->pmem_data = pmem_data;
     this->id = id;
+    this->sync_q = sync_q;
 
     DEBUG_PRINTF(QINFO, "Open queue %u: tail = %lu, last_head = %lu, head = %lu\n", id, *tail, *last_head, head->load());
 
@@ -136,6 +139,24 @@ public:
       update_last_head();
     }
 
+    // uint64_t sq_head = sync_q->head;
+    // uint64_t cmt_end = pos + waiting_cnt;
+    // const User *user;
+    // if (likely(cmt_end > sq_head)) {
+    //   uint64_t sq_waiting_cnt = cmt_end - sq_head;
+    //   uint64_t src_pos = cmt_end - sq_waiting_cnt;
+    //   uint64_t dst_pos = sq_head;
+
+    //   if (unlikely(sync_q->get_free_cnt() < sq_waiting_cnt)) {
+    //     // TODO:
+    //   }
+    //   for (int i = 0; i < sq_waiting_cnt; i++, src_pos++, dst_pos++) {
+    //     sync_q->copy_to(user_at(src_pos), dst_pos);
+    //   }
+
+    //   sync_q->update_head(cmt_end);
+    // }
+
     if (likely(waiting_cnt == CMT_BATCH_CNT)) {
       do_commit(&data[ca_pos], caid);    
     } else {
@@ -148,6 +169,26 @@ public:
     *tail = pos + waiting_cnt;
 
     return true;
+  }
+
+  void commit_to_sync_q(uint64_t cmt_end) {
+    uint64_t sq_head = sync_q->get_head();
+    const User *user;
+    if (likely(cmt_end > sq_head)) {
+      uint64_t sq_waiting_cnt = cmt_end - sq_head;
+      uint64_t src_pos = cmt_end - sq_waiting_cnt;
+      uint64_t dst_pos = sq_head;
+
+      while (unlikely(sync_q->get_free_cnt() < sq_waiting_cnt)) {
+        // TODO:
+      }
+
+      for (int i = 0; i < sq_waiting_cnt; i++, src_pos++, dst_pos++) {
+        sync_q->copy_to(user_at(src_pos), dst_pos);
+      }
+
+      sync_q->update_head(cmt_end);
+    }
   }
 
   bool pop_nonexit() {
@@ -412,9 +453,10 @@ public:
   DataArray *data;
   DataArray *pmem_data;
   duration_t *consumer_sleep_elapse;    
+  SyncQueue *sync_q;
   uint32_t id;
   volatile bool producers_exit;
-  char pad1[3];
+  char pad1[59];
   /* cacheline end */
 
   /* per-thread write data, cache-aligned */
