@@ -129,6 +129,7 @@ int main(int argc, char **argv)
   if (argv[3][0] == 'w') {
     test_engine_write(context, index, num);
   } else {
+    fprintf(stderr, "start read stage\n");
     test_engine_read(context, num * 4);
     engine_deinit(context);
   }

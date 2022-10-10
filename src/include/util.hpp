@@ -35,6 +35,7 @@
 #define QDEBUG 1 // 控制write buffer queue debug信息的打印
 #define INIT 1 // 控制初始化过程信息的打印
 #define WBREAD 0 // 当发生write buffer还没写回就尝试读时，block信息的打印
+#define VSYNC 1 // Verbose 数据同步信息
 
 #define BROADCAST 1
 

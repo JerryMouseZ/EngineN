@@ -85,10 +85,11 @@ void process_sync_send(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
 
   if (unlikely(param->eg->try_notify_enter(param->neighbor_idx, param->qid))) {
     param->eg->local_in_sync_cnt.fetch_add(1);
-    param->eg->remote_in_sync_cnt.fetch_add(1);
     param->eg->end_notify_enter();
   }
 
+  DEBUG_PRINTF(VSYNC, "%s: Recv start nread = %ld send from index = %d to q[%d]\n",
+    this_host_info, nread, param->neighbor_idx, param->qid);
 
   do {
     if (rest == 0) {
@@ -114,6 +115,8 @@ void process_sync_send(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
           return;
         }
       }
+      DEBUG_PRINTF(VSYNC, "%s: nread left = %ld recv header = %d send from index = %d to q[%d]\n",
+        this_host_info, nread, current_send_cnt, param->neighbor_idx, param->qid);
     }
 
     if (nread == 0) {
@@ -127,6 +130,9 @@ void process_sync_send(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
       rest -= nread;
       buf += nread;
       nread = 0;
+
+      DEBUG_PRINTF(VSYNC, "%s: rest = %ld send from index = %d to q[%d]\n",
+        this_host_info, rest, param->neighbor_idx, param->qid);
     } else{
       memcpy(write_pos, buf, rest);
 
@@ -136,8 +142,8 @@ void process_sync_send(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
 
       rmdata->local_cnt += current_send_cnt;
 
-      DEBUG_PRINTF(current_send_cnt, "%s: recv from index = %d to q[%d] cnt = %d, now local_cnt = %d\n",
-        this_host_info, param->neighbor_idx, param->qid, current_send_cnt, rmdata->local_cnt);
+      DEBUG_PRINTF(VSYNC, "%s: nread = %ld send from index = %d to q[%d]\n",
+        this_host_info, nread, param->neighbor_idx, param->qid);
 
       resp.cnt = current_send_cnt;
       ret = send_all(param->recv_fd, &resp, sizeof(resp), 0);
@@ -261,8 +267,9 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
 
     resp_cnt = ((sync_resp *)buf)->cnt;
     nread -= sizeof(sync_resp);
+    buf += sizeof(sync_resp);
 
-    DEBUG_PRINTF(0, "%s: recv resp from index = %d to q[%d] resp_cnt = %d\n",
+    DEBUG_PRINTF(VSYNC, "%s: recv resp from index = %d to q[%d] resp_cnt = %d\n",
       this_host_info, param->neighbor_idx, qid, resp_cnt);
 
     if (resp_cnt == 0) {
@@ -348,24 +355,14 @@ void Engine::start_sync_handlers() {
     }
   }
 
+  remote_in_sync_cnt = 3 * MAX_NR_CONSUMER;
+
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     auto local_cnt = qs[i].head->load();
     sync_send msg;
     RemoteUser *buf;
     const User *user;
     int ret, nbytes;
-
-    msg.cnt = local_cnt;
-
-    for (int nb_i = 0; nb_i < 3; nb_i++) {
-      int neighbor_idx = neighbor_index[nb_i];
-      ret = send_all(sync_send_fdall[neighbor_idx][i], &msg, sizeof(msg), 0);
-      if (ret < 0) {
-        DEBUG_PRINTF(0, "init send header sync error\n");
-      }
-      assert(ret == sizeof(msg));
-    }
-
 
     if (local_cnt > 0) {
       nbytes = local_cnt * sizeof(RemoteUser);
@@ -379,16 +376,42 @@ void Engine::start_sync_handlers() {
 
       for (int nb_i = 0; nb_i < 3; nb_i++) {
         int neighbor_idx = neighbor_index[nb_i];
+
+        msg.cnt = local_cnt;
+        ret = send_all(sync_send_fdall[neighbor_idx][i], &msg, sizeof(msg), 0);
+        if (ret < 0) {
+          DEBUG_PRINTF(0, "init send header sync error\n");
+        }
+        assert(ret == sizeof(msg));
+
         ret = send_all(sync_send_fdall[neighbor_idx][i], buf, nbytes, 0);
         if (ret < 0) {
-          DEBUG_PRINTF(0, "init send data sync error\n");
+          DEBUG_PRINTF(0, "init send data sync error:  %d\n", ret);
         }
         assert(ret == nbytes);
+
+        msg.cnt = 0;
+        ret = send_all(sync_send_fdall[neighbor_idx][i], &msg, sizeof(msg), 0);
+        if (ret < 0) {
+          DEBUG_PRINTF(0, "init send header sync error\n");
+        }
+        assert(ret == sizeof(msg));
       }
 
       sync_qs[i].sync_to(local_cnt);
 
       free(buf);
+    } else {
+      msg.cnt = 0;
+
+      for (int nb_i = 0; nb_i < 3; nb_i++) {
+        int neighbor_idx = neighbor_index[nb_i];
+        ret = send_all(sync_send_fdall[neighbor_idx][i], &msg, sizeof(msg), 0);
+        if (ret < 0) {
+          DEBUG_PRINTF(0, "init send header sync error\n");
+        }
+        assert(ret == sizeof(msg));
+      }
     }
 
     DEBUG_PRINTF(local_cnt, "%s: send to 3 peers q[%d].local_cnt = %ld\n", this_host_info, i, local_cnt);

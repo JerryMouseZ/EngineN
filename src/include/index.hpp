@@ -384,7 +384,9 @@ public:
       const RemoteUser *tmp = rm_accessor.read(offset);
       /* __builtin_prefetch(tmp, 0, 0); */
       if (tmp && rm_inlinecompare(hash_val, key, tmp, where_column, bucket->extra[i], bucket->inlinekeys[i])) {
+        DEBUG_PRINTF(0, "%s: Before rm res copy\n", this_host_info);
         res = rm_res_copy(tmp, res, select_column);
+        DEBUG_PRINTF(0, "%s: After rm res copy\n", this_host_info);
         count++;
         if (!multi) {
           return count;
