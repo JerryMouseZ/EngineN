@@ -83,7 +83,12 @@ void process_sync_send(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
   uint32_t current_send_cnt = param->current_send_cnt;
   int ret;
 
-  param->eg->local_in_sync_cnt.fetch_add(1);
+  if (unlikely(param->eg->try_notify_enter(param->neighbor_idx, param->qid))) {
+    param->eg->local_in_sync_cnt.fetch_add(1);
+    param->eg->remote_in_sync_cnt.fetch_add(1);
+    param->eg->end_notify_enter();
+  }
+
 
   do {
     if (rest == 0) {
@@ -248,9 +253,6 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
   const char *buf = uv_buf->base;
   uint32_t *neighbor_local_cnt = param->sync_q->neighbor_local_cnt;
   uint32_t resp_cnt;
-
-  // 单线程，不需要考虑数据可见性
-  param->eg->remote_in_sync_cnt.fetch_add(1);
 
   do {
     if (unlikely(nread < sizeof(sync_resp))) {
@@ -417,7 +419,7 @@ bool Engine::any_rm_in_sync() {
 void Engine::waiting_all_exit_sync() {
   DEBUG_PRINTF(0, "%s: start waiting for remote\n", this_host_info);
 
-  while (any_rm_in_sync()) {
+  while (any_rm_in_sync() || !in_sync_visible) {
     sched_yield();
   }
 
@@ -428,4 +430,13 @@ void Engine::waiting_all_exit_sync() {
   }
 
   DEBUG_PRINTF(0, "%s: end waiting\n", this_host_info);
+}
+
+bool Engine::try_notify_enter(int neighbor_idx, int qid) {
+  bool b = false;
+  return in_sync[neighbor_idx][qid].compare_exchange_strong(b, true);
+}
+
+void Engine::end_notify_enter() {
+  return in_sync_visible.store(true);
 }
