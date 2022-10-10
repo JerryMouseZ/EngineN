@@ -56,6 +56,8 @@ public:
 
   void do_peer_data_sync();
 
+  bool try_notify_enter(int neighbor_idx, int qid);
+  void end_notify_enter();
   void notify_local_queue_exit_sync(int neighbor_idx, int qid);
   void notify_remote_queue_exit_sync(int neighbor_idx, int qid);
 
@@ -128,6 +130,9 @@ private:
   std::thread *req_handlerall[4 * 10];
   std::thread *sync_send_thread[4][NR_SYNC_HANDLER_EACH_NB];
   std::thread *sync_resp_thread;
+  std::atomic<bool> in_sync[4][MAX_NR_CONSUMER];
+  std::atomic<bool> in_sync_visible;
+
   /* volatile bool exited; */
   RemoteState remote_state; // 用来存当前有多少remote的user吧
 

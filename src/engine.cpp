@@ -28,9 +28,13 @@ Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr)
       sync_send_fdall[i][j] = -1;
       sync_recv_fdall[i][j] = -1;
     }
+    for (int j = 0; j < MAX_NR_CONSUMER; j++) {
+      in_sync[i][j] = false;
+    }
+    in_sync_visible = false;
+    local_in_sync_cnt = 0;
+    remote_in_sync_cnt = 0;
   }
-  local_in_sync_cnt = 3 * MAX_NR_CONSUMER; 
-  remote_in_sync_cnt = 3 * MAX_NR_CONSUMER; 
   DEBUG_PRINTF(qs, "Fail to mmap consumer queues\n");
 }
 
