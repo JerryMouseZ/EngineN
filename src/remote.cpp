@@ -32,7 +32,7 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
   int host_ip_len = split_index - host_info;
   std::string host_ip = std::string(host_info, host_ip_len);
   int host_port = atoi(split_index + 1);
-  fprintf(stderr, "host info : %s %d\n", host_ip.c_str(), host_port);
+  DEBUG_PRINTF(CONNECT, "host info : %s %d\n", host_ip.c_str(), host_port);
   infos.emplace_back(info_type(host_ip, host_port));
 
   // peer ips
@@ -94,7 +94,7 @@ void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create)
     for (int i = 0; i < MAX_NR_PRODUCER; i++) {
       send_fdall[neighbor_idx][i] = 
        connect_to_server(this_host_ip, infos[neighbor_idx].first.c_str(), infos[neighbor_idx].second);
-      DEBUG_PRINTF(INIT, "%s: neighbor index = %d senf_fd[%d] = %d to %s\n",
+      DEBUG_PRINTF(CONNECT, "%s: neighbor index = %d senf_fd[%d] = %d to %s\n",
         this_host_info, neighbor_idx, i, send_fdall[neighbor_idx][i], infos[neighbor_idx].first.c_str());
     }
   }
@@ -105,7 +105,7 @@ void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create)
     for (int i = 0; i < MAX_NR_CONSUMER; i++) {
       sync_send_fdall[neighbor_idx][i] = 
        connect_to_server(this_host_ip, infos[neighbor_idx].first.c_str(), infos[neighbor_idx].second);
-      DEBUG_PRINTF(INIT, "%s: neighbor index = %d sync_send_fd[%d] = %d to %s\n",
+      DEBUG_PRINTF(CONNECT, "%s: neighbor index = %d sync_send_fd[%d] = %d to %s\n",
         this_host_info, neighbor_idx, i, sync_send_fdall[neighbor_idx][i], infos[neighbor_idx].first.c_str());
     }
   }
@@ -268,16 +268,18 @@ void on_close(uv_handle_t* handle) {
 
 void echo_write(uv_write_t *req, int status) {
   if (status) {
-    fprintf(stderr, "Write error %s\n", uv_strerror(status));
+    DEBUG_PRINTF(NETWORK, "Write error %s\n", uv_strerror(status));
   }
   free(req);
 }
 
 void process_request(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
+  check_thread_spawn(4);
+
   uv_param *param = (uv_param *)client->data;
   if (nread < 0) {
     if (nread != UV_EOF)
-      fprintf(stderr, "Read error %s\n", uv_err_name(nread));
+      DEBUG_PRINTF(NETWORK, "Read error %s\n", uv_err_name(nread));
     uv_read_stop(client);
     return;
   }
@@ -328,6 +330,8 @@ void init_uv(uv_tcp_t *handler, void *recv_buf, void *resp_buf, Engine *engine, 
 
 // 传参是个大问题
 void Engine::request_handler(int node, int *fds){
+  check_thread_spawn(3);
+
   // 用一个ring来存request，然后可以异步处理，是一个SPMC的模型，那就不能用之前的队列了
   data_request req[5];
   response_buffer res_buffer[5];
@@ -405,7 +409,7 @@ int Engine::get_backup_index() {
   case 3:
     return 2;
   }
-  fprintf(stderr, "error host index %d\n", host_index);
+  DEBUG_PRINTF(LOG, "error host index %d\n", host_index);
   return -1;
 }
 

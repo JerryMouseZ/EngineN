@@ -29,19 +29,25 @@
 #endif
 
 // close log
-#define LOG 0 // 控制普通信息（不是每次请求都打印）的打印，比较少，主要是元信息
+#define LOG 0 // 打印不应该出现的error（如column error, host index error）的打印
 #define VLOG 1 // 控制打印每个请求信息的打印（select等等）
 #define QINFO 1 // 控制write buffer queue信息的打印
 #define QDEBUG 1 // 控制write buffer queue debug信息的打印
-#define INIT 1 // 控制初始化过程信息的打印
+#define INIT 0 // 控制本地初始化过程信息的打印
+#define CONNECT 0 // 控制网络连接初始化过程信息的打印
+#define NETWORK 0 // 控制req、resp等每次过程中发生错误信息的打印
 #define WBREAD 0 // 当发生write buffer还没写回就尝试读时，block信息的打印
+#define COMHEAD 1 // 控制queue发生compact head时的信息打印
+#define QROLLBACK 0 // 控制queue发生rollback时的信息打印
 #define VSYNC 1 // Verbose 数据同步信息
+#define SYNCSTATE 0 // 节点进入/退出sync状态的信息
 
 #define BROADCAST 1
 
 // #define LOCAL 1
 // #define BIND_PORT
 
+#define CHECK_THREAD_CNT
 #define TIME_RECORD
 
 #define START 64
