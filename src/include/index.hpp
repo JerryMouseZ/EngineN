@@ -26,7 +26,7 @@
  * Bucket buckets[max_num];
  */
 
-static const int BUCKET_NUM = 1 << 26;
+static const int BUCKET_NUM = 1 << 25;
 static const int OVER_NUM = 1 << 22;
 static const uint32_t ENTRY_NUM = 6;
 
@@ -208,6 +208,7 @@ public:
       if (next_free == ENTRY_NUM) {
         uint64_t maybe_next = next_location->fetch_add(sizeof(Bucket));
         uint32_t index = (maybe_next - 64) / sizeof(Bucket) + 1;
+        assert(index <= OVER_NUM);
         bucket->bucket_next = index;
         bucket->is_overflow = 1;
       }
@@ -325,6 +326,7 @@ public:
       if (next_free == ENTRY_NUM) {
         uint64_t maybe_next = overflowindex->next_location->fetch_add(sizeof(Bucket), std::memory_order_acq_rel);
         uint32_t index = (maybe_next - 64) / sizeof(Bucket) + 1;
+        assert(index <= OVER_NUM);
         bucket->bucket_next = index;
         bucket->is_overflow = 1;
       }
