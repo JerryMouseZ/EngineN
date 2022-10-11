@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "config.hpp"
+
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
@@ -51,6 +53,10 @@
 #define TIME_RECORD
 
 #define START 64
+
+struct alignas(CACHELINE_SIZE) cache_aligned_uint64 {
+  uint64_t value;
+};
 
 static void prefault(char *ptr, size_t len, bool memset_clear)
 {

@@ -26,10 +26,6 @@ constexpr uint64_t QSIZE = 1 << QBITS;
 constexpr uint64_t QMASK = QSIZE - 1;
 
 // OPT8
-struct alignas(CACHELINE_SIZE) cache_aligned_uint64 {
-  uint64_t value;
-};
-
 constexpr uint64_t PER_QUEUE_CONSUMER = 1;
 
 template<uint64_t CMT_ALIGN>

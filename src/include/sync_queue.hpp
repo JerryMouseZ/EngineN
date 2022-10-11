@@ -32,11 +32,14 @@ struct RemoteUser {
 class SyncQueue {
 public:
   SyncQueue() 
-    : head(0), tail(0), send_head(0), neighbor_local_cnt{0} {
+    : head(0), last_head(0), tail(0), send_head(0), neighbor_local_cnt{0} {
       data = reinterpret_cast<RemoteUser *>(map_anonymouse(SQSIZE * sizeof(RemoteUser)));
       exited = false;
       pthread_mutex_init(&mutex, NULL);
       pthread_cond_init(&cond, NULL);
+      for (int i = 0; i < MAX_NR_PRODUCER; i++) {
+        thread_heads[i].value = UINT64_MAX;
+      }
     }
   ~SyncQueue() {
     munmap(data, SQSIZE * sizeof(RemoteUser));
@@ -57,13 +60,22 @@ public:
   }
 
   uint64_t push(const User *user) {
+    this_thread_head() = head.load(std::memory_order_consume);
+
     size_t pos = head.fetch_add(1, std::memory_order_acquire);
+
+    this_thread_head() = pos;
+    
     while (tail + SQSIZE <= pos) {
       sched_yield();
     }
 
     data[pos % SQSIZE].id = user->id;
     data[pos % SQSIZE].salary = user->salary;
+
+    std::atomic_thread_fence(std::memory_order_release);
+    this_thread_head() = UINT64_MAX;
+
     DEBUG_PRINTF(VLOG, "push to send queue\n");
     try_wake_consumer();
     return pos;
@@ -72,7 +84,10 @@ public:
   // 或许可以用uvsend，不然用的线程好像太多了
   int pop(RemoteUser **begin) {
     size_t pos = tail;
-    size_t pop_cnt = head.load(std::memory_order_acquire) - pos;
+
+    update_last_head();
+    
+    size_t pop_cnt = last_head - pos;
     pop_cnt = std::min(pop_cnt, (size_t)2048); // 64k is the best package size
     pop_cnt = std::min(pop_cnt, SQSIZE - pos % SQSIZE); // 不要超过末尾了
     *begin = &data[pos % SQSIZE];
@@ -105,6 +120,38 @@ public:
     pthread_mutex_unlock(&mutex);
   }
 
+
+  volatile uint64_t &this_thread_head() {
+    return thread_heads[producer_id].value;
+  }
+
+  void update_last_head() {
+    // 等于min也会有问题，有可能是最后一个没有写
+    auto min = head.load(std::memory_order_consume);
+
+    for (int i = 0; i < MAX_NR_PRODUCER; i++) {
+      __builtin_prefetch((cache_aligned_uint64 *)(thread_heads + i + 1));
+      auto tmp_head = thread_heads[i].value;
+
+      std::atomic_thread_fence(std::memory_order_consume);
+
+      if (tmp_head < min) {
+        min = tmp_head;
+      }
+    }
+
+    /*
+       多个consumer可能会同时更新，导致last_head并不是最新的，但无妨，
+       因为只要能通过while条件就不影响写入，而通不过last_head条件也只是再来一次
+       */
+    /*
+       可能发生多个线程同时更新，应当取它们每个人眼中min的最大值，否则可能导致
+       较小的min被最后写入，导致有人的while判断从能通过变成不能通过，发生不必要的yield
+       */
+    do {
+      last_head = min;
+    } while(last_head < min);
+  }
 
   uint64_t get_free_cnt() {
     return SQSIZE - (head - tail);
@@ -169,6 +216,8 @@ public:
   /* } */
 
 public:
+  volatile cache_aligned_uint64 thread_heads[MAX_NR_PRODUCER];
+  volatile uint64_t last_head;
   std::atomic<uint64_t> head;
   volatile uint64_t tail;
   pthread_mutex_t mutex;
