@@ -80,6 +80,7 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
         return;
       }
       for (int j = 0; j < recv_count; ++j) {
+        fprintf(stderr, "get remote data %ld-%ld\n", recv_buffer[j].id, recv_buffer[j].salary);
         remote_id_r[index].put(recv_buffer[j].id, recv_buffer[j].salary);
         remote_sala_r[index].put(recv_buffer[j].salary, recv_buffer[j].id);
       }
@@ -137,7 +138,7 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
 
 
   /* std::thread *exchange_workers[16]; */
-/* #pragma omp parallel for num_threads(16) */
+#pragma omp parallel for num_threads(16)
   for (int i = 0; i < 16; ++i) {
     exchange_fn(i);
   }
@@ -156,7 +157,7 @@ void Engine::do_peer_data_sync() {
 
   DataTransMeta send_meta[3][MAX_NR_CONSUMER];
   DataTransMeta recv_meta[3][MAX_NR_CONSUMER];
-/* #pragma omp parallel for num_threads(3) */
+#pragma omp parallel for num_threads(3)
   for (int i = 0; i < 3; ++i) {
     int index = neighbor_index[i];
     int ret = do_exchange_meta(send_meta[i], recv_meta[i], index);
