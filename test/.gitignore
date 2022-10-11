@@ -24,3 +24,4 @@ libuv/DartConfiguration.tcl
 libuv/libuv-static.pc
 libuv/libuv.so.1
 libuv/libuv.so.1.0.0
+test_sync_queue
