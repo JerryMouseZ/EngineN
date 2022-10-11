@@ -36,6 +36,7 @@ public:
 
     std::atomic_thread_fence(std::memory_order_release);
 
+    /*
     DEBUG_PRINTF(WBREAD, "Try to read from write buffer: qid = %u, index = %u, but blocked\n", qid, index);
 
     int yield_cnt = 0;
@@ -45,7 +46,7 @@ public:
     }
 
     DEBUG_PRINTF(WBREAD, "Block released from write buffer: qid = %u, index = %u\n", qid, index);
-
+    */
     if (unlikely(index >= q->min_uncommitted_data_index())) {
       DEBUG_PRINTF(WBREAD, "Read from write buffer: qid = %u, index = %u\n", qid, index);
       return &race_data;
