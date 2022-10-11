@@ -163,7 +163,7 @@ size_t Engine::local_read(int32_t select_column,
     result = id_r->get(column_key, where_column, select_column, res, false);
     if (select_column == Salary) {
       for (int i = 0; !result && i < 3; i++) {
-        result = remote_id_r[neighbor_index[i]].cache_get(column_key, where_column, select_column, res, false);
+        result = remote_id_r[neighbor_index[i]].get(*(int64_t *) column_key, res, false);
       }
     }
 #ifndef BROADCAST
@@ -190,7 +190,7 @@ size_t Engine::local_read(int32_t select_column,
     if (select_column == Id) {
       for (int i = 0; i < 3; i++) {
         res = ((char *)res) + result * key_len[select_column];
-        result += remote_sala_r[neighbor_index[i]].cache_get(column_key, where_column, select_column, res, true);
+        result += remote_sala_r[neighbor_index[i]].get(*(int64_t *) column_key, res, true);
       }
     }
 #ifndef BROADCAST

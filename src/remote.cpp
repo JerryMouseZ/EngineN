@@ -65,8 +65,8 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
       remote_datas[neighbor_idx][i].open(aep_prefix + std::to_string(neighbor_idx) + "_" + std::to_string(i));
     }
 
-    remote_id_r[neighbor_idx].open(remote_datas[neighbor_idx]);
-    remote_sala_r[neighbor_idx].open(remote_datas[neighbor_idx]);
+    remote_id_r[neighbor_idx].open();
+    remote_sala_r[neighbor_idx].open();
   }
 
   connect(infos, peer_host_info_num + 1, is_new_create);

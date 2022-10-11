@@ -18,8 +18,8 @@ void RemoteData::open(const std::string &fdata) {
 
 struct sync_send_param {
   RemoteData *rmdata;
-  Index *rm_id_r;
-  Index *rm_sala_r;
+  VIndex *rm_id_r;
+  VIndex *rm_sala_r;
   ssize_t rest;
   char *write_pos;
   volatile bool *alive;
@@ -37,7 +37,7 @@ struct sync_send_client {
   sync_send_param param;
 };
 
-void build_remote_index(int qid, int begin, int end, Index *id_index, Index *salary_index, RemoteData *rmdatap) {
+void build_remote_index(int qid, int begin, int end, VIndex *id_index, VIndex *salary_index, RemoteData *rmdatap) {
   for (auto i = begin; i < end; i++) {
     const RemoteUser *user = rmdatap->data_read(i);
     uint32_t encoded_index = (qid << 28) | i;
@@ -170,8 +170,8 @@ void sync_send_handler(
   int qid_start,
   int *fds,
   RemoteData *rmdata,
-  Index *rm_id_r,
-  Index *rm_sala_r,
+  VIndex *rm_id_r,
+  VIndex *rm_sala_r,
   volatile bool *alive,
   Engine *eg) {
 

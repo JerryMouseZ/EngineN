@@ -12,6 +12,7 @@
 #include "queue.hpp"
 
 #include "index.hpp"
+#include "vindex.hpp"
 #include "data.hpp"
 #include "comm.h"
 #include "uv.h"
@@ -105,8 +106,8 @@ private:
   Index *sala_r;
 
   // remote indexes
-  Index remote_id_r[4];
-  Index remote_sala_r[4];
+  VIndex remote_id_r[4];
+  VIndex remote_sala_r[4];
 
   // write buffer
   UserQueue *qs;
@@ -117,12 +118,6 @@ private:
   int neighbor_index[3];
   int listen_fd;
   volatile bool alive[4];
-  /* int send_fds[4]; */
-  /* int recv_fds[4]; */
-  int data_fd[16];
-  int data_recv_fd[16];
-  /* std::thread *req_sender; */
-  /* std::thread *rep_recvier; */
   std::thread *req_handler[10];
   std::thread *req_weak_handler[10];
   std::thread *req_handlerall[4 * 10];
