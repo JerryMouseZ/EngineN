@@ -70,7 +70,7 @@ void test_engine_read(void *context, size_t num)
         TestUser user;
         // Select Salary from ... where Id
         memset(&user, 0, sizeof(user));
-        int ret = engine_read(context, Salary, Id, &i, sizeof(user.id), (void *)user.salary);
+        int ret = engine_read(context, Salary, Id, &i, sizeof(user.id), (void *)&user.salary);
         if (ret == 0)
           fprintf(stderr, "Line %d  %ld\n", __LINE__, i);
         assert(ret);
