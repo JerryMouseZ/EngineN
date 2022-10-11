@@ -27,8 +27,8 @@
  * VBucket VBuckets[max_num];
  */
 
-static const int VBUCKET_NUM = 1 << 26;
-static const int VOVER_NUM = 1 << 23;
+static const int VBUCKET_NUM = 1 << 25;
+static const int VOVER_NUM = (1 << 24) + (1 << 22);
 static const uint32_t VENTRY_NUM = 4;
 
 
@@ -83,6 +83,7 @@ public:
       if (next_free == VENTRY_NUM) {
         uint64_t maybe_next = next_location->fetch_add(sizeof(VBucket));
         uint32_t index = (maybe_next - 64) / sizeof(VBucket) + 1;
+        assert(index <= VOVER_NUM);
         bucket->bucket_next = index;
         bucket->is_overflow = 1;
       }
@@ -163,6 +164,7 @@ public:
       if (next_free == VENTRY_NUM) {
         uint64_t maybe_next = overflowindex->next_location->fetch_add(sizeof(VBucket), std::memory_order_acq_rel);
         uint32_t index = (maybe_next - 64) / sizeof(VBucket) + 1;
+        assert(index <= VOVER_NUM);
         bucket->bucket_next = index;
         bucket->is_overflow = 1;
       }
