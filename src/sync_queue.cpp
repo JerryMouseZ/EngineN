@@ -245,7 +245,7 @@ void Engine::sync_resp_handler() {
 
       // 64k是最佳的buffer大小
       param[nb_i][i].cur_buf_size = 1 << 15;
-      param[nb_i][i].buf = (char *)map_anonymouse(1 << 16);
+      param[nb_i][i].buf = (char *)map_anonymouse(1 << 15);
       handler[nb_i][i].data = &param[nb_i][i]; 
       uv_read_start((uv_stream_t *)&handler[nb_i][i], sync_resp_alloc_buffer, process_sync_resp);
     }
