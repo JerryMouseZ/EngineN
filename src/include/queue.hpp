@@ -126,7 +126,7 @@ public:
       waiting_cnt -= (pos % CMT_BATCH_CNT);
     }
 
-    while (pos + waiting_cnt - 1 >= *last_head) {
+    while (pos >= *last_head) {
 
       // exit condition
       if (unlikely(producers_exit)) {
@@ -138,7 +138,8 @@ public:
 
       update_last_head();
     }
-
+    
+    waiting_cnt = std::min(waiting_cnt, *last_head - pos);
     // uint64_t sq_head = sync_q->head;
     // uint64_t cmt_end = pos + waiting_cnt;
     // const User *user;
