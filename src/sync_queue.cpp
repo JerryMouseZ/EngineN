@@ -61,6 +61,7 @@ void sync_send_alloc_buffer(uv_handle_t *handle, size_t suggested_size, uv_buf_t
 }
 
 void process_sync_send(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
+  check_thread_spawn(6);
   sync_send_param *param = (sync_send_param *)client->data;
   if (nread < 0) {
     if (nread != UV_EOF)
@@ -105,7 +106,7 @@ void process_sync_send(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
       if (current_send_cnt == 0) {
         param->eg->notify_local_queue_exit_sync(param->neighbor_idx, param->qid);
 
-        DEBUG_PRINTF(0, "%s: recv end send from index = %d to q[%d] final local_cnt = %d, start send end resp\n",
+        DEBUG_PRINTF(VSYNC, "%s: recv end send from index = %d to q[%d] final local_cnt = %d, start send end resp\n",
           this_host_info, param->neighbor_idx, param->qid, rmdata->local_cnt);
 
         resp.cnt = 0;
@@ -175,6 +176,8 @@ void sync_send_handler(
   volatile bool *alive,
   Engine *eg) {
 
+  check_thread_spawn(5);
+
   sync_send_client clients[NR_FD_EACH_SYNC_HANDLER];
   uv_loop_t *loop = (uv_loop_s *)malloc(sizeof(uv_loop_t));
   uv_tcp_t *handler;
@@ -241,6 +244,8 @@ void sync_resp_alloc_buffer(uv_handle_t *handle, size_t suggested_size, uv_buf_t
 
 // 一个线程处理所有queue的resp
 void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
+  check_thread_spawn(8);
+
   sync_resp_param *param = (sync_resp_param *)client->data;
   if (nread < 0) {
     if (nread != UV_EOF)
@@ -300,6 +305,8 @@ void sync_resp_handler(
   RemoteData rmdatas[4][MAX_NR_CONSUMER],
   SyncQueue sync_qs[MAX_NR_CONSUMER],
   Engine *eg) {
+
+  check_thread_spawn(7);
 
   sync_resp_client clients[4][MAX_NR_CONSUMER];
   uv_loop_t *loop = (uv_loop_s *)malloc(sizeof(uv_loop_t));
@@ -374,7 +381,7 @@ void Engine::start_sync_handlers() {
       }
       assert(ret == sizeof(msg));
     }
-    DEBUG_PRINTF(local_cnt, "%s: send to 3 peers q[%d].local_cnt = %ld\n", this_host_info, i, local_cnt);
+    DEBUG_PRINTF(VSYNC, "%s: send to 3 peers q[%d].local_cnt = %ld\n", this_host_info, i, local_cnt);
   }
 
   waiting_all_exit_sync();
@@ -382,13 +389,13 @@ void Engine::start_sync_handlers() {
 
 void Engine::notify_local_queue_exit_sync(int neighbor_idx, int qid) {
   uint64_t rest = local_in_sync_cnt.fetch_sub(1);
-  DEBUG_PRINTF(0, "%s: local[%d][%d] exits, rest = %ld\n", this_host_info, neighbor_idx, qid, rest - 1);
+  DEBUG_PRINTF(SYNCSTATE, "%s: local[%d][%d] exits, rest = %ld\n", this_host_info, neighbor_idx, qid, rest - 1);
 }
 
 
 void Engine::notify_remote_queue_exit_sync(int neighbor_idx, int qid) {
   uint64_t rest = remote_in_sync_cnt.fetch_sub(1);
-  DEBUG_PRINTF(0, "%s: remote[%d][%d] exits, rest = %ld\n", this_host_info, neighbor_idx, qid, rest - 1);
+  DEBUG_PRINTF(SYNCSTATE, "%s: remote[%d][%d] exits, rest = %ld\n", this_host_info, neighbor_idx, qid, rest - 1);
 }
 
 bool Engine::any_local_in_sync() {

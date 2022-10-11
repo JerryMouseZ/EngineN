@@ -99,7 +99,7 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
 #pragma omp parallel for num_threads(16)
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     if (!q_is_new_create[i] && qs[i].need_rollback()) {
-      fprintf(stderr, "rollback commit : %ld -> %ld\n", *qs[i].tail, qs[i].head->load());
+      DEBUG_PRINTF(QROLLBACK, "rollback commit : %ld -> %ld\n", *qs[i].tail, qs[i].head->load());
       qs[i].compact_head();
       qs[i].tail_commit();
     }

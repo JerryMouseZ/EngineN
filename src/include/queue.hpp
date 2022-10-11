@@ -287,7 +287,7 @@ public:
     
     // 双指针，左边指当前的数据，右边指向可以填充的数据，因为第一个数据肯定是要被填充了，所以不用去找第一个left
     int hole_cnt = hole_index.size();
-    fprintf(stderr, "impact head : %d\n", hole_cnt);
+    DEBUG_PRINTF(COMHEAD, "impact head : %d\n", hole_cnt);
     int left = last_value, right = last_value;
     // 小于就行了，因为等于的时候也没有数据可以填充了
     for (; left < head_value && hole_cnt > 0; ++left) {
@@ -297,7 +297,7 @@ public:
       }
       if (right > head_value)
         break;
-      fprintf(stderr, "move %d to %d\n", right, left);
+      DEBUG_PRINTF(COMHEAD, "move %d to %d\n", right, left);
       user_copy(left, right);
       right++; // 把right设置为下一个数据，因为当前已经填充过了
     }

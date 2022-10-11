@@ -76,7 +76,7 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
       int ret = recv_all(sync_recv_fdall[index][i], recv_buffer, len, MSG_WAITALL);
       if (ret != len) {
         recv_success = false;
-        fprintf(stderr, "send sync failed\n");
+        DEBUG_PRINTF(INIT, "send sync failed\n");
         return;
       }
       for (int j = 0; j < recv_count; ++j) {
@@ -119,7 +119,7 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
       munmap(send_buffer, send_count * sizeof(RemoteUser));
       if (ret != len) {
         send_success = false;
-        fprintf(stderr, "send sync failed\n");
+        DEBUG_PRINTF(INIT, "send sync failed\n");
         return;
       }
     }
@@ -162,13 +162,13 @@ void Engine::do_peer_data_sync() {
     int index = neighbor_index[i];
     int ret = do_exchange_meta(send_meta[i], recv_meta[i], index);
     if (ret) {
-      fprintf(stderr, "[sync] exchange meta failed\n");
+      DEBUG(INIT, "[sync] exchange meta failed\n");
       continue;
     }
 
     ret = do_exchange_data(send_meta[i], recv_meta[i], index);
     if (ret) {
-      fprintf(stderr, "exchange data failed\n");
+      DEBUG_PRINTF(INIT, "exchange data failed\n");
       continue;
     }
 
