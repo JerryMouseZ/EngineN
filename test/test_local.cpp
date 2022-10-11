@@ -54,6 +54,7 @@ void test_engine_write(int index, size_t num)
     threads[tid]->join();
     delete threads[tid];
   }
+  engine_deinit(context);
 }
 
 void print_user(const TestUser &user) {
