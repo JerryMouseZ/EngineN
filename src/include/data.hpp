@@ -85,7 +85,10 @@ public:
   void open(std::string fname, bool *is_new_create);
 
   volatile uint32_t *get_next_user_index() { return next_user_index; }
-
+  
+  ~RemoteState() {
+    free((void *)next_user_index);
+  }
 private:
   volatile uint32_t *next_user_index;
 };

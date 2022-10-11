@@ -111,9 +111,10 @@ void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create)
   }
 
   listen_thread.join();
-  
-  start_sync_handlers();
 
+
+  do_peer_data_sync();
+  start_sync_handlers();
   start_handlers(); // 先start handlers
 }
 
@@ -435,8 +436,4 @@ int Engine::get_another_request_index() {
     return 0;
   }
   return -1;
-}
-
-void Engine::do_sync() {
-  // handshake with remote
 }

@@ -364,56 +364,16 @@ void Engine::start_sync_handlers() {
     const User *user;
     int ret, nbytes;
 
-    if (local_cnt > 0) {
-      nbytes = local_cnt * sizeof(RemoteUser);
-      buf = (RemoteUser *)malloc(nbytes);
+    msg.cnt = 0;
 
-      for (int v = 0; v < local_cnt; v++) {
-        user = datas[i].data_read(v);
-        buf[v].id = user->id;
-        buf[v].salary = user->salary;
+    for (int nb_i = 0; nb_i < 3; nb_i++) {
+      int neighbor_idx = neighbor_index[nb_i];
+      ret = send_all(sync_send_fdall[neighbor_idx][i], &msg, sizeof(msg), 0);
+      if (ret < 0) {
+        DEBUG_PRINTF(0, "init send header sync error\n");
       }
-
-      for (int nb_i = 0; nb_i < 3; nb_i++) {
-        int neighbor_idx = neighbor_index[nb_i];
-
-        msg.cnt = local_cnt;
-        ret = send_all(sync_send_fdall[neighbor_idx][i], &msg, sizeof(msg), 0);
-        if (ret < 0) {
-          DEBUG_PRINTF(0, "init send header sync error\n");
-        }
-        assert(ret == sizeof(msg));
-
-        ret = send_all(sync_send_fdall[neighbor_idx][i], buf, nbytes, 0);
-        if (ret < 0) {
-          DEBUG_PRINTF(0, "init send data sync error:  %d\n", ret);
-        }
-        assert(ret == nbytes);
-
-        msg.cnt = 0;
-        ret = send_all(sync_send_fdall[neighbor_idx][i], &msg, sizeof(msg), 0);
-        if (ret < 0) {
-          DEBUG_PRINTF(0, "init send header sync error\n");
-        }
-        assert(ret == sizeof(msg));
-      }
-
-      sync_qs[i].sync_to(local_cnt);
-
-      free(buf);
-    } else {
-      msg.cnt = 0;
-
-      for (int nb_i = 0; nb_i < 3; nb_i++) {
-        int neighbor_idx = neighbor_index[nb_i];
-        ret = send_all(sync_send_fdall[neighbor_idx][i], &msg, sizeof(msg), 0);
-        if (ret < 0) {
-          DEBUG_PRINTF(0, "init send header sync error\n");
-        }
-        assert(ret == sizeof(msg));
-      }
+      assert(ret == sizeof(msg));
     }
-
     DEBUG_PRINTF(local_cnt, "%s: send to 3 peers q[%d].local_cnt = %ld\n", this_host_info, i, local_cnt);
   }
 
