@@ -192,7 +192,6 @@ public:
   }
 
   void open(RemoteData *rmdatas) {
-    this->accessor = accessor;
     ptr = reinterpret_cast<char *>(map_anonymouse(OVER_NUM * sizeof(Bucket) + 64));
     madvise(ptr, OVER_NUM * sizeof(Bucket), MADV_RANDOM);
     next_location = reinterpret_cast<std::atomic<size_t> *>(ptr);
