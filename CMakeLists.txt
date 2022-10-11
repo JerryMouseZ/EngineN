@@ -20,6 +20,7 @@ SHARED
         src/data.cpp
         src/engine.cpp
         src/remote.cpp
+        src/sync_queue.cpp
 )
 
 target_link_libraries(interface OpenMP::OpenMP_CXX uv_a)

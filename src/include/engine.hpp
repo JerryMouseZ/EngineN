@@ -44,8 +44,6 @@ public:
   // 创建listen socket，尝试和别的机器建立两条连接
   void connect(const char *host_info, const char *const *peer_host_info, size_t peer_host_info_num, bool is_new_create, const char *aep_dir);
 
-  void do_sync();
-
   size_t remote_read(uint8_t select_column, uint8_t where_column, const void *column_key, size_t key_len, void *res);
 
   int get_request_index();
@@ -82,8 +80,8 @@ private:
   void ask_peer_quit();
   // for backup
 
-  int do_exchange_meta(DataTransMeta send_meta[MAX_NR_CONSUMER], DataTransMeta recv_meta[MAX_NR_CONSUMER]);
-  int do_exchange_data(DataTransMeta send_meta[MAX_NR_CONSUMER], DataTransMeta recv_meta[MAX_NR_CONSUMER]);
+  int do_exchange_meta(DataTransMeta send_meta[MAX_NR_CONSUMER], DataTransMeta recv_meta[MAX_NR_CONSUMER], int index);
+  int do_exchange_data(DataTransMeta send_meta[MAX_NR_CONSUMER], DataTransMeta recv_meta[MAX_NR_CONSUMER], int index);
   void build_index(int qid, int begin, int end, Index *id_index, Index *uid_index, Index *salary_index, Data *datap);
   void start_sync_handlers();
 
@@ -133,7 +131,6 @@ private:
   std::atomic<bool> in_sync[4][MAX_NR_CONSUMER];
   std::atomic<bool> in_sync_visible;
 
-  /* volatile bool exited; */
   RemoteState remote_state; // 用来存当前有多少remote的user吧
 
   int req_send_fds[50];
