@@ -27,8 +27,8 @@
  * VBucket VBuckets[max_num];
  */
 
-static const int VBUCKET_NUM = 1 << 25;
-static const int VOVER_NUM = (1 << 24) + (1 << 22);
+static const int VBUCKET_NUM = 1 << 24;
+static const int VOVER_NUM = (2 << 24) + (1 << 23);
 static const uint32_t VENTRY_NUM = 4;
 
 
