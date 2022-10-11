@@ -1,5 +1,6 @@
 #include "include/sync_queue.hpp"
 #include "include/engine.hpp"
+#include "include/util.hpp"
 
 constexpr size_t EACH_REMOTE_DATA_FILE_LEN = EACH_NR_USER * sizeof(RemoteUser);
 
@@ -10,9 +11,8 @@ RemoteData::~RemoteData() {
 }
 
 void RemoteData::open(const std::string &fdata) {
-  users = reinterpret_cast<RemoteUser *>(pmem_map_file(fdata.c_str(), EACH_REMOTE_DATA_FILE_LEN, PMEM_FILE_CREATE, 0666, nullptr, nullptr));
+  users = reinterpret_cast<RemoteUser *>(map_anonymouse(EACH_REMOTE_DATA_FILE_LEN));
   DEBUG_PRINTF(users, "%s open mmaped failed", fdata.c_str());
-
   prefault((char *)users, EACH_REMOTE_DATA_FILE_LEN, false);
 }
 
