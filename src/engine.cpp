@@ -187,6 +187,8 @@ size_t Engine::local_read(int32_t select_column,
     break;
   case Salary:
     result = sala_r->get(column_key, where_column, select_column, res, true);
+    if (this->host_index < 0)
+      return result;
     if (select_column == Id) {
       for (int i = 0; i < 3; i++) {
         res = ((char *)res) + result * key_len[select_column];
