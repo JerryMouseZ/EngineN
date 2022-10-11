@@ -65,14 +65,14 @@ void process_sync_send(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
   sync_send_param *param = (sync_send_param *)client->data;
   if (nread < 0) {
     if (nread != UV_EOF)
-      DEBUG_PRINTF(0, "Read error %s\n", uv_err_name(nread));
+      DEBUG_PRINTF(LOG, "Read error %s\n", uv_err_name(nread));
     uv_read_stop(client);
     return;
   }
 
   // TODO: 何时会读到0？
   if (nread == 0) {
-    DEBUG_PRINTF(0, "Read error nread = 0\n");
+    DEBUG_PRINTF(LOG, "Read error nread = 0\n");
     return;
   }
 
@@ -95,7 +95,7 @@ void process_sync_send(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
   do {
     if (rest == 0) {
       if (unlikely(nread < sizeof(sync_send))) {
-        DEBUG_PRINTF(0, "Read error read send header fragmented nread = %ld\n", nread);
+        DEBUG_PRINTF(LOG, "Read error read send header fragmented nread = %ld\n", nread);
       }
       current_send_cnt = ((sync_send *)buf)->cnt;
       write_pos = (char *)&rmdata->users[rmdata->local_cnt];
@@ -249,14 +249,14 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
   sync_resp_param *param = (sync_resp_param *)client->data;
   if (nread < 0) {
     if (nread != UV_EOF)
-      DEBUG_PRINTF(0, "Read error %s\n", uv_err_name(nread));
+      DEBUG_PRINTF(LOG, "Read error %s\n", uv_err_name(nread));
     uv_read_stop(client);
     return;
   }
 
   // TODO: 何时会读到0？
   if (nread == 0) {
-    DEBUG_PRINTF(0, "Read error nread = 0\n");
+    DEBUG_PRINTF(LOG, "Read error nread = 0\n");
     return;
   }
 
@@ -267,7 +267,7 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
 
   do {
     if (unlikely(nread < sizeof(sync_resp))) {
-      DEBUG_PRINTF(0, "Read error read resp header fragmented nread = %ld\n", nread);
+      DEBUG_PRINTF(LOG, "Read error read resp header fragmented nread = %ld\n", nread);
     }
 
     resp_cnt = ((sync_resp *)buf)->cnt;
@@ -377,7 +377,7 @@ void Engine::start_sync_handlers() {
       int neighbor_idx = neighbor_index[nb_i];
       ret = send_all(sync_send_fdall[neighbor_idx][i], &msg, sizeof(msg), 0);
       if (ret < 0) {
-        DEBUG_PRINTF(0, "init send header sync error\n");
+        DEBUG_PRINTF(LOG, "init send header sync error\n");
       }
       assert(ret == sizeof(msg));
     }

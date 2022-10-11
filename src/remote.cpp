@@ -147,7 +147,7 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
 
     len = send_all(send_fdall[neighbor_idx][reader_id], &data, sizeof(data), MSG_NOSIGNAL);
     if (len < 0) {
-      DEBUG_PRINTF(0, "%s: send error %d to node %d, mark as inalive\n", this_host_info, len, neighbor_idx);
+      DEBUG_PRINTF(ALIVE, "%s: send error %d to node %d, mark as inalive\n", this_host_info, len, neighbor_idx);
       alive[neighbor_idx] = false;
       continue;
     }
@@ -170,7 +170,7 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
 
     len = recv_all(send_fdall[neighbor_idx][reader_id], &header, sizeof(header), MSG_WAITALL);
     if (len <= 0) {
-      DEBUG_PRINTF(0, "%s: recv header error %d to node %d, mark as inalive\n", this_host_info, len, neighbor_idx);
+      DEBUG_PRINTF(ALIVE, "%s: recv header error %d to node %d, mark as inalive\n", this_host_info, len, neighbor_idx);
       alive[neighbor_idx] = false;
       continue;
     }
@@ -181,7 +181,7 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
     }
 
     if (single_already_recived) {
-      DEBUG_PRINTF(0, "%s: wierd, single result read already gets result, previous result will be overwritten\n", this_host_info);
+      DEBUG_PRINTF(LOG, "%s: wierd, single result read already gets result, previous result will be overwritten\n", this_host_info);
     }
 
     len = recv_all(send_fdall[neighbor_idx][reader_id], res, header.res_len, MSG_WAITALL);

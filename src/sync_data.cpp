@@ -32,7 +32,7 @@ void RemoteState::open(std::string fname, bool *is_new_create) {
 }
 
 int Engine::do_exchange_meta(DataTransMeta send_meta[MAX_NR_CONSUMER], DataTransMeta recv_meta[MAX_NR_CONSUMER], int index) {
-  DEBUG_PRINTF(0, "%s start peer data sync\n", this_host_info);
+  DEBUG_PRINTF(SYNC_DATA, "%s start peer data sync\n", this_host_info);
   int len = sizeof(DataTransMeta) * MAX_NR_CONSUMER;
   memset(send_meta, 0, len);
   memset(recv_meta, 0, len);
@@ -49,13 +49,13 @@ int Engine::do_exchange_meta(DataTransMeta send_meta[MAX_NR_CONSUMER], DataTrans
   if (ret < 0)
     return -1;
   assert(ret == len);
-  DEBUG_PRINTF(0, "%s send_meta done\n", this_host_info);
+  DEBUG_PRINTF(SYNC_DATA, "%s send_meta done\n", this_host_info);
   ret = recv_all(sync_recv_fdall[index][0], recv_meta, len, MSG_WAITALL);
   DEBUG_PRINTF(ret == len, "recv meta error\n");
   if (ret <= 0)
     return -1;
   assert(ret == len);
-  DEBUG_PRINTF(0, "%s recv_meta done\n", this_host_info);
+  DEBUG_PRINTF(SYNC_DATA, "%s recv_meta done\n", this_host_info);
   return 0;
 }
 
@@ -173,7 +173,7 @@ void Engine::do_peer_data_sync() {
     }
 
     for (int j = 0; j < MAX_NR_CONSUMER; j++) {
-      DEBUG_PRINTF(0, "\t[%d] user: [%d, %d)\n", 
+      DEBUG_PRINTF(SYNC_DATA, "\t[%d] user: [%d, %d)\n", 
                    i, send_meta[i][j].recived_user_cnt, recv_meta[i][j].local_user_cnt);
     }
   }
