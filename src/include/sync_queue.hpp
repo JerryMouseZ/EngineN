@@ -1,7 +1,10 @@
 #pragma once
-
 #include "util.hpp"
 #include "data.hpp"
+#include <cstddef>
+#include <cstdint>
+#include <pthread.h>
+#include <sched.h>
 
 // 测试性能，需要调参
 constexpr uint64_t SQBITS = 14;
@@ -52,9 +55,71 @@ public:
     this->id = id;
     this->send_fd = send_fd;
     this->alive = alive;
+    exited = false;
+    pthread_mutex_init(&mutex, NULL);
+    pthread_cond_init(&cond, NULL);
 
     return 0;
   }
+  
+  uint64_t push(const User *user) {
+    size_t pos = head;
+    while (tail + SQSIZE <= pos) {
+      producer_yield();
+    }
+
+    data[pos].id = user->id;
+    data[pos].salary = user->salary;
+    ++head;
+    try_wake_consumer();
+    return pos;
+  }
+  
+  // 或许可以用uvsend，不然用的线程好像太多了
+  bool pop() {
+    size_t pos = tail;
+    while (pos >= head) {
+      if (exited)
+        return false;
+      sched_yield();
+      if (pos >= head)
+        consumer_yield();
+    }
+    
+    int pop_cnt = head - pos;
+    int ret = send_all(send_fd, &data[send_head], pop_cnt * sizeof(RemoteUser), 0);
+    return ret == pop_cnt * sizeof(RemoteUser);
+  }
+
+
+  void producer_yield() {
+    try_wake_consumer();
+  }
+  
+  void consumer_yield() {
+    pthread_mutex_lock(&mutex);
+    consumer_maybe_waiting = true;
+    pthread_cond_wait(&cond, &mutex);
+    consumer_maybe_waiting = false;
+    pthread_mutex_unlock(&mutex);
+  }
+
+
+  void try_wake_consumer() {
+    if (unlikely(consumer_maybe_waiting)) {
+      pthread_mutex_lock(&mutex);
+      pthread_cond_signal(&cond);
+      pthread_mutex_unlock(&mutex);
+    }
+  }
+
+  void notify_consumer_exit() {
+    exited = true;
+    pthread_mutex_lock(&mutex);
+    pthread_cond_signal(&cond);
+    pthread_mutex_unlock(&mutex);
+  }
+
 
   uint64_t get_free_cnt() {
     return SQSIZE - (head - tail);
@@ -121,11 +186,16 @@ public:
 public:
   volatile uint64_t head;
   volatile uint64_t tail;
+  pthread_mutex_t mutex;
+  pthread_cond_t cond;
   // 单线程处理resp所以不用volatile
   uint32_t neighbor_local_cnt[4];
   uint64_t send_head;
   RemoteUser *data;
   uint32_t id;
   volatile bool *alive;
+  volatile bool consumer_maybe_waiting;
+
   int send_fd;
+  bool exited;
 };
