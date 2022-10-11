@@ -80,7 +80,7 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
         return;
       }
       for (int j = 0; j < recv_count; ++j) {
-        fprintf(stderr, "get remote data %ld-%ld\n", recv_buffer[j].id, recv_buffer[j].salary);
+        /* fprintf(stderr, "get remote data %ld-%ld\n", recv_buffer[j].id, recv_buffer[j].salary); */
         remote_id_r[index].put(recv_buffer[j].id, recv_buffer[j].salary);
         remote_sala_r[index].put(recv_buffer[j].salary, recv_buffer[j].id);
       }
