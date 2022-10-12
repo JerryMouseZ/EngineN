@@ -178,6 +178,7 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
 
   // 收到退出的sync的请求的时候需要回应
   while (nread > 0) {
+    assert((nread & (16 - 1)) == 0);
     // nread 为什么会是2呢
     RemoteUser *user = (RemoteUser *) buf;
     size_t recv_user_cnt = nread / 16;
@@ -208,12 +209,12 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
       }
 
       // build index
-      /* DEBUG_PRINTF(0, "get data %ld, %ld\n", user[i].id, user[i].salary); */
+      DEBUG_PRINTF(0, "recving %ld, %ld from %d\n", user[i].id, user[i].salary, param->neighbor_idx);
       param->eg->remote_id_r[param->neighbor_idx].put(user[i].id, user[i].salary);
       param->eg->remote_sala_r[param->neighbor_idx].put(user[i].salary, user[i].id);
     }
 
-    DEBUG_PRINTF(0, "recv data %ld\n", recv_user_cnt);
+    /* DEBUG_PRINTF(0, "recv data %ld\n", recv_user_cnt); */
     nread -= recv_user_cnt * 16;
   }
 }
@@ -235,7 +236,7 @@ void Engine::sync_resp_handler() {
 
       param[nb_i][i].sync_q = &sync_qs[i];
       param[nb_i][i].eg = this;
-      param[nb_i][i].neighbor_idx = neighbor_idx;
+      param[nb_i][i].neighbor_idx = nb_i;
       param[nb_i][i].qid = i;
       /* param[nb_i][i].rest = 0; */
       for (int j = 0; j < 3; j++) {
