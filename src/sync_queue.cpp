@@ -47,9 +47,9 @@ void Engine::sync_send_handler(int qid) {
         local_in_sync_cnt.fetch_add(1);
       }
 
-      for (int i = 0; i < pop_cnt; ++i) {
-        DEBUG_PRINTF(0, "sending %ld, %ld\n", send_start[i].id, send_start[i].salary);
-      }
+      /* for (int i = 0; i < pop_cnt; ++i) { */
+      /*   DEBUG_PRINTF(0, "sending %ld, %ld\n", send_start[i].id, send_start[i].salary); */
+      /* } */
       // 要向3个发
       for (int i = 0; i < 3; ++i) {
         int neighbor_idx = neighbor_index[i];
@@ -221,8 +221,8 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
       recv_user_cnt = std::min(recv_user_cnt, param->rest);
       for (int i = 0; i < recv_user_cnt; ++i) {
         DEBUG_PRINTF(0, "get data %ld, %ld\n", user[i].id, user[i].salary);
-        param->eg->remote_id_r->put(user[i].id, user[i].salary);
-        param->eg->remote_sala_r->put(user[i].salary, user[i].id);
+        param->eg->remote_id_r[param->neighbor_idx].put(user[i].id, user[i].salary);
+        param->eg->remote_sala_r[param->neighbor_idx].put(user[i].salary, user[i].id);
       }
       nread -= recv_user_cnt * 16;
       param->rest -= recv_user_cnt;
