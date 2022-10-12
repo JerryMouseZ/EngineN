@@ -19,9 +19,12 @@
 Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr), alive{false}, neighbor_index{0} {
   host_index = -1;
   qs = static_cast<UserQueue *>(mmap(0, MAX_NR_CONSUMER * sizeof(UserQueue), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
+  sync_qs = static_cast<SyncQueue *>(mmap(0, MAX_NR_CONSUMER * sizeof(SyncQueue), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     new (&qs[i])UserQueue;
+    new (&sync_qs[i])SyncQueue;
   }
+
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < MAX_NR_PRODUCER; j++) {
       send_fdall[i][j] = -1;
