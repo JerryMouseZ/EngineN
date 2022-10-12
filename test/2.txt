@@ -1,0 +1,276 @@
+host info : 192.168.1.40 9015
+192.168.1.40:9015: neighbor index = 1 recv_fd[0] = 5 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[1] = 66 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[2] = 67 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[3] = 68 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[4] = 69 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[5] = 70 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[6] = 71 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[7] = 72 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[8] = 73 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[9] = 74 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[10] = 75 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[11] = 76 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[12] = 77 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[13] = 78 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[14] = 79 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[15] = 80 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[16] = 81 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[17] = 82 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[18] = 83 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[19] = 84 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[20] = 85 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[21] = 86 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[22] = 87 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[23] = 88 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[24] = 89 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[25] = 90 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[26] = 91 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[27] = 92 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[28] = 93 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[29] = 94 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[30] = 95 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[31] = 96 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[32] = 97 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[33] = 98 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[34] = 99 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[35] = 100 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[36] = 101 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[37] = 102 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[38] = 103 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[39] = 104 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[40] = 105 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[41] = 106 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[42] = 107 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[43] = 108 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[44] = 109 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[45] = 110 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[46] = 111 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[47] = 112 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[48] = 113 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 recv_fd[49] = 114 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 sync_recv_fd[0] = 115 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 sync_recv_fd[1] = 116 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 sync_recv_fd[2] = 117 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 sync_recv_fd[3] = 118 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 sync_recv_fd[4] = 119 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 sync_recv_fd[5] = 120 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 sync_recv_fd[6] = 121 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 sync_recv_fd[7] = 122 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 sync_recv_fd[8] = 123 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 sync_recv_fd[9] = 124 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 sync_recv_fd[10] = 125 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 sync_recv_fd[11] = 126 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 sync_recv_fd[12] = 127 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 sync_recv_fd[13] = 128 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 sync_recv_fd[14] = 129 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 1 sync_recv_fd[15] = 130 from 192.168.1.39
+192.168.1.40:9015: neighbor index = 3 recv_fd[0] = 131 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 recv_fd[1] = 159 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 recv_fd[2] = 161 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 recv_fd[3] = 163 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 recv_fd[4] = 165 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[0] = 167 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[5] = 169 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 recv_fd[6] = 170 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[1] = 172 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[7] = 173 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[2] = 175 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[8] = 176 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[3] = 178 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[9] = 179 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[4] = 181 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 recv_fd[5] = 182 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[10] = 184 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 recv_fd[11] = 185 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[6] = 187 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[12] = 188 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[7] = 190 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[13] = 191 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[8] = 193 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 recv_fd[9] = 194 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[14] = 196 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 recv_fd[15] = 197 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[10] = 199 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 recv_fd[11] = 200 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[16] = 202 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[12] = 203 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[17] = 205 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 recv_fd[18] = 206 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[13] = 208 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[19] = 209 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[14] = 211 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[20] = 212 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[15] = 214 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[21] = 215 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[16] = 217 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[22] = 218 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[17] = 220 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 recv_fd[18] = 221 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[23] = 223 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 recv_fd[24] = 224 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[19] = 226 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[25] = 227 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[20] = 229 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[26] = 230 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[21] = 232 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[27] = 233 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[22] = 235 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[28] = 236 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[23] = 238 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[29] = 239 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[24] = 241 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[30] = 242 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[25] = 244 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[31] = 245 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[26] = 247 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[32] = 248 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[27] = 250 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[33] = 251 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[28] = 253 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[34] = 254 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[29] = 256 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 recv_fd[30] = 257 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[35] = 258 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 recv_fd[36] = 259 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[31] = 260 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[37] = 262 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[32] = 263 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[38] = 264 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[33] = 265 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[39] = 266 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[34] = 267 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 3 recv_fd[40] = 268 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 recv_fd[41] = 269 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 recv_fd[42] = 270 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 recv_fd[43] = 271 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 recv_fd[44] = 272 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 recv_fd[45] = 273 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 recv_fd[46] = 274 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 recv_fd[47] = 275 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 recv_fd[48] = 276 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 recv_fd[49] = 277 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 sync_recv_fd[0] = 278 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 sync_recv_fd[1] = 297 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 sync_recv_fd[2] = 299 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 sync_recv_fd[3] = 301 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 sync_recv_fd[4] = 303 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 sync_recv_fd[5] = 305 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 sync_recv_fd[6] = 307 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 sync_recv_fd[7] = 309 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 sync_recv_fd[8] = 311 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 sync_recv_fd[9] = 313 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 sync_recv_fd[10] = 315 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 sync_recv_fd[11] = 317 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 sync_recv_fd[12] = 319 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 sync_recv_fd[13] = 321 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 sync_recv_fd[14] = 323 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 3 sync_recv_fd[15] = 325 from 192.168.1.41
+192.168.1.40:9015: neighbor index = 0 recv_fd[35] = 327 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 recv_fd[36] = 370 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 recv_fd[37] = 371 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 recv_fd[38] = 372 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 recv_fd[39] = 373 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 recv_fd[40] = 374 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 recv_fd[41] = 375 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 recv_fd[42] = 376 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 recv_fd[43] = 377 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 recv_fd[44] = 378 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 recv_fd[45] = 379 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 recv_fd[46] = 380 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 recv_fd[47] = 381 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 recv_fd[48] = 382 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 recv_fd[49] = 383 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 sync_recv_fd[0] = 384 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 sync_recv_fd[1] = 385 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 sync_recv_fd[2] = 386 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 sync_recv_fd[3] = 387 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 sync_recv_fd[4] = 388 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 sync_recv_fd[5] = 389 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 sync_recv_fd[6] = 390 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 sync_recv_fd[7] = 391 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 sync_recv_fd[8] = 392 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 sync_recv_fd[9] = 393 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 sync_recv_fd[10] = 394 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 sync_recv_fd[11] = 395 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 sync_recv_fd[12] = 396 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 sync_recv_fd[13] = 397 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 sync_recv_fd[14] = 398 from 192.168.1.38
+192.168.1.40:9015: neighbor index = 0 sync_recv_fd[15] = 399 from 192.168.1.38
+192.168.1.40:9015 start peer data sync
+192.168.1.40:9015 start peer data sync
+192.168.1.40:9015 start peer data sync
+192.168.1.40:9015 send_meta done
+192.168.1.40:9015 send_meta done
+192.168.1.40:9015 send_meta done
+192.168.1.40:9015 recv_meta done
+	[1] user: [0, 0)
+	[1] user: [0, 0)
+	[1] user: [0, 0)
+	[1] user: [0, 0)
+	[1] user: [0, 0)
+	[1] user: [0, 0)
+	[1] user: [0, 0)
+	[1] user: [0, 0)
+	[1] user: [0, 0)
+	[1] user: [0, 0)
+	[1] user: [0, 0)
+	[1] user: [0, 0)
+	[1] user: [0, 0)
+	[1] user: [0, 0)
+	[1] user: [0, 0)
+	[1] user: [0, 0)
+192.168.1.40:9015 recv_meta done
+	[2] user: [0, 0)
+	[2] user: [0, 0)
+	[2] user: [0, 0)
+	[2] user: [0, 0)
+	[2] user: [0, 0)
+	[2] user: [0, 0)
+	[2] user: [0, 0)
+	[2] user: [0, 0)
+	[2] user: [0, 0)
+	[2] user: [0, 0)
+	[2] user: [0, 0)
+	[2] user: [0, 0)
+	[2] user: [0, 0)
+	[2] user: [0, 0)
+	[2] user: [0, 0)
+	[2] user: [0, 0)
+192.168.1.40:9015 recv_meta done
+	[0] user: [0, 0)
+	[0] user: [0, 0)
+	[0] user: [0, 0)
+	[0] user: [0, 0)
+	[0] user: [0, 0)
+	[0] user: [0, 0)
+	[0] user: [0, 0)
+	[0] user: [0, 0)
+	[0] user: [0, 0)
+	[0] user: [0, 0)
+	[0] user: [0, 0)
+	[0] user: [0, 0)
+	[0] user: [0, 0)
+	[0] user: [0, 0)
+	[0] user: [0, 0)
+	[0] user: [0, 0)
+192.168.1.40:9015: peer data sync elapse time: 0.010529 s
+192.168.1.40:9015: send to 3 peers q[0].local_cnt = 0
+192.168.1.40:9015: send to 3 peers q[1].local_cnt = 0
+192.168.1.40:9015: send to 3 peers q[2].local_cnt = 0
+192.168.1.40:9015: send to 3 peers q[3].local_cnt = 0
+192.168.1.40:9015: send to 3 peers q[4].local_cnt = 0
+192.168.1.40:9015: send to 3 peers q[5].local_cnt = 0
+192.168.1.40:9015: send to 3 peers q[6].local_cnt = 0
+192.168.1.40:9015: send to 3 peers q[7].local_cnt = 0
+192.168.1.40:9015: send to 3 peers q[8].local_cnt = 0
+192.168.1.40:9015: send to 3 peers q[9].local_cnt = 0
+192.168.1.40:9015: send to 3 peers q[10].local_cnt = 0
+192.168.1.40:9015: send to 3 peers q[11].local_cnt = 0
+192.168.1.40:9015: send to 3 peers q[12].local_cnt = 0
+192.168.1.40:9015: send to 3 peers q[13].local_cnt = 0
+192.168.1.40:9015: send to 3 peers q[14].local_cnt = 0
+192.168.1.40:9015: send to 3 peers q[15].local_cnt = 0
+192.168.1.40:9015: start waiting for remote
+remote exit sync flag 0:0
+cur : 48
