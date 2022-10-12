@@ -70,7 +70,7 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
     int ret = 0;
     if (need_to_recv) {
       int recv_count = remote[i].local_user_cnt - local[i].recived_user_cnt;
-      RemoteUser *recv_buffer = (RemoteUser *) malloc(recv_count * sizeof(RemoteUser));
+      RemoteUser *recv_buffer = (RemoteUser *) map_anonymouse(recv_count * sizeof(RemoteUser));
       void *src;
       int len = recv_count * sizeof(RemoteUser);
       int ret = recv_all(sync_recv_fdall[index][i], recv_buffer, len, MSG_WAITALL);
