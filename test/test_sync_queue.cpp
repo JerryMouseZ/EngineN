@@ -81,8 +81,8 @@ void test_engine(void *context, int index, size_t num)
 
 int main(int argc, char **argv)
 {
-  if (argc != 5) {
-    fprintf(stderr, "usage %s [index] [port] [read/write] [num]\n", argv[0]);
+  if (argc != 4) {
+    fprintf(stderr, "usage %s [index] [port] [num]\n", argv[0]);
     exit(1);
   }
 
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
   std::string host_info = std::string(ips[index]) + argv[2];
   void *context = engine_init(host_info.c_str() , const_peer_info, 3, aep_path, disk_path);
   Engine *engine = (Engine *)context;
-  int num = atoi(argv[4]);
+  int num = atoi(argv[3]);
   test_engine(context, index, num);
   engine_deinit(context);
 }

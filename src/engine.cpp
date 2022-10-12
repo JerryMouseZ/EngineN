@@ -30,7 +30,7 @@ Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr)
       sync_recv_fdall[i][j] = -1;
     }
     for (int j = 0; j < MAX_NR_CONSUMER; j++) {
-      remote_in_sync[i][j] = false;
+      remote_in_sync[i][j] = true;
     }
     local_in_sync_cnt = 0;
     remote_in_sync_cnt = 0;
