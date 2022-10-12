@@ -1,6 +1,7 @@
 #pragma once
 #include "util.hpp"
 #include "data.hpp"
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <pthread.h>
@@ -52,14 +53,13 @@ public:
   }
 
   uint64_t push(const User *user) {
-    size_t pos = head;
+    size_t pos = head.fetch_add(1, std::memory_order_acquire);
     while (tail + SQSIZE <= pos) {
       sched_yield();
     }
 
     data[pos].id = user->id;
     data[pos].salary = user->salary;
-    ++head;
     DEBUG_PRINTF(VLOG, "push to send queue\n");
     try_wake_consumer();
     return pos;
@@ -164,7 +164,7 @@ public:
   /* } */
 
 public:
-  volatile uint64_t head;
+  std::atomic<uint64_t> head;
   volatile uint64_t tail;
   pthread_mutex_t mutex;
   pthread_cond_t cond;
