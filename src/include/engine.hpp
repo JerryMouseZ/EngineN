@@ -10,7 +10,7 @@
 #include <vector>
 #include <algorithm>
 #include <thread>
-#include "include/config.hpp"
+#include "config.hpp"
 #include "queue.hpp"
 
 #include "index.hpp"
@@ -101,8 +101,14 @@ private:
 public:
   std::atomic<uint64_t> local_in_sync_cnt;
   std::atomic<uint64_t> remote_in_sync_cnt;
+  // 标记每个队列的同步状态
+  std::atomic<bool> remote_in_sync[4][MAX_NR_CONSUMER];
+  std::atomic<bool> local_in_sync[MAX_NR_CONSUMER];
+  /* std::atomic<bool> in_sync_visible; */
+
 
 private:
+  volatile bool exited;
   Data *datas;
 
   // indexes
@@ -110,11 +116,7 @@ private:
   Index *uid_r;
   Index *sala_r;
 
-  // remote indexes
-  VIndex remote_id_r[4];
-  VIndex remote_sala_r[4];
-
-  // write buffer
+    // write buffer
   UserQueue *qs;
   SyncQueue sync_qs[MAX_NR_CONSUMER];
   std::thread consumers[MAX_NR_CONSUMER];
@@ -131,10 +133,7 @@ private:
   std::thread *req_handlerall[4 * 10];
   std::thread *sync_send_thread[MAX_NR_CONSUMER];
   std::thread *sync_resp_thread;
-  std::atomic<bool> in_sync[4][MAX_NR_CONSUMER];
-  std::atomic<bool> in_sync_visible;
-  std::atomic<bool> local_in_sync[MAX_NR_CONSUMER];
-
+  
   RemoteState remote_state; // 用来存当前有多少remote的user吧
 
   int req_send_fds[50];
@@ -145,4 +144,8 @@ private:
   int recv_fdall[4][50];
   int sync_send_fdall[4][MAX_NR_CONSUMER];
   int sync_recv_fdall[4][MAX_NR_CONSUMER];
+public:
+// remote indexes
+  VIndex remote_id_r[4];
+  VIndex remote_sala_r[4];
 };
