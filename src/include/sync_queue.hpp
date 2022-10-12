@@ -19,24 +19,11 @@ struct RemoteUser {
 };
 
 struct sync_send {
-  uint64_t cnt;
+  uint8_t cnt;
 };
 
 struct sync_resp {
-  uint64_t cnt;
-};
-
-class RemoteData {
-public:
-  RemoteData() : users(nullptr), local_cnt(0) {}
-  ~RemoteData();
-  void open(const std::string &fdata);
-  // data read and data write
-  const RemoteUser *data_read(uint32_t index) { return &users[index]; }
-
-public:
-  RemoteUser *users = nullptr;
-  uint32_t local_cnt;
+  uint8_t cnt;
 };
 
 class SyncQueue {
@@ -44,7 +31,7 @@ public:
   SyncQueue() 
     : head(0), tail(0), send_head(0), neighbor_local_cnt{0} {}
 
-  int open(uint32_t id, int send_fd, volatile bool *alive, RemoteData *rmdata) {
+  int open(uint32_t id, int send_fd, volatile bool *alive) {
 
     data = reinterpret_cast<RemoteUser *>(map_anonymouse(SQSIZE * sizeof(RemoteUser)));
 
@@ -58,13 +45,13 @@ public:
     exited = false;
     pthread_mutex_init(&mutex, NULL);
     pthread_cond_init(&cond, NULL);
-
     return 0;
   }
   
   uint64_t push(const User *user) {
     size_t pos = head;
     while (tail + SQSIZE <= pos) {
+      sched_yield();
       producer_yield();
     }
 
@@ -76,19 +63,13 @@ public:
   }
   
   // 或许可以用uvsend，不然用的线程好像太多了
-  bool pop() {
+  int pop(RemoteUser **begin) {
     size_t pos = tail;
-    while (pos >= head) {
-      if (exited)
-        return false;
-      sched_yield();
-      if (pos >= head)
-        consumer_yield();
-    }
-    
     int pop_cnt = head - pos;
-    int ret = send_all(send_fd, &data[send_head], pop_cnt * sizeof(RemoteUser), 0);
-    return ret == pop_cnt * sizeof(RemoteUser);
+    pop_cnt = std::min(pop_cnt, 2048); // 64k is the best package size
+    *begin = &data[pos];
+    tail += pop_cnt;
+    return pop_cnt;
   }
 
 

@@ -62,7 +62,6 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
     neighbor_idx = neighbor_index[nb_i];
     for (int i = 0; i < MAX_NR_CONSUMER; i++) {
       DEBUG_PRINTF(INIT, "start open remote_datas[%d]\n", i);
-      remote_datas[neighbor_idx][i].open(aep_prefix + std::to_string(neighbor_idx) + "_" + std::to_string(i));
     }
 
     remote_id_r[neighbor_idx].open();

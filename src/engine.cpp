@@ -10,10 +10,11 @@
 #include <ctime>
 #include <fcntl.h>
 #include <pthread.h>
+#include <sched.h>
 #include <string>
 #include <thread>
 
-Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr), consumers(nullptr), alive{false}, neighbor_index{0} {
+Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr), alive{false}, neighbor_index{0} {
   host_index = -1;
   qs = static_cast<UserQueue *>(mmap(0, MAX_NR_CONSUMER * sizeof(UserQueue), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
@@ -36,6 +37,8 @@ Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr)
     remote_in_sync_cnt = 0;
   }
   DEBUG_PRINTF(qs, "Fail to mmap consumer queues\n");
+  pthread_mutex_init(&mutex, NULL);
+  pthread_cond_init(&writer_waiting_for_sync, NULL);
 }
 
 Engine::~Engine() {
@@ -108,7 +111,6 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
     build_index(i, 0, qs[i].head->load(), id_r, uid_r, sala_r, &datas[i]);
   }
 
-  consumers = new std::thread[MAX_NR_CONSUMER];
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     consumers[i] = std::thread([this]{
                                init_consumer_id();
@@ -125,6 +127,7 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
 
   return remote_state_is_new_create;
 }
+
 
 void Engine::build_index(int qid, int begin, int end, Index *id_index, Index *uid_index, Index *salary_index, Data *datap) {
   for (auto i = begin; i < end; i++) {
@@ -145,6 +148,11 @@ void Engine::write(const User *user) {
 
   uint32_t qid = user->id % MAX_NR_CONSUMER;
   uint32_t index = qs[qid].push(user);
+  while (sync_qs[qid].consumer_maybe_waiting) {
+    // block until response
+    sync_qs[qid].try_wake_consumer();
+    sched_yield();
+  }
   size_t encoded_index = (qid << 28) | index;
 
   id_r->put(user->id, encoded_index);

@@ -59,21 +59,3 @@ private:
   UserQueue *qs;
 };
 
-class RemoteDataAccess {
-public:
-  RemoteDataAccess()
-    : rmdatas(nullptr) { }
-
-  RemoteDataAccess(RemoteData *rmdatas)
-    : rmdatas(rmdatas) {}
-
-  const RemoteUser *read(uint32_t encoded_index) {
-    uint32_t qid = encoded_index >> 28;
-    uint32_t index = encoded_index & ((1 << 28) - 1);
-    return rmdatas[qid].data_read(index);
-  }
-
-private:
-  RemoteData *rmdatas;
-};
-
