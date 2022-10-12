@@ -4,11 +4,13 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <pthread.h>
 #include <string>
 #include <utility>
 #include <vector>
 #include <algorithm>
 #include <thread>
+#include "include/config.hpp"
 #include "queue.hpp"
 
 #include "index.hpp"
@@ -60,6 +62,9 @@ public:
   void notify_local_queue_exit_sync(int neighbor_idx, int qid);
   void notify_remote_queue_exit_sync(int neighbor_idx, int qid);
 
+  void sync_send_handler(int qid);
+
+  void init_set_peer_sync();
 private:
 
   void connect(std::vector<info_type> &infos, int num, bool is_new_create);
@@ -86,6 +91,8 @@ private:
   void build_index(int qid, int begin, int end, Index *id_index, Index *uid_index, Index *salary_index, Data *datap);
   void start_sync_handlers();
 
+  void sync_resp_handler();
+
   bool any_local_in_sync();
   bool any_rm_in_sync();
 
@@ -97,8 +104,6 @@ public:
 
 private:
   Data *datas;
-
-  RemoteData remote_datas[4][MAX_NR_CONSUMER];
 
   // indexes
   Index *id_r;
@@ -112,7 +117,10 @@ private:
   // write buffer
   UserQueue *qs;
   SyncQueue sync_qs[MAX_NR_CONSUMER];
-  std::thread *consumers;
+  std::thread consumers[MAX_NR_CONSUMER];
+  std::thread sync_senders[MAX_NR_CONSUMER];
+  pthread_mutex_t mutex;
+  pthread_cond_t writer_waiting_for_sync;
 
   int host_index;
   int neighbor_index[3];
@@ -121,10 +129,11 @@ private:
   std::thread *req_handler[10];
   std::thread *req_weak_handler[10];
   std::thread *req_handlerall[4 * 10];
-  std::thread *sync_send_thread[4][NR_SYNC_HANDLER_EACH_NB];
+  std::thread *sync_send_thread[MAX_NR_CONSUMER];
   std::thread *sync_resp_thread;
   std::atomic<bool> in_sync[4][MAX_NR_CONSUMER];
   std::atomic<bool> in_sync_visible;
+  std::atomic<bool> local_in_sync[MAX_NR_CONSUMER];
 
   RemoteState remote_state; // 用来存当前有多少remote的user吧
 

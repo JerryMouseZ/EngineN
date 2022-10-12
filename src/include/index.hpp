@@ -177,23 +177,6 @@ public:
     next_location->store(64, std::memory_order_release);
   }
 
-  void open(const RemoteDataAccess &rm_accessor) {
-    this->rm_accessor = rm_accessor;
-    ptr = reinterpret_cast<char *>(map_anonymouse(OVER_NUM * sizeof(Bucket) + 64));
-    madvise(ptr, OVER_NUM * sizeof(Bucket), MADV_RANDOM);
-    next_location = reinterpret_cast<std::atomic<size_t> *>(ptr);
-
-    next_location->store(64, std::memory_order_release);
-  }
-
-  void open(RemoteData *rmdatas) {
-    ptr = reinterpret_cast<char *>(map_anonymouse(OVER_NUM * sizeof(Bucket) + 64));
-    madvise(ptr, OVER_NUM * sizeof(Bucket), MADV_RANDOM);
-    next_location = reinterpret_cast<std::atomic<size_t> *>(ptr);
-
-    next_location->store(64, std::memory_order_release);
-  }
-
   void put(uint64_t over_offset, size_t hash_val, uint32_t data_offset) {
     volatile Bucket *bucket = reinterpret_cast<volatile Bucket *>(ptr + over_offset);
     if (!bucket->is_overflow) {
@@ -246,31 +229,6 @@ public:
 
   }
 
-  size_t cache_get(size_t over_offset, size_t hash_val, const void *key, int where_column, int select_column, void *res, bool multi) {
-    int count = 0;
-    Bucket *bucket = reinterpret_cast<Bucket *>(ptr + over_offset);
-    uint32_t num = std::min(ENTRY_NUM, bucket->next_free.load(std::memory_order_acquire));
-    for (int i = 0; i < num; ++i) {
-      uint64_t offset = bucket->entries[i];
-      const RemoteUser *tmp = rm_accessor.read(offset);
-      /* __builtin_prefetch(tmp, 0, 0); */
-      if (tmp && rm_inlinecompare(hash_val, key, tmp, where_column, bucket->extra[i], bucket->inlinekeys[i])) {
-        res = rm_res_copy(tmp, res, select_column);
-        count++;
-        if (!multi)
-          return count;
-      }
-    }
-
-    size_t index;
-    if ((index = bucket->bucket_next) == 0)
-      return count;
-
-    uint64_t next_offset = 64 + (index - 1) * sizeof(Bucket);
-    count += cache_get(next_offset, hash_val, key, where_column, select_column, res, multi);
-    return count;
-
-  }
   ~OverflowIndex() {
     if (ptr) {
       munmap(ptr, BUCKET_NUM * sizeof(Bucket) + 64);
@@ -280,7 +238,6 @@ public:
 private:
   char *ptr;
   DataAccess accessor;
-  RemoteDataAccess rm_accessor;
 };
 
 class Index
@@ -295,13 +252,6 @@ public:
     hash_ptr = reinterpret_cast<char *>(map_anonymouse(BUCKET_NUM * sizeof(Bucket)));
     madvise(hash_ptr, BUCKET_NUM * sizeof(Bucket), MADV_RANDOM);
     overflowindex->open(accessor);
-  }
-
-  void open(RemoteData *rmdatas) {
-    rm_accessor = RemoteDataAccess(rmdatas);
-    hash_ptr = reinterpret_cast<char *>(map_anonymouse(BUCKET_NUM * sizeof(Bucket)));
-    madvise(hash_ptr, BUCKET_NUM * sizeof(Bucket), MADV_RANDOM);
-    overflowindex->open(rm_accessor);
   }
 
   ~Index() {
@@ -367,39 +317,9 @@ public:
     return count;
   }
 
-  int cache_get(const void *key, int where_column, int select_column, void *res, bool multi) {
-    size_t hash_val = key_hash(key, where_column);
-    size_t bucket_location = hash_val & (BUCKET_NUM - 1);
-    int count = 0;
-    Bucket *bucket = reinterpret_cast<Bucket *>(hash_ptr + bucket_location * sizeof(Bucket));
-    uint32_t num = std::min(ENTRY_NUM, bucket->next_free.load(std::memory_order_acquire));
-    for (int i = 0; i < num; ++i) {
-      size_t offset = bucket->entries[i];
-      const RemoteUser *tmp = rm_accessor.read(offset);
-      /* __builtin_prefetch(tmp, 0, 0); */
-      if (tmp && rm_inlinecompare(hash_val, key, tmp, where_column, bucket->extra[i], bucket->inlinekeys[i])) {
-        res = rm_res_copy(tmp, res, select_column);
-        count++;
-        if (!multi) {
-          return count;
-        }
-      }
-    }
-
-    size_t index;
-    if ((index = bucket->bucket_next) == 0) {
-      return count;
-    }
-
-    uint64_t next_offset = 64 + (index - 1) * sizeof(Bucket);
-    count += overflowindex->cache_get(next_offset, hash_val, key, where_column, select_column, res, multi);
-    return count;
-  }
-
 
 private:
   char *hash_ptr;
   OverflowIndex *overflowindex;
   DataAccess accessor;
-  RemoteDataAccess rm_accessor;
 };
