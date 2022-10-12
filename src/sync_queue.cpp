@@ -47,7 +47,7 @@ void Engine::sync_send_handler(int qid) {
       }
 
       for (int i = 0; i < pop_cnt; ++i) {
-        DEBUG_PRINTF(0, "sending %ld, %ld\n", send_start[i].id, send_start[i].salary);
+        DEBUG_PRINTF(VPROT, "sending %ld, %ld\n", send_start[i].id, send_start[i].salary);
       }
       // 要向3个发
       for (int i = 0; i < 3; ++i) {
@@ -68,7 +68,7 @@ void Engine::sync_send_handler(int qid) {
         waiting_times = 0;
         // send sync flag
         RemoteUser sync_flag = {-1, -1};
-        DEBUG_PRINTF(0, "[%d:%d] send exit sync flag to others\n", host_index, qid);
+        DEBUG_PRINTF(VPROT, "[%d:%d] send exit sync flag to others\n", host_index, qid);
         for (int i = 0; i < 3; ++i) {
           int neighbor_idx = neighbor_index[i];
           int ret = send(sync_send_fdall[neighbor_idx][qid], &sync_flag, sizeof(sync_flag), 0);
@@ -89,7 +89,7 @@ void Engine::sync_send_handler(int qid) {
           return;
 
         // 有没有可能刚被唤醒但是东西还没到writer buffer呢，可以在writer buffer那里阻塞住，然后这样唤醒的时候就一定有东西
-        DEBUG_PRINTF(0, "[%d:%d] send begin sync flag to others\n", host_index, qid);
+        DEBUG_PRINTF(VPROT, "[%d:%d] send begin sync flag to others\n", host_index, qid);
         for (int i = 0; i < 3; ++i) {
           int neighbor_idx = neighbor_index[i];
           sync_flag = {-1, -2};
@@ -171,7 +171,7 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
     return;
   }
   
-  DEBUG_PRINTF(0, "recv %ld bytes\n", nread);
+  DEBUG_PRINTF(VPROT, "recv %ld bytes\n", nread);
   int qid = param->qid;
   char *buf = uv_buf->base;
   int64_t resp_cnt;
@@ -188,7 +188,7 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
           bool v = true;
           if (param->eg->remote_in_sync[param->neighbor_idx][qid].compare_exchange_weak(v, false)) {
             size_t cur = __sync_sub_and_fetch((uint64_t *)&param->eg->remote_in_sync_cnt, 1);
-            DEBUG_PRINTF(0, "remote exit sync flag %d:%d, current res : %ld\n", param->neighbor_idx, qid, cur);
+            DEBUG_PRINTF(VPROT, "remote exit sync flag %d:%d, current res : %ld\n", param->neighbor_idx, qid, cur);
           } else {
             DEBUG_PRINTF(0, "remote queue %d:%d already exit: res : %ld, status : %d\n", param->neighbor_idx, qid, param->eg->remote_in_sync_cnt.load(), param->eg->remote_in_sync[param->neighbor_idx][qid].load());
           }
@@ -198,7 +198,7 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
         bool v = false;
         if (param->eg->remote_in_sync[param->neighbor_idx][qid].compare_exchange_weak(v, true)) {
           auto cur = param->eg->remote_in_sync_cnt.fetch_add(1);
-          DEBUG_PRINTF(0, "recv begin sync flag %d:%d, current res : %ld\n", param->neighbor_idx, qid, cur + 1);
+          DEBUG_PRINTF(cur - 1, "recv begin sync flag %d:%d, current res : %ld\n", param->neighbor_idx, qid, cur + 1);
         }
         param->write_buf.base = (char *)&user[i];
         param->write_buf.len = sizeof(RemoteUser);
