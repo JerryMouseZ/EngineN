@@ -110,15 +110,14 @@ void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create)
   }
 
   listen_thread.join();
-
-
   do_peer_data_sync();
   start_sync_handlers();
   start_handlers(); // 先start handlers
+  sleep(10);
 }
 
 
-size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const void *column_key, size_t column_key_len, void *res) {
+size_t Engine::remote_read_broadcast(uint8_t select_column, uint8_t where_column, const void *column_key, size_t column_key_len, void *res) {
   if (unlikely(!have_reader_id())) {
     init_reader_id();
   }
@@ -197,6 +196,51 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
       single_already_recived = true;
     }
   }
+
+  return ret;
+}
+
+size_t Engine::remote_read_once(int neighbor_idx, uint8_t select_column, uint8_t where_column, const void *column_key, size_t column_key_len, void *res) {
+  if (!alive[neighbor_idx]) {
+    return 0;
+  }
+  if (unlikely(!have_reader_id())) {
+    init_reader_id();
+  }
+
+  int ret = 0;
+  data_request data;
+  data.fifo_id = 1;
+  data.select_column = select_column;
+  data.where_column = where_column;
+  memcpy(data.key, column_key, column_key_len);
+
+  int len;
+  len = send_all(send_fdall[neighbor_idx][reader_id], &data, sizeof(data), 0);
+  if (len < 0) {
+    DEBUG_PRINTF(0, "%s: send error %d to node %d, mark as inalive\n", this_host_info, len, neighbor_idx);
+    alive[neighbor_idx] = false;
+    return 0;
+  }
+  assert(len == sizeof(data_request));
+
+  response_header header;
+  len = recv_all(send_fdall[neighbor_idx][reader_id], &header, sizeof(header), MSG_WAITALL);
+  if (len <= 0) {
+    DEBUG_PRINTF(0, "%s: recv header error %d to node %d, mark as inalive\n", this_host_info, len, neighbor_idx);
+    alive[neighbor_idx] = false;
+    return 0;
+  }
+  assert(len == sizeof(header));
+  if (header.res_len == 0)
+    return 0;
+
+  len = recv_all(send_fdall[neighbor_idx][reader_id], res, header.res_len, MSG_WAITALL);
+  if (len <= 0) {
+    alive[neighbor_idx] = false;
+    return 0;
+  }
+  assert(len == header.res_len);
 
   return ret;
 }
@@ -308,7 +352,7 @@ void process_request(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
   res_buffer->header.fifo_id = fifo_id;
   res_buffer->header.ret = num;
   res_buffer->header.res_len = get_column_len(select_column) * num;
-  
+
   uv_buf_t *wbuf = &param->uv_buf;
   wbuf->len = sizeof(response_header) + res_buffer->header.res_len;
   wbuf->base = (char *)res_buffer;

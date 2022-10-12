@@ -2,6 +2,7 @@
 #include "include/comm.h"
 #include "include/config.hpp"
 #include "include/data.hpp"
+#include "include/sync_queue.hpp"
 #include "include/util.hpp"
 #include <cassert>
 #include <cstddef>
@@ -12,6 +13,7 @@
 #include <pthread.h>
 #include <sched.h>
 #include <string>
+#include <sys/select.h>
 #include <thread>
 
 Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr), alive{false}, neighbor_index{0} {
@@ -157,7 +159,52 @@ void Engine::write(const User *user) {
 }
 
 constexpr int key_len[4] = {8, 128, 128, 8};
-
+size_t Engine::sync_read(int32_t select_column, int32_t where_column, const void *column_key, size_t column_key_len, void *res) {
+  size_t result = 0;
+  switch(where_column) {
+  case Id:
+    if (select_column == Salary) {
+      for (int i = 0; !result && i < 3; i++) {
+        result = remote_id_r[neighbor_index[i]].get(*(int64_t *) column_key, res, false);
+        if (result > 0)
+          return result;
+      }
+    }
+    if (select_column == Userid || select_column == Name) {
+      int64_t tmp;
+      for (int i = 0; !result && i < 3; i++) {
+        result = remote_id_r[neighbor_index[i]].get(*(int64_t *) column_key, &tmp, false);
+        if (result > 0)
+          return remote_read_once(neighbor_index[i], select_column, where_column, column_key, column_key_len, res);
+      }
+    }
+    // 如果当前不是正在sync，就应该返回0了
+    if (any_rm_in_sync() || any_local_in_sync())
+      return remote_read_broadcast(select_column, where_column, column_key, key_len[where_column], res);
+    return 0;
+    DEBUG_PRINTF(VLOG, "select %s where ID = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
+    break;
+  case Userid:
+    // broadcast
+    return remote_read_broadcast(select_column, where_column, column_key, key_len[where_column], res);
+    break;
+  case Salary:
+    if (any_rm_in_sync() || any_local_in_sync())
+      return remote_read_broadcast(select_column, where_column, column_key, key_len[where_column], res);
+    if (select_column == Id) {
+      for (int i = 0; i < 3; i++) {
+        res = ((char *)res) + result * key_len[select_column];
+        result += remote_sala_r[neighbor_index[i]].get(*(int64_t *) column_key, res, true);
+      }
+    }
+    return result;
+    DEBUG_PRINTF(VLOG, "select %s where salary = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
+    break;
+  default:
+    DEBUG_PRINTF(LOG, "column error");
+  }
+  return result;
+}
 
 size_t Engine::local_read(int32_t select_column,
                           int32_t where_column, const void *column_key, size_t column_key_len, void *res) {
@@ -165,42 +212,17 @@ size_t Engine::local_read(int32_t select_column,
   switch(where_column) {
   case Id:
     result = id_r->get(column_key, where_column, select_column, res, false);
-    if (select_column == Salary) {
-      for (int i = 0; !result && i < 3; i++) {
-        result = remote_id_r[neighbor_index[i]].get(*(int64_t *) column_key, res, false);
-      }
-    }
-#ifndef BROADCAST
-    if (!result)
-      result = remote_id_r->get(column_key, where_column, select_column, res, false);
-#endif
     DEBUG_PRINTF(VLOG, "select %s where ID = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
     break;
   case Userid:
     result = uid_r->get(column_key, where_column, select_column, res, false);
-#ifndef BROADCAST
-    if (!result)
-      result = remote_uid_r->get(column_key, where_column, select_column, res, false);
-#endif
     DEBUG_PRINTF(VLOG, "select %s where UID = %ld, res = %ld\n", column_str(select_column).c_str(), std::hash<std::string>()(std::string((char *) column_key, 128)), result);
     break;
   case Name:
     assert(0);
-    /* result = name_r->get(column_key, where_column, select_column, res, false); */
-    DEBUG_PRINTF(VLOG, "select %s where Name = %ld, res = %ld\n", column_str(select_column).c_str(), std::hash<std::string>()(std::string((char *) column_key, 128)), result);
     break;
   case Salary:
     result = sala_r->get(column_key, where_column, select_column, res, true);
-    if (select_column == Id) {
-      for (int i = 0; i < 3; i++) {
-        res = ((char *)res) + result * key_len[select_column];
-        result += remote_sala_r[neighbor_index[i]].get(*(int64_t *) column_key, res, true);
-      }
-    }
-#ifndef BROADCAST
-    res = ((char *)res) + result * key_len[select_column];
-    result += remote_sala_r->get(column_key, where_column, select_column, res, true);
-#endif
     DEBUG_PRINTF(VLOG, "select %s where salary = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
     break;
   default:
@@ -214,13 +236,9 @@ size_t Engine::read(int32_t select_column,
   size_t result = 0;
   result = local_read(select_column, where_column, column_key, column_key_len, res);
 
-  if ((select_column == Salary && where_column == Id) || (where_column == Salary && select_column == Id)) {
-    return result;
-  }
-
   if (result == 0 || where_column == Salary) {
     res = (char *) res + result * key_len[select_column];
-    result += remote_read(select_column, where_column, column_key, column_key_len, res);
+    result += sync_read(select_column, where_column, column_key, column_key_len, res);
   }
   return result;
 }

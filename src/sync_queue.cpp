@@ -193,13 +193,12 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
       if (resp_cnt == 0) {
         // 如果没有更多的数据了就认为同步完了
         if(nread == 0) {
-          DEBUG_PRINTF(0, "remote exit sync flag %d:%d\n", param->neighbor_idx, qid);
+          DEBUG_PRINTF(VLOG, "remote exit sync flag %d:%d\n", param->neighbor_idx, qid);
           bool v = true;
           if (param->eg->remote_in_sync[param->neighbor_idx][qid].compare_exchange_weak(v, false)) {
             size_t cur = param->eg->remote_in_sync_cnt.fetch_sub(1);
-            DEBUG_PRINTF(0, "cur : %ld\n", cur);
           } else {
-            DEBUG_PRINTF(0, "remote queue %d:%d already exit: res : %ld, status : %d\n", param->neighbor_idx, qid, param->eg->remote_in_sync_cnt.load(), param->eg->remote_in_sync[param->neighbor_idx][qid].load());
+            DEBUG_PRINTF(VLOG, "remote queue %d:%d already exit: res : %ld, status : %d\n", param->neighbor_idx, qid, param->eg->remote_in_sync_cnt.load(), param->eg->remote_in_sync[param->neighbor_idx][qid].load());
           }
         }
       }
@@ -275,7 +274,8 @@ void Engine::start_sync_handlers() {
     sync_resp_handler();
   };
   sync_resp_thread = new std::thread(sync_resp_fn);
-
+  
+  // 或许没有必要，因为send queue空了自动会发
   init_set_peer_sync();
   waiting_all_exit_sync();
 
