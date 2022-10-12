@@ -207,12 +207,17 @@ public:
     int count = 0;
     Bucket *bucket = reinterpret_cast<Bucket *>(ptr + over_offset);
     uint32_t num = std::min(ENTRY_NUM, bucket->next_free.load(std::memory_order_acquire));
+    size_t uncommited_index;
     for (int i = 0; i < num; ++i) {
       uint64_t offset = bucket->entries[i];
-      const User *tmp = accessor.read(offset);
+      const User *tmp = accessor.read(offset, uncommited_index);
       /* __builtin_prefetch(tmp, 0, 0); */
       if (tmp && inlinecompare(hash_val, key, tmp, where_column, bucket->extra[i], bucket->inlinekeys[i])) {
         res = res_copy(tmp, res, select_column);
+        if (accessor.need_to_retry(offset, uncommited_index)) {
+          tmp = accessor.read(offset, uncommited_index);
+          res = res_copy(tmp, res, select_column);
+        }
         count++;
         if (!multi)
           return count;
@@ -292,14 +297,19 @@ public:
     size_t hash_val = key_hash(key, where_column);
     size_t bucket_location = hash_val & (BUCKET_NUM - 1);
     int count = 0;
+    size_t uncommited_index;
     Bucket *bucket = reinterpret_cast<Bucket *>(hash_ptr + bucket_location * sizeof(Bucket));
     uint32_t num = std::min(ENTRY_NUM, bucket->next_free.load(std::memory_order_acquire));
     for (int i = 0; i < num; ++i) {
       size_t offset = bucket->entries[i];
-      const User *tmp = accessor.read(offset);
+      const User *tmp = accessor.read(offset, uncommited_index);
       /* __builtin_prefetch(tmp, 0, 0); */
       if (tmp && inlinecompare(hash_val, key, tmp, where_column, bucket->extra[i], bucket->inlinekeys[i])) {
         res = res_copy(tmp, res, select_column);
+        if (accessor.need_to_retry(offset, uncommited_index)) {
+          tmp = accessor.read(offset, uncommited_index);
+          res = res_copy(tmp, res, select_column);
+        }
         count++;
         if (!multi) {
           return count;

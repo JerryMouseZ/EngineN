@@ -45,7 +45,8 @@ void test_engine(void *context, int index, size_t num)
         user.salary = i % num;
         engine_write(context, &user, sizeof(user));
       }
-
+    
+      sleep(10);
       for (long i = data_begin; i < data_end; ++i) {
         TestUser user;
         // Select Salary from ... where Id
