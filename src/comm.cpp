@@ -161,13 +161,13 @@ void listener(int listen_fd, std::vector<info_type> *infos, int recv_fdall[4][50
         /* uv_tcp_open(&recv_fdall[j][cnts[j]++], client_fd); */
         if (cnts[j] < MAX_NR_PRODUCER) {
           recv_fdall[j][cnts[j]++] = client_fd;
-          DEBUG_PRINTF(LOG, "%s: neighbor index = %d recv_fd[%d] = %d from %s\n",
+          DEBUG_PRINTF(INIT, "%s: neighbor index = %d recv_fd[%d] = %d from %s\n",
                        this_host_info, j, cnts[j] - 1, client_fd, (*infos)[j].first.c_str());
         } else {
           idx = cnts[j] - MAX_NR_PRODUCER;
           sync_recv_fdall[j][idx] = client_fd;
           cnts[j]++;
-          DEBUG_PRINTF(LOG, "%s: neighbor index = %d sync_recv_fd[%d] = %d from %s\n",
+          DEBUG_PRINTF(INIT, "%s: neighbor index = %d sync_recv_fd[%d] = %d from %s\n",
                        this_host_info, j, idx, client_fd, (*infos)[j].first.c_str());
         }
         break;
