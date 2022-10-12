@@ -13,17 +13,18 @@ constexpr uint64_t SQBITS = 14;
 constexpr uint64_t SQSIZE = 1 << SQBITS;
 constexpr uint64_t SQMASK = SQSIZE - 1;
 
-struct RemoteUser {
-  int64_t id;
-  int64_t salary;
-};
-
 struct sync_send {
-  uint8_t cnt;
+  size_t cnt;
 };
 
 struct sync_resp {
-  uint8_t cnt;
+  size_t cnt;
+};
+
+
+struct RemoteUser {
+  int64_t id;
+  int64_t salary;
 };
 
 class SyncQueue {
@@ -128,29 +129,29 @@ public:
     ((std::atomic<uint64_t> *)(&head))->store(new_head, std::memory_order_release);
   }
 
-  void do_blocking_sync(uint64_t cnt) {
-    if (unlikely(!*alive)) {
-      return;
-    } 
+  /* void do_blocking_sync(uint64_t cnt) { */
+  /*   if (unlikely(!*alive)) { */
+  /*     return; */
+  /*   } */ 
 
-    int ret;
-    sync_send msg;
-    msg.cnt = cnt;
+  /*   int ret; */
+  /*   sync_send msg; */
+  /*   msg.cnt = cnt; */
 
-    ret = send_all(send_fd, &msg, sizeof(msg), 0);
-    if (ret < 0) {
-      *alive = false;
-    }
-    assert(ret == sizeof(msg));
+  /*   ret = send_all(send_fd, &msg, sizeof(msg), 0); */
+  /*   if (ret < 0) { */
+  /*     *alive = false; */
+  /*   } */
+  /*   assert(ret == sizeof(msg)); */
 
-    ret = send_all(send_fd, &data[send_head], cnt * sizeof(RemoteUser), 0);
-    if (ret < 0) {
-      *alive = false;
-    }
-    assert(ret == cnt * sizeof(RemoteUser));
+  /*   ret = send_all(send_fd, &data[send_head], cnt * sizeof(RemoteUser), 0); */
+  /*   if (ret < 0) { */
+  /*     *alive = false; */
+  /*   } */
+  /*   assert(ret == cnt * sizeof(RemoteUser)); */
 
-    send_head += cnt;
-  }
+  /*   send_head += cnt; */
+  /* } */
 
   void advance_tail(uint64_t pos) {
     assert(pos >= tail);
@@ -160,9 +161,9 @@ public:
     }
   }
 
-  void on_recv_resp(const sync_resp *msg) {
-    tail += msg->cnt;
-  }
+  /* void on_recv_resp(const sync_resp *msg) { */
+  /*   tail += msg->cnt; */
+  /* } */
 
 public:
   volatile uint64_t head;

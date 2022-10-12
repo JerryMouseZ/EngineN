@@ -30,18 +30,19 @@ Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr)
       sync_recv_fdall[i][j] = -1;
     }
     for (int j = 0; j < MAX_NR_CONSUMER; j++) {
-      in_sync[i][j] = false;
+      remote_in_sync[i][j] = false;
     }
-    in_sync_visible = false;
     local_in_sync_cnt = 0;
     remote_in_sync_cnt = 0;
   }
+  exited = false;
   DEBUG_PRINTF(qs, "Fail to mmap consumer queues\n");
   pthread_mutex_init(&mutex, NULL);
   pthread_cond_init(&writer_waiting_for_sync, NULL);
 }
 
 Engine::~Engine() {
+  exited = true;
   // disconnect all socket and handlers
   if (host_index != -1)
     disconnect();
@@ -148,11 +149,6 @@ void Engine::write(const User *user) {
 
   uint32_t qid = user->id % MAX_NR_CONSUMER;
   uint32_t index = qs[qid].push(user);
-  while (sync_qs[qid].consumer_maybe_waiting) {
-    // block until response
-    sync_qs[qid].try_wake_consumer();
-    sched_yield();
-  }
   size_t encoded_index = (qid << 28) | index;
 
   id_r->put(user->id, encoded_index);
