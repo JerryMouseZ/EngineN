@@ -72,6 +72,12 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
 }
 
 void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create) {
+  // 开启remote index
+  for (int i = 0; i < 3; ++i) {
+    remote_id_r[i].open();
+    remote_sala_r[i].open();
+  }
+
   int ret;
   signal(SIGPIPE, SIG_IGN);
   listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
@@ -92,9 +98,9 @@ void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create)
     int neighbor_idx = neighbor_index[nb_i];
     for (int i = 0; i < MAX_NR_PRODUCER; i++) {
       send_fdall[neighbor_idx][i] = 
-       connect_to_server(this_host_ip, infos[neighbor_idx].first.c_str(), infos[neighbor_idx].second);
+        connect_to_server(this_host_ip, infos[neighbor_idx].first.c_str(), infos[neighbor_idx].second);
       DEBUG_PRINTF(INIT, "%s: neighbor index = %d senf_fd[%d] = %d to %s\n",
-        this_host_info, neighbor_idx, i, send_fdall[neighbor_idx][i], infos[neighbor_idx].first.c_str());
+                   this_host_info, neighbor_idx, i, send_fdall[neighbor_idx][i], infos[neighbor_idx].first.c_str());
     }
   }
 
@@ -103,9 +109,9 @@ void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create)
     int neighbor_idx = neighbor_index[nb_i];
     for (int i = 0; i < MAX_NR_CONSUMER; i++) {
       sync_send_fdall[neighbor_idx][i] = 
-       connect_to_server(this_host_ip, infos[neighbor_idx].first.c_str(), infos[neighbor_idx].second);
+        connect_to_server(this_host_ip, infos[neighbor_idx].first.c_str(), infos[neighbor_idx].second);
       DEBUG_PRINTF(INIT, "%s: neighbor index = %d sync_send_fd[%d] = %d to %s\n",
-        this_host_info, neighbor_idx, i, sync_send_fdall[neighbor_idx][i], infos[neighbor_idx].first.c_str());
+                   this_host_info, neighbor_idx, i, sync_send_fdall[neighbor_idx][i], infos[neighbor_idx].first.c_str());
     }
   }
 
@@ -113,7 +119,7 @@ void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create)
   do_peer_data_sync();
   start_sync_handlers();
   start_handlers(); // 先start handlers
-  sleep(10);
+  sleep(2);
 }
 
 

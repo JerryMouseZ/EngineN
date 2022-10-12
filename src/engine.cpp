@@ -125,7 +125,7 @@ bool Engine::open(std::string aep_path, std::string disk_path) {
                                ;
                                });
   }
-
+  
   // for remote
   bool remote_state_is_new_create;
   DEBUG_PRINTF(INIT, "start open remote_state\n");
