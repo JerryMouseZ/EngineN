@@ -32,45 +32,48 @@ void test_engine(void *context, int index, size_t num)
   long per_thread = num / 50;
   std::thread *threads[50];
   for (long tid = 0; tid < 50; ++tid) {
-    threads[tid] = new std::thread([=]{
-      long data_begin = index * num + tid * per_thread, data_end = index * num + (tid + 1) * per_thread;
-      for (long i = data_begin; i < data_end; ++i) {
-        TestUser user;
-        memset(&user, 0, sizeof(TestUser));
-        user.id = i;
-        memset(user.name, 0, 128);
-        memset(user.user_id, 0, 128);
-        strcpy(user.name, std::to_string(i).c_str());
-        strcpy(user.user_id, std::to_string(i).c_str());
-        user.salary = i % num;
-        engine_write(context, &user, sizeof(user));
+    /* threads[tid] = new std::thread([=]{ */
+    long data_begin = index * num + tid * per_thread, data_end = index * num + (tid + 1) * per_thread;
+    for (long i = data_begin; i < data_end; ++i) {
+      TestUser user;
+      memset(&user, 0, sizeof(TestUser));
+      user.id = i;
+      memset(user.name, 0, 128);
+      memset(user.user_id, 0, 128);
+      strcpy(user.name, std::to_string(i).c_str());
+      strcpy(user.user_id, std::to_string(i).c_str());
+      user.salary = i % num;
+      engine_write(context, &user, sizeof(user));
+    }
+  }  
+  sleep(10);
+
+  for (long tid = 0; tid < 50; ++tid) {
+    long data_begin = index * num + tid * per_thread, data_end = index * num + (tid + 1) * per_thread;
+    for (long i = data_begin; i < data_end; ++i) {
+      TestUser user;
+      // Select Salary from ... where Id
+      memset(&user, 0, sizeof(user));
+      int ret = engine_read(context, Salary, Id, &i, sizeof(user.id), (void *)&user.salary);
+      if (ret == 0)
+        fprintf(stderr, "Line %d  %ld\n", __LINE__, i);
+      assert(ret);
+      if(i % num != user.salary) {
+        fprintf(stderr, "Line %d  %ld\n", __LINE__, i);
       }
-    
-      sleep(50);
-      for (long i = data_begin; i < data_end; ++i) {
-        TestUser user;
-        // Select Salary from ... where Id
-        memset(&user, 0, sizeof(user));
-        int ret = engine_read(context, Salary, Id, &i, sizeof(user.id), (void *)&user.salary);
-        if (ret == 0)
-          fprintf(stderr, "Line %d  %ld\n", __LINE__, i);
-        assert(ret);
-        if(i % num != user.salary) {
-          fprintf(stderr, "Line %d  %ld\n", __LINE__, i);
-        }
-        assert((i % num) == user.salary);
-   
-        // Select Id from ... where Salary
-        memset(&user, 0, sizeof(user));
-        long salary = i % num;
-        int64_t ids[4];
-        ret = engine_read(context, Id, Salary, &salary, sizeof(salary), ids);
-        if (ret != 4) {
-          fprintf(stderr, "Line %d %ld %d\n", __LINE__, i, ret);
-        }
-        assert(ret == 4);
+      assert((i % num) == user.salary);
+
+      // Select Id from ... where Salary
+      memset(&user, 0, sizeof(user));
+      long salary = i % num;
+      int64_t ids[4];
+      ret = engine_read(context, Id, Salary, &salary, sizeof(salary), ids);
+      if (ret != 4) {
+        fprintf(stderr, "Line %d %ld %d\n", __LINE__, i, ret);
       }
-    });
+      assert(ret == 4);
+    }
+    /* }); */
   }
 
   for (int tid = 0; tid < 50; tid++) {
