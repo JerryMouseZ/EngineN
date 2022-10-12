@@ -46,9 +46,9 @@ void Engine::sync_send_handler(int qid) {
         local_in_sync_cnt.fetch_add(1);
       }
 
-      /* for (int i = 0; i < pop_cnt; ++i) { */
-      /*   DEBUG_PRINTF(0, "sending %ld, %ld\n", send_start[i].id, send_start[i].salary); */
-      /* } */
+      for (int i = 0; i < pop_cnt; ++i) {
+        DEBUG_PRINTF(0, "sending %ld, %ld\n", send_start[i].id, send_start[i].salary);
+      }
       // 要向3个发
       for (int i = 0; i < 3; ++i) {
         int neighbor_idx = neighbor_index[i];
@@ -209,7 +209,7 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
       }
 
       // build index
-      DEBUG_PRINTF(0, "recving %ld, %ld from %d\n", user[i].id, user[i].salary, param->neighbor_idx);
+      /* DEBUG_PRINTF(0, "recving %ld, %ld from %d\n", user[i].id, user[i].salary, param->neighbor_idx); */
       param->eg->remote_id_r[param->neighbor_idx].put(user[i].id, user[i].salary);
       param->eg->remote_sala_r[param->neighbor_idx].put(user[i].salary, user[i].id);
     }

@@ -76,10 +76,10 @@ void test_engine(void *context, int index, size_t num)
     /* }); */
   }
 
-  for (int tid = 0; tid < 50; tid++) {
-    threads[tid]->join();
-    delete threads[tid];
-  }
+  /* for (int tid = 0; tid < 50; tid++) { */
+  /*   threads[tid]->join(); */
+  /*   delete threads[tid]; */
+  /* } */
 }
 
 
