@@ -145,7 +145,7 @@ struct sync_resp_param {
   char *buf;
   int neighbor_idx;
   int qid;
-  int neighbor_index[3];
+  /* int neighbor_index[3]; */
   uv_buf_t write_buf;
   /* size_t rest; // 一个包剩下的大小 */
 };
@@ -236,12 +236,12 @@ void Engine::sync_resp_handler() {
 
       param[nb_i][i].sync_q = &sync_qs[i];
       param[nb_i][i].eg = this;
-      param[nb_i][i].neighbor_idx = nb_i;
+      param[nb_i][i].neighbor_idx = neighbor_index[nb_i];
       param[nb_i][i].qid = i;
       /* param[nb_i][i].rest = 0; */
-      for (int j = 0; j < 3; j++) {
-        param[nb_i][i].neighbor_index[j] = neighbor_index[j];
-      }
+      /* for (int j = 0; j < 3; j++) { */
+      /*   param[nb_i][i].neighbor_index[j] = neighbor_index[j]; */
+      /* } */
 
       // 64k是最佳的buffer大小
       param[nb_i][i].cur_buf_size = 1 << 15;
