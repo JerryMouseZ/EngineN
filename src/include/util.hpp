@@ -30,7 +30,7 @@
 
 // close log
 #define LOG 0 // 控制普通信息（不是每次请求都打印）的打印，比较少，主要是元信息
-#define VLOG 0 // 控制打印每个请求信息的打印（select等等）
+#define VLOG 1 // 控制打印每个请求信息的打印（select等等）
 #define QINFO 0 // 控制write buffer queue信息的打印
 #define QDEBUG 0 // 控制write buffer queue debug信息的打印
 #define INIT 1 // 控制初始化过程信息的打印
