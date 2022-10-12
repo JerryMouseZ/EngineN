@@ -36,7 +36,6 @@ struct sync_send_client {
 void Engine::sync_send_handler(int qid) {
   SyncQueue &queue = sync_qs[qid];
   RemoteUser *send_start;
-  int64_t sync_flag;
   int waiting_times = 0;
   while (true) {
     size_t pop_cnt = queue.pop(&send_start);
@@ -53,12 +52,12 @@ void Engine::sync_send_handler(int qid) {
       // 要向3个发
       for (int i = 0; i < 3; ++i) {
         int neighbor_idx = neighbor_index[i];
-        int ret = send(sync_send_fdall[neighbor_idx][qid], &pop_cnt, sizeof(pop_cnt), 0);
-        if (ret < 0) {
-          alive[neighbor_idx] = false;
-          continue;
-        }
-        ret = send_all(sync_send_fdall[neighbor_idx][qid], send_start, pop_cnt * 16, 0);
+        /* int ret = send(sync_send_fdall[neighbor_idx][qid], &pop_cnt, sizeof(pop_cnt), 0); */
+        /* if (ret < 0) { */
+        /*   alive[neighbor_idx] = false; */
+        /*   continue; */
+        /* } */
+        int ret = send_all(sync_send_fdall[neighbor_idx][qid], send_start, pop_cnt * 16, 0);
         DEBUG_PRINTF(ret == pop_cnt * 16, "send buffer not enough : %d < %ld\n", ret, pop_cnt * 16);
         assert(ret == pop_cnt * 16);
         if (ret < 0)
@@ -68,7 +67,7 @@ void Engine::sync_send_handler(int qid) {
       if (waiting_times++ >= 20) {
         waiting_times = 0;
         // send sync flag
-        sync_flag = 0;
+        RemoteUser sync_flag = {-1, -1};
         DEBUG_PRINTF(0, "[%d:%d] send exit sync flag to others\n", host_index, qid);
         for (int i = 0; i < 3; ++i) {
           int neighbor_idx = neighbor_index[i];
@@ -93,7 +92,7 @@ void Engine::sync_send_handler(int qid) {
         DEBUG_PRINTF(0, "[%d:%d] send begin sync flag to others\n", host_index, qid);
         for (int i = 0; i < 3; ++i) {
           int neighbor_idx = neighbor_index[i];
-          sync_flag = -1;
+          sync_flag = {-1, -2};
           int ret = send(sync_send_fdall[neighbor_idx][qid], &sync_flag, sizeof(sync_flag), 0);
           if (ret < 0) {
             alive[neighbor_idx] = false;
@@ -148,7 +147,7 @@ struct sync_resp_param {
   int qid;
   int neighbor_index[3];
   uv_buf_t write_buf;
-  size_t rest; // 一个包剩下的大小
+  /* size_t rest; // 一个包剩下的大小 */
 };
 
 void sync_resp_alloc_buffer(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
@@ -171,40 +170,20 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
     DEBUG_PRINTF(0, "Read error nread = 0\n");
     return;
   }
-
-
+  
+  DEBUG_PRINTF(0, "recv %ld bytes\n", nread);
   int qid = param->qid;
   char *buf = uv_buf->base;
-  uint32_t *neighbor_local_cnt = param->sync_q->neighbor_local_cnt;
   int64_t resp_cnt;
 
   // 收到退出的sync的请求的时候需要回应
   while (nread > 0) {
-    if (param->rest == 0) { // 接收header
-      resp_cnt = ((sync_resp *)buf)->cnt;
-      nread -= sizeof(sync_resp);
-      buf += sizeof(sync_resp);
-      // 进入sync状态的标记
-      if (resp_cnt == -1) {
-        bool v = false;
-        if (param->eg->remote_in_sync[param->neighbor_idx][qid].compare_exchange_weak(v, true)) {
-          auto cur = param->eg->remote_in_sync_cnt.fetch_add(1);
-          DEBUG_PRINTF(VLOG, "recv sync flag %d:%d, current res : %ld\n", param->neighbor_idx, qid, cur);
-        }
-        param->write_buf.base = (char *)&resp_cnt;
-        param->write_buf.len = sizeof(size_t);
-        if (!uv_try_write(client, &param->write_buf, 1)) {
-          DEBUG_PRINTF(0, "send resp failed\n");
-        }
-        continue;
-      }
-      
-      // resp_cnt > 0
-      // 退出sync状态的标记
-      param->rest = resp_cnt;
-      if (resp_cnt == 0) {
-        // 如果没有更多的数据了就认为同步完了，如果紧接着又来新的数据就不要认为离开同步状态了
-        if(nread == 0) {
+    // nread 为什么会是2呢
+    RemoteUser *user = (RemoteUser *) buf;
+    size_t recv_user_cnt = nread / 16;
+    for (int i = 0; i < recv_user_cnt; ++i) {
+      if (user[i].id == -1 && user[i].salary == -1) {
+        if (i == recv_user_cnt - 1) {
           bool v = true;
           if (param->eg->remote_in_sync[param->neighbor_idx][qid].compare_exchange_weak(v, false)) {
             size_t cur = __sync_sub_and_fetch((uint64_t *)&param->eg->remote_in_sync_cnt, 1);
@@ -213,30 +192,30 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
             DEBUG_PRINTF(VLOG, "remote queue %d:%d already exit: res : %ld, status : %d\n", param->neighbor_idx, qid, param->eg->remote_in_sync_cnt.load(), param->eg->remote_in_sync[param->neighbor_idx][qid].load());
           }
         }
+        continue;
+      } else if (user[i].id == -1 && user[i].salary == -2) {
+        bool v = false;
+        if (param->eg->remote_in_sync[param->neighbor_idx][qid].compare_exchange_weak(v, true)) {
+          auto cur = param->eg->remote_in_sync_cnt.fetch_add(1);
+          DEBUG_PRINTF(VLOG, "recv sync flag %d:%d, current res : %ld\n", param->neighbor_idx, qid, cur);
+        }
+        param->write_buf.base = (char *)&user[i];
+        param->write_buf.len = sizeof(RemoteUser);
+        if (!uv_try_write(client, &param->write_buf, 1)) {
+          DEBUG_PRINTF(0, "send resp failed\n");
+        }
+        continue;
       }
-    }
-    else { // 接收数据
-      RemoteUser *user = (RemoteUser *) buf;
-      size_t recv_user_cnt = nread / 16;
-      recv_user_cnt = std::min(recv_user_cnt, param->rest);
-      for (int i = 0; i < recv_user_cnt; ++i) {
-        DEBUG_PRINTF(0, "get data %ld, %ld\n", user[i].id, user[i].salary);
-        param->eg->remote_id_r[param->neighbor_idx].put(user[i].id, user[i].salary);
-        param->eg->remote_sala_r[param->neighbor_idx].put(user[i].salary, user[i].id);
-      }
-      nread -= recv_user_cnt * 16;
-      param->rest -= recv_user_cnt;
-    }
-  }
 
-  /* auto now_min = neighbor_local_cnt[param->neighbor_index[0]]; */
-  /* for (int nb_i = 1; nb_i < 3; nb_i++) { */
-  /*   int neighbor_idx = param->neighbor_index[nb_i]; */
-  /*   if (neighbor_local_cnt[neighbor_idx] < now_min) { */
-  /*     now_min = neighbor_local_cnt[neighbor_idx]; */
-  /*   } */
-  /* } */
-  /* param->sync_q->advance_tail(now_min); */
+      // build index
+      DEBUG_PRINTF(0, "get data %ld, %ld\n", user[i].id, user[i].salary);
+      param->eg->remote_id_r[param->neighbor_idx].put(user[i].id, user[i].salary);
+      param->eg->remote_sala_r[param->neighbor_idx].put(user[i].salary, user[i].id);
+    }
+
+    DEBUG_PRINTF(0, "recv data %ld\n", recv_user_cnt);
+    nread -= recv_user_cnt * 16;
+  }
 }
 
 void Engine::sync_resp_handler() {
@@ -258,7 +237,7 @@ void Engine::sync_resp_handler() {
       param[nb_i][i].eg = this;
       param[nb_i][i].neighbor_idx = neighbor_idx;
       param[nb_i][i].qid = i;
-      param[nb_i][i].rest = 0;
+      /* param[nb_i][i].rest = 0; */
       for (int j = 0; j < 3; j++) {
         param[nb_i][i].neighbor_index[j] = neighbor_index[j];
       }
