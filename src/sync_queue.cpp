@@ -199,7 +199,7 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
             size_t cur = param->eg->remote_in_sync_cnt.fetch_sub(1);
             DEBUG_PRINTF(0, "cur : %ld\n", cur);
           } else {
-            DEBUG_PRINTF(0, "remote queue %d:%d already exit: res : %ld\n", param->neighbor_idx, qid, param->eg->remote_in_sync_cnt.load());
+            DEBUG_PRINTF(0, "remote queue %d:%d already exit: res : %ld, status : %d\n", param->neighbor_idx, qid, param->eg->remote_in_sync_cnt.load(), param->eg->remote_in_sync[param->neighbor_idx][qid].load());
           }
         }
       }
@@ -253,7 +253,7 @@ void Engine::sync_resp_handler() {
       param[nb_i][i].cur_buf_size = 1 << 15;
       param[nb_i][i].buf = (char *)map_anonymouse(1 << 16);
       handler[nb_i][i].data = &param[nb_i][i]; 
-      uv_read_start((uv_stream_t *)handler, sync_resp_alloc_buffer, process_sync_resp);
+      uv_read_start((uv_stream_t *)&handler[nb_i][i], sync_resp_alloc_buffer, process_sync_resp);
     }
   }
 
