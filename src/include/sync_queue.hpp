@@ -30,7 +30,12 @@ struct RemoteUser {
 class SyncQueue {
 public:
   SyncQueue() 
-    : head(0), tail(0), send_head(0), neighbor_local_cnt{0} {}
+    : head(0), tail(0), send_head(0), neighbor_local_cnt{0} {
+      data = reinterpret_cast<RemoteUser *>(map_anonymouse(SQSIZE * sizeof(RemoteUser)));
+      exited = false;
+      pthread_mutex_init(&mutex, NULL);
+      pthread_cond_init(&cond, NULL);
+    }
 
   int open(uint32_t id, int send_fd, volatile bool *alive) {
 
@@ -43,12 +48,9 @@ public:
     this->id = id;
     this->send_fd = send_fd;
     this->alive = alive;
-    exited = false;
-    pthread_mutex_init(&mutex, NULL);
-    pthread_cond_init(&cond, NULL);
     return 0;
   }
-  
+
   uint64_t push(const User *user) {
     size_t pos = head;
     while (tail + SQSIZE <= pos) {
@@ -58,10 +60,11 @@ public:
     data[pos].id = user->id;
     data[pos].salary = user->salary;
     ++head;
+    DEBUG_PRINTF(VLOG, "push to send queue\n");
     try_wake_consumer();
     return pos;
   }
-  
+
   // 或许可以用uvsend，不然用的线程好像太多了
   int pop(RemoteUser **begin) {
     size_t pos = tail;
@@ -73,10 +76,6 @@ public:
   }
 
 
-  void producer_yield() {
-    try_wake_consumer();
-  }
-  
   void consumer_yield() {
     pthread_mutex_lock(&mutex);
     consumer_maybe_waiting = true;
