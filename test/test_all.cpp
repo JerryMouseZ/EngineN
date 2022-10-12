@@ -52,6 +52,7 @@ void test_engine_write(void *context, int index, size_t num)
     threads[tid]->join();
     delete threads[tid];
   }
+  engine_deinit(context);
 }
 
 // both for local or remote

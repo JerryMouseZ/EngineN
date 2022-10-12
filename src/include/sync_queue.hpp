@@ -53,7 +53,6 @@ public:
     size_t pos = head;
     while (tail + SQSIZE <= pos) {
       sched_yield();
-      producer_yield();
     }
 
     data[pos].id = user->id;
