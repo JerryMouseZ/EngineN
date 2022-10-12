@@ -154,8 +154,9 @@ void Engine::write(const User *user) {
 
   uint32_t qid = user->id % MAX_NR_CONSUMER;
   uint32_t index = qs[qid].push(user);
-  size_t encoded_index = (qid << 28) | index;
+  sync_qs[qid].push(user);
 
+  size_t encoded_index = (qid << 28) | index;
   id_r->put(user->id, encoded_index);
   uid_r->put(std::hash<UserString>()(*(UserString *)(user->user_id)), encoded_index);
   sala_r->put(user->salary, encoded_index);
