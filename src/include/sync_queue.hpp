@@ -16,11 +16,11 @@ constexpr uint64_t SQSIZE = 1 << SQBITS;
 constexpr uint64_t SQMASK = SQSIZE - 1;
 
 struct sync_send {
-  size_t cnt;
+  int64_t cnt;
 };
 
 struct sync_resp {
-  size_t cnt;
+  int64_t cnt;
 };
 
 
@@ -72,7 +72,7 @@ public:
   // 或许可以用uvsend，不然用的线程好像太多了
   int pop(RemoteUser **begin) {
     size_t pos = tail;
-    size_t pop_cnt = head - pos;
+    size_t pop_cnt = head.load(std::memory_order_acquire) - pos;
     pop_cnt = std::min(pop_cnt, (size_t)2048); // 64k is the best package size
     pop_cnt = std::min(pop_cnt, SQSIZE - pos % SQSIZE); // 不要超过末尾了
     *begin = &data[pos % SQSIZE];
