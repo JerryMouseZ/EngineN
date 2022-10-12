@@ -45,6 +45,7 @@
 #define VSYNC 1 // 比较verbose的sync queue数据同步信息
 #define SYNCSTATE 1 // 节点进入/退出sync状态的信息
 #define ALIVE 0 // 节点alive状态退出信息
+#define VPROT 1 // 比较verbose的状态转化信息
 
 // #define LOCAL 1
 // #define BIND_PORT
