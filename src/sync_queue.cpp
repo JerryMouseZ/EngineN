@@ -85,8 +85,11 @@ void Engine::sync_send_handler(int qid) {
         }
         // waiting for wake up
         queue.consumer_yield();
-        if (exited)
+        if (exited) {
+          queue.consumer_maybe_waiting = false;
+          pthread_mutex_unlock(&queue.mutex);
           return;
+        }
 
         // 有没有可能刚被唤醒但是东西还没到writer buffer呢，可以在writer buffer那里阻塞住，然后这样唤醒的时候就一定有东西
         DEBUG_PRINTF(VPROT, "[%d:%d] send begin sync flag to others\n", host_index, qid);
@@ -107,6 +110,8 @@ void Engine::sync_send_handler(int qid) {
             alive[neighbor_idx] = false;
           }
         }
+        queue.consumer_maybe_waiting = false;
+        pthread_mutex_unlock(&queue.mutex);
       } else {
         usleep(20);
       } // waiting time > 20
@@ -170,7 +175,7 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
     DEBUG_PRINTF(0, "Read error nread = 0\n");
     return;
   }
-  
+
   DEBUG_PRINTF(VPROT, "recv %ld bytes\n", nread);
   int qid = param->qid;
   char *buf = uv_buf->base;

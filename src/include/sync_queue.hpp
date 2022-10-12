@@ -101,15 +101,14 @@ public:
     pthread_mutex_lock(&mutex);
     consumer_maybe_waiting = true;
     pthread_cond_wait(&cond, &mutex);
-    consumer_maybe_waiting = false;
-    pthread_mutex_unlock(&mutex);
   }
 
 
   void try_wake_consumer() {
     if (unlikely(consumer_maybe_waiting)) {
       pthread_mutex_lock(&mutex);
-      pthread_cond_signal(&cond);
+      if (consumer_maybe_waiting)
+        pthread_cond_signal(&cond);
       pthread_mutex_unlock(&mutex);
     }
   }
