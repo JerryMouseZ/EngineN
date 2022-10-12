@@ -187,9 +187,9 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
           bool v = true;
           if (param->eg->remote_in_sync[param->neighbor_idx][qid].compare_exchange_weak(v, false)) {
             size_t cur = __sync_sub_and_fetch((uint64_t *)&param->eg->remote_in_sync_cnt, 1);
-            DEBUG_PRINTF(VLOG, "remote exit sync flag %d:%d, current res : %ld\n", param->neighbor_idx, qid, cur);
+            DEBUG_PRINTF(0, "remote exit sync flag %d:%d, current res : %ld\n", param->neighbor_idx, qid, cur);
           } else {
-            DEBUG_PRINTF(VLOG, "remote queue %d:%d already exit: res : %ld, status : %d\n", param->neighbor_idx, qid, param->eg->remote_in_sync_cnt.load(), param->eg->remote_in_sync[param->neighbor_idx][qid].load());
+            DEBUG_PRINTF(0, "remote queue %d:%d already exit: res : %ld, status : %d\n", param->neighbor_idx, qid, param->eg->remote_in_sync_cnt.load(), param->eg->remote_in_sync[param->neighbor_idx][qid].load());
           }
         }
         continue;
@@ -197,18 +197,18 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
         bool v = false;
         if (param->eg->remote_in_sync[param->neighbor_idx][qid].compare_exchange_weak(v, true)) {
           auto cur = param->eg->remote_in_sync_cnt.fetch_add(1);
-          DEBUG_PRINTF(VLOG, "recv sync flag %d:%d, current res : %ld\n", param->neighbor_idx, qid, cur);
+          DEBUG_PRINTF(0, "recv begin sync flag %d:%d, current res : %ld\n", param->neighbor_idx, qid, cur + 1);
         }
         param->write_buf.base = (char *)&user[i];
         param->write_buf.len = sizeof(RemoteUser);
-        if (!uv_try_write(client, &param->write_buf, 1)) {
+        if (uv_try_write(client, &param->write_buf, 1) < 0) {
           DEBUG_PRINTF(0, "send resp failed\n");
         }
         continue;
       }
 
       // build index
-      DEBUG_PRINTF(0, "get data %ld, %ld\n", user[i].id, user[i].salary);
+      /* DEBUG_PRINTF(0, "get data %ld, %ld\n", user[i].id, user[i].salary); */
       param->eg->remote_id_r[param->neighbor_idx].put(user[i].id, user[i].salary);
       param->eg->remote_sala_r[param->neighbor_idx].put(user[i].salary, user[i].id);
     }
