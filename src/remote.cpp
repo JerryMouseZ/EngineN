@@ -242,7 +242,7 @@ size_t Engine::remote_read_once(int neighbor_idx, uint8_t select_column, uint8_t
   }
   assert(len == header.res_len);
 
-  return ret;
+  return header.ret;
 }
 
 
