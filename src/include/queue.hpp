@@ -113,83 +113,36 @@ public:
   }
 
   bool pop() {
-
     uint64_t pos = *tail;
-
     uint64_t caid = pos / CMT_BATCH_CNT;
     uint64_t inner_ca_pos = pos % CMT_BATCH_CNT;
     uint64_t ca_pos = caid & QMASK;
 
     uint64_t waiting_cnt = CMT_BATCH_CNT;
-
     if (unlikely(pos % CMT_BATCH_CNT != 0)) {
       waiting_cnt -= (pos % CMT_BATCH_CNT);
     }
 
     while (pos >= *last_head) {
-
       // exit condition
       if (unlikely(producers_exit)) {
         return false;
       }
 
-      // printf("Consumer %d yield at tail = %lu, last_head = %lu, head = %lu\n", consumer_id, *tail, *last_head, head->load());
       consumer_yield_thread();
-
       update_last_head();
     }
     
     waiting_cnt = std::min(waiting_cnt, *last_head - pos);
-    // uint64_t sq_head = sync_q->head;
-    // uint64_t cmt_end = pos + waiting_cnt;
-    // const User *user;
-    // if (likely(cmt_end > sq_head)) {
-    //   uint64_t sq_waiting_cnt = cmt_end - sq_head;
-    //   uint64_t src_pos = cmt_end - sq_waiting_cnt;
-    //   uint64_t dst_pos = sq_head;
-
-    //   if (unlikely(sync_q->get_free_cnt() < sq_waiting_cnt)) {
-    //     // TODO:
-    //   }
-    //   for (int i = 0; i < sq_waiting_cnt; i++, src_pos++, dst_pos++) {
-    //     sync_q->copy_to(user_at(src_pos), dst_pos);
-    //   }
-
-    //   sync_q->update_head(cmt_end);
-    // }
-
     if (likely(waiting_cnt == CMT_BATCH_CNT)) {
       do_commit(&data[ca_pos], caid);    
     } else {
       pmem_memcpy_persist(&pmem_data[caid].data[inner_ca_pos], &data[ca_pos].data[inner_ca_pos], waiting_cnt * sizeof(T));
-      /* do_unaligned_rest_commit(&data[ca_pos].data[inner_ca_pos], caid, DataArray::N_DATA - waiting_cnt, waiting_cnt); */
     }
 
     std::atomic_thread_fence(std::memory_order_release);
-
     *tail = pos + waiting_cnt;
-
     return true;
-  }
-
-  void commit_to_sync_q(uint64_t cmt_end) {
-    uint64_t sq_head = sync_q->get_head();
-    const User *user;
-    if (likely(cmt_end > sq_head)) {
-      uint64_t sq_waiting_cnt = cmt_end - sq_head;
-      uint64_t src_pos = cmt_end - sq_waiting_cnt;
-      uint64_t dst_pos = sq_head;
-
-      while (unlikely(sync_q->get_free_cnt() < sq_waiting_cnt)) {
-        // TODO:
-      }
-
-      for (int i = 0; i < sq_waiting_cnt; i++, src_pos++, dst_pos++) {
-        sync_q->copy_to(user_at(src_pos), dst_pos);
-      }
-
-      sync_q->update_head(cmt_end);
-    }
   }
 
   bool pop_nonexit() {
