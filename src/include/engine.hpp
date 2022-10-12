@@ -40,6 +40,9 @@ public:
   size_t local_read(int32_t select_column,
                     int32_t where_column, const void *column_key, size_t column_key_len, void *res);
 
+  size_t sync_read(int32_t select_column,
+                    int32_t where_column, const void *column_key, size_t column_key_len, void *res);
+
   size_t read(int32_t select_column,
               int32_t where_column, const void *column_key, size_t column_key_len, void *res);
 
@@ -47,7 +50,9 @@ public:
   // 创建listen socket，尝试和别的机器建立两条连接
   void connect(const char *host_info, const char *const *peer_host_info, size_t peer_host_info_num, bool is_new_create, const char *aep_dir);
 
-  size_t remote_read(uint8_t select_column, uint8_t where_column, const void *column_key, size_t key_len, void *res);
+  size_t remote_read_once(int nb_idx, uint8_t select_column, uint8_t where_column, const void *column_key, size_t key_len, void *res);
+
+  size_t remote_read_broadcast(uint8_t select_column, uint8_t where_column, const void *column_key, size_t key_len, void *res);
 
   int get_request_index();
 
