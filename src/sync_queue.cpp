@@ -39,9 +39,7 @@ void Engine::sync_send_handler(int qid) {
   int64_t sync_flag;
   int waiting_times = 0;
   while (true) {
-    size_t pos = queue.tail;
-    int64_t pop_cnt = queue.head - pos;
-    pop_cnt = pop_cnt < 2048 ? pop_cnt : 2048; // 64k is the best package size
+    size_t pop_cnt = queue.pop(&send_start);
     if (pop_cnt > 0) {
       // 重新进入同步状态
       bool v = false;
@@ -49,6 +47,9 @@ void Engine::sync_send_handler(int qid) {
         local_in_sync_cnt.fetch_add(1);
       }
 
+      for (int i = 0; i < pop_cnt; ++i) {
+        DEBUG_PRINTF(0, "sending %ld, %ld\n", send_start[i].id, send_start[i].salary);
+      }
       // 要向3个发
       for (int i = 0; i < 3; ++i) {
         int neighbor_idx = neighbor_index[i];
@@ -57,13 +58,12 @@ void Engine::sync_send_handler(int qid) {
           alive[neighbor_idx] = false;
           continue;
         }
-        ret = send_all(sync_send_fdall[neighbor_idx][qid], &queue.data[pos], pop_cnt * 16, 0);
+        ret = send_all(sync_send_fdall[neighbor_idx][qid], send_start, pop_cnt * 16, 0);
         DEBUG_PRINTF(ret == pop_cnt * 16, "send buffer not enough : %d < %ld\n", ret, pop_cnt * 16);
         assert(ret == pop_cnt * 16);
         if (ret < 0)
           alive[neighbor_idx] = false;
       }
-      queue.tail += pop_cnt;
     } else { // pop_cnt == 0
       if (waiting_times++ >= 20) {
         waiting_times = 0;
@@ -176,7 +176,7 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
   int qid = param->qid;
   char *buf = uv_buf->base;
   uint32_t *neighbor_local_cnt = param->sync_q->neighbor_local_cnt;
-  uint32_t resp_cnt;
+  int64_t resp_cnt;
 
   // 收到退出的sync的请求的时候需要回应
   while (nread > 0) {
@@ -185,7 +185,7 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
       nread -= sizeof(sync_resp);
       buf += sizeof(sync_resp);
       // 进入sync状态的标记
-      if (resp_cnt == -1 || resp_cnt > 0) {
+      if (resp_cnt == -1) {
         bool v = false;
         if (param->eg->remote_in_sync[param->neighbor_idx][qid].compare_exchange_weak(v, true)) {
           auto cur = param->eg->remote_in_sync_cnt.fetch_add(1);
@@ -198,11 +198,12 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
         }
         continue;
       }
-
+      
+      // resp_cnt > 0
       // 退出sync状态的标记
       param->rest = resp_cnt;
       if (resp_cnt == 0) {
-        // 如果没有更多的数据了就认为同步完了
+        // 如果没有更多的数据了就认为同步完了，如果紧接着又来新的数据就不要认为离开同步状态了
         if(nread == 0) {
           bool v = true;
           if (param->eg->remote_in_sync[param->neighbor_idx][qid].compare_exchange_weak(v, false)) {
@@ -216,9 +217,10 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
     }
     else { // 接收数据
       RemoteUser *user = (RemoteUser *) buf;
-      int recv_user_cnt = nread / 16;
-      recv_user_cnt = recv_user_cnt < param->rest ? recv_user_cnt : param->rest; // 只建立一个包的索引
+      size_t recv_user_cnt = nread / 16;
+      recv_user_cnt = std::min(recv_user_cnt, param->rest);
       for (int i = 0; i < recv_user_cnt; ++i) {
+        DEBUG_PRINTF(0, "get data %ld, %ld\n", user[i].id, user[i].salary);
         param->eg->remote_id_r->put(user[i].id, user[i].salary);
         param->eg->remote_sala_r->put(user[i].salary, user[i].id);
       }
@@ -256,6 +258,7 @@ void Engine::sync_resp_handler() {
       param[nb_i][i].eg = this;
       param[nb_i][i].neighbor_idx = neighbor_idx;
       param[nb_i][i].qid = i;
+      param[nb_i][i].rest = 0;
       for (int j = 0; j < 3; j++) {
         param[nb_i][i].neighbor_index[j] = neighbor_index[j];
       }
