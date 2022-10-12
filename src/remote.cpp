@@ -32,7 +32,7 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
   int host_ip_len = split_index - host_info;
   std::string host_ip = std::string(host_info, host_ip_len);
   int host_port = atoi(split_index + 1);
-  DEBUG_PRINTF(CONNECT, "host info : %s %d\n", host_ip.c_str(), host_port);
+  fprintf(stderr, "host info : %s %d\n", host_ip.c_str(), host_port);
   infos.emplace_back(info_type(host_ip, host_port));
 
   // peer ips
@@ -61,13 +61,10 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
   for (int nb_i = 0; nb_i < 3; nb_i++) {
     neighbor_idx = neighbor_index[nb_i];
     for (int i = 0; i < MAX_NR_CONSUMER; i++) {
-      DEBUG_PRINTF(INIT, "%s: start open remote_datas[%d][%d]\n", this_host_info, neighbor_idx, i);
-      remote_datas[neighbor_idx][i].open(aep_prefix + std::to_string(neighbor_idx) + "_" + std::to_string(i));
+      DEBUG_PRINTF(INIT, "start open remote_datas[%d]\n", i);
     }
 
-    DEBUG_PRINTF(INIT, "%s: start open remote_id_r[%d]\n", this_host_info, neighbor_idx);
     remote_id_r[neighbor_idx].open();
-    DEBUG_PRINTF(INIT, "%s: start open remote_sala_r[%d]\n", this_host_info, neighbor_idx);
     remote_sala_r[neighbor_idx].open();
   }
 
@@ -96,7 +93,7 @@ void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create)
     for (int i = 0; i < MAX_NR_PRODUCER; i++) {
       send_fdall[neighbor_idx][i] = 
        connect_to_server(this_host_ip, infos[neighbor_idx].first.c_str(), infos[neighbor_idx].second);
-      DEBUG_PRINTF(CONNECT, "%s: neighbor index = %d senf_fd[%d] = %d to %s\n",
+      DEBUG_PRINTF(INIT, "%s: neighbor index = %d senf_fd[%d] = %d to %s\n",
         this_host_info, neighbor_idx, i, send_fdall[neighbor_idx][i], infos[neighbor_idx].first.c_str());
     }
   }
@@ -107,21 +104,20 @@ void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create)
     for (int i = 0; i < MAX_NR_CONSUMER; i++) {
       sync_send_fdall[neighbor_idx][i] = 
        connect_to_server(this_host_ip, infos[neighbor_idx].first.c_str(), infos[neighbor_idx].second);
-      DEBUG_PRINTF(CONNECT, "%s: neighbor index = %d sync_send_fd[%d] = %d to %s\n",
+      DEBUG_PRINTF(INIT, "%s: neighbor index = %d sync_send_fd[%d] = %d to %s\n",
         this_host_info, neighbor_idx, i, sync_send_fdall[neighbor_idx][i], infos[neighbor_idx].first.c_str());
     }
   }
 
   listen_thread.join();
-
-
   do_peer_data_sync();
   start_sync_handlers();
   start_handlers(); // 先start handlers
+  sleep(10);
 }
 
 
-size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const void *column_key, size_t column_key_len, void *res) {
+size_t Engine::remote_read_broadcast(uint8_t select_column, uint8_t where_column, const void *column_key, size_t column_key_len, void *res) {
   if (unlikely(!have_reader_id())) {
     init_reader_id();
   }
@@ -147,7 +143,7 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
 
     len = send_all(send_fdall[neighbor_idx][reader_id], &data, sizeof(data), MSG_NOSIGNAL);
     if (len < 0) {
-      DEBUG_PRINTF(ALIVE, "%s: send error %d to node %d, mark as inalive\n", this_host_info, len, neighbor_idx);
+      DEBUG_PRINTF(0, "%s: send error %d to node %d, mark as inalive\n", this_host_info, len, neighbor_idx);
       alive[neighbor_idx] = false;
       continue;
     }
@@ -170,7 +166,7 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
 
     len = recv_all(send_fdall[neighbor_idx][reader_id], &header, sizeof(header), MSG_WAITALL);
     if (len <= 0) {
-      DEBUG_PRINTF(ALIVE, "%s: recv header error %d to node %d, mark as inalive\n", this_host_info, len, neighbor_idx);
+      DEBUG_PRINTF(0, "%s: recv header error %d to node %d, mark as inalive\n", this_host_info, len, neighbor_idx);
       alive[neighbor_idx] = false;
       continue;
     }
@@ -181,7 +177,7 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
     }
 
     if (single_already_recived) {
-      DEBUG_PRINTF(LOG, "%s: wierd, single result read already gets result, previous result will be overwritten\n", this_host_info);
+      DEBUG_PRINTF(0, "%s: wierd, single result read already gets result, previous result will be overwritten\n", this_host_info);
     }
 
     len = recv_all(send_fdall[neighbor_idx][reader_id], res, header.res_len, MSG_WAITALL);
@@ -202,6 +198,51 @@ size_t Engine::remote_read(uint8_t select_column, uint8_t where_column, const vo
   }
 
   return ret;
+}
+
+size_t Engine::remote_read_once(int neighbor_idx, uint8_t select_column, uint8_t where_column, const void *column_key, size_t column_key_len, void *res) {
+  if (!alive[neighbor_idx]) {
+    return 0;
+  }
+  if (unlikely(!have_reader_id())) {
+    init_reader_id();
+  }
+
+  int ret = 0;
+  data_request data;
+  data.fifo_id = 1;
+  data.select_column = select_column;
+  data.where_column = where_column;
+  memcpy(data.key, column_key, column_key_len);
+
+  int len;
+  len = send_all(send_fdall[neighbor_idx][reader_id], &data, sizeof(data), 0);
+  if (len < 0) {
+    DEBUG_PRINTF(0, "%s: send error %d to node %d, mark as inalive\n", this_host_info, len, neighbor_idx);
+    alive[neighbor_idx] = false;
+    return 0;
+  }
+  assert(len == sizeof(data_request));
+
+  response_header header;
+  len = recv_all(send_fdall[neighbor_idx][reader_id], &header, sizeof(header), MSG_WAITALL);
+  if (len <= 0) {
+    DEBUG_PRINTF(0, "%s: recv header error %d to node %d, mark as inalive\n", this_host_info, len, neighbor_idx);
+    alive[neighbor_idx] = false;
+    return 0;
+  }
+  assert(len == sizeof(header));
+  if (header.res_len == 0)
+    return 0;
+
+  len = recv_all(send_fdall[neighbor_idx][reader_id], res, header.res_len, MSG_WAITALL);
+  if (len <= 0) {
+    alive[neighbor_idx] = false;
+    return 0;
+  }
+  assert(len == header.res_len);
+
+  return header.ret;
 }
 
 
@@ -270,18 +311,16 @@ void on_close(uv_handle_t* handle) {
 
 void echo_write(uv_write_t *req, int status) {
   if (status) {
-    DEBUG_PRINTF(NETWORK, "Write error %s\n", uv_strerror(status));
+    fprintf(stderr, "Write error %s\n", uv_strerror(status));
   }
   free(req);
 }
 
 void process_request(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
-  check_thread_spawn(4);
-
   uv_param *param = (uv_param *)client->data;
   if (nread < 0) {
     if (nread != UV_EOF)
-      DEBUG_PRINTF(NETWORK, "Read error %s\n", uv_err_name(nread));
+      fprintf(stderr, "Read error %s\n", uv_err_name(nread));
     uv_read_stop(client);
     return;
   }
@@ -313,7 +352,7 @@ void process_request(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
   res_buffer->header.fifo_id = fifo_id;
   res_buffer->header.ret = num;
   res_buffer->header.res_len = get_column_len(select_column) * num;
-  
+
   uv_buf_t *wbuf = &param->uv_buf;
   wbuf->len = sizeof(response_header) + res_buffer->header.res_len;
   wbuf->base = (char *)res_buffer;
@@ -332,8 +371,6 @@ void init_uv(uv_tcp_t *handler, void *recv_buf, void *resp_buf, Engine *engine, 
 
 // 传参是个大问题
 void Engine::request_handler(int node, int *fds){
-  check_thread_spawn(3);
-
   // 用一个ring来存request，然后可以异步处理，是一个SPMC的模型，那就不能用之前的队列了
   data_request req[5];
   response_buffer res_buffer[5];
@@ -411,7 +448,7 @@ int Engine::get_backup_index() {
   case 3:
     return 2;
   }
-  DEBUG_PRINTF(LOG, "error host index %d\n", host_index);
+  fprintf(stderr, "error host index %d\n", host_index);
   return -1;
 }
 

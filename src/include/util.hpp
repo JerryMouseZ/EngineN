@@ -44,8 +44,6 @@
 #define SYNCSTATE 1 // 节点进入/退出sync状态的信息
 #define ALIVE 0 // 节点alive状态退出信息
 
-#define BROADCAST 1
-
 // #define LOCAL 1
 // #define BIND_PORT
 
