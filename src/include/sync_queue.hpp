@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <pthread.h>
 #include <sched.h>
+#include <sys/mman.h>
 
 // 测试性能，需要调参
 constexpr uint64_t SQBITS = 14;
@@ -37,6 +38,9 @@ public:
       pthread_mutex_init(&mutex, NULL);
       pthread_cond_init(&cond, NULL);
     }
+  ~SyncQueue() {
+    munmap(data, SQSIZE * sizeof(RemoteUser));
+  }
 
   int open(uint32_t id, int send_fd, volatile bool *alive) {
 
@@ -58,8 +62,8 @@ public:
       sched_yield();
     }
 
-    data[pos].id = user->id;
-    data[pos].salary = user->salary;
+    data[pos % SQSIZE].id = user->id;
+    data[pos % SQSIZE].salary = user->salary;
     DEBUG_PRINTF(VLOG, "push to send queue\n");
     try_wake_consumer();
     return pos;
@@ -68,9 +72,10 @@ public:
   // 或许可以用uvsend，不然用的线程好像太多了
   int pop(RemoteUser **begin) {
     size_t pos = tail;
-    int pop_cnt = head - pos;
-    pop_cnt = std::min(pop_cnt, 2048); // 64k is the best package size
-    *begin = &data[pos];
+    size_t pop_cnt = head - pos;
+    pop_cnt = std::min(pop_cnt, (size_t)2048); // 64k is the best package size
+    pop_cnt = std::min(pop_cnt, SQSIZE - pos % SQSIZE); // 不要超过末尾了
+    *begin = &data[pos % SQSIZE];
     tail += pop_cnt;
     return pop_cnt;
   }

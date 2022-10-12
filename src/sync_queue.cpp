@@ -57,7 +57,8 @@ void Engine::sync_send_handler(int qid) {
           alive[neighbor_idx] = false;
           continue;
         }
-        ret = send_all(sync_send_fdall[neighbor_idx][qid], &queue.data[pos], pop_cnt * 16, MSG_ZEROCOPY);
+        ret = send_all(sync_send_fdall[neighbor_idx][qid], &queue.data[pos], pop_cnt * 16, 0);
+        DEBUG_PRINTF(ret == pop_cnt * 16, "send buffer not enough : %d < %ld\n", ret, pop_cnt * 16);
         assert(ret == pop_cnt * 16);
         if (ret < 0)
           alive[neighbor_idx] = false;
@@ -68,7 +69,7 @@ void Engine::sync_send_handler(int qid) {
         waiting_times = 0;
         // send sync flag
         sync_flag = 0;
-        DEBUG_PRINTF(0, "send exit sync flag to others\n");
+        DEBUG_PRINTF(0, "[%d:%d] send exit sync flag to others\n", host_index, qid);
         for (int i = 0; i < 3; ++i) {
           int neighbor_idx = neighbor_index[i];
           int ret = send(sync_send_fdall[neighbor_idx][qid], &sync_flag, sizeof(sync_flag), 0);
@@ -89,7 +90,7 @@ void Engine::sync_send_handler(int qid) {
           return;
 
         // 有没有可能刚被唤醒但是东西还没到writer buffer呢，可以在writer buffer那里阻塞住，然后这样唤醒的时候就一定有东西
-        DEBUG_PRINTF(0, "send begin sync flag to others\n");
+        DEBUG_PRINTF(0, "[%d:%d] send begin sync flag to others\n", host_index, qid);
         for (int i = 0; i < 3; ++i) {
           int neighbor_idx = neighbor_index[i];
           sync_flag = -1;
