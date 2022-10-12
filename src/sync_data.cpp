@@ -162,7 +162,7 @@ void Engine::do_peer_data_sync() {
     int index = neighbor_index[i];
     int ret = do_exchange_meta(send_meta[i], recv_meta[i], index);
     if (ret) {
-      DEBUG(INIT, "[sync] exchange meta failed\n");
+      DEBUG_PRINTF(INIT, "[sync] exchange meta failed\n");
       continue;
     }
 
