@@ -72,12 +72,6 @@ void Engine::connect(const char *host_info, const char *const *peer_host_info, s
 }
 
 void Engine::connect(std::vector<info_type> &infos, int num, bool is_new_create) {
-  // 开启remote index
-  for (int i = 0; i < 3; ++i) {
-    remote_id_r[i].open();
-    remote_sala_r[i].open();
-  }
-
   int ret;
   signal(SIGPIPE, SIG_IGN);
   listen_fd = setup_listening_socket(infos[host_index].first.c_str(), infos[host_index].second);
