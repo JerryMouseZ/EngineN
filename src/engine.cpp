@@ -42,8 +42,6 @@ Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr)
   }
   exited = false;
   DEBUG_PRINTF(qs, "Fail to mmap consumer queues\n");
-  pthread_mutex_init(&mutex, NULL);
-  pthread_cond_init(&writer_waiting_for_sync, NULL);
 }
 
 Engine::~Engine() {

@@ -126,8 +126,6 @@ private:
   SyncQueue *sync_qs;
   std::thread consumers[MAX_NR_CONSUMER];
   std::thread sync_senders[MAX_NR_CONSUMER];
-  pthread_mutex_t mutex;
-  pthread_cond_t writer_waiting_for_sync;
 
   int host_index;
   int neighbor_index[3];
