@@ -200,7 +200,6 @@ size_t Engine::sync_read(int32_t select_column, int32_t where_column, const void
       return remote_read_broadcast(select_column, where_column, column_key, key_len[where_column], res);
     if (select_column == Id) {
       for (int i = 0; i < 3; i++) {
-        fprintf(stderr, "reading from remote index %d\n", neighbor_index[i]);
         size_t tmp = remote_sala_r[neighbor_index[i]].get(*(int64_t *) column_key, res, true);
         res = ((char *)res) + tmp * key_len[select_column];
         result += tmp;
