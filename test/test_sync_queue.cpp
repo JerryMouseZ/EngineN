@@ -66,7 +66,7 @@ void test_engine(void *context, int index, size_t num)
       // Select Id from ... where Salary
       memset(&user, 0, sizeof(user));
       long salary = i % num;
-      int64_t ids[4];
+      int64_t ids[20];
       ret = engine_read(context, Id, Salary, &salary, sizeof(salary), ids);
       if (ret != 4) {
         fprintf(stderr, "Line %d %ld %d\n", __LINE__, i, ret);
