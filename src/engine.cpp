@@ -168,7 +168,7 @@ size_t Engine::sync_read(int32_t select_column, int32_t where_column, const void
   switch(where_column) {
   case Id:
     if (select_column == Salary) {
-      for (int i = 0; !result && i < 3; i++) {
+      for (int i = 0; i < 3; i++) {
         result = remote_id_r[neighbor_index[i]].get(*(int64_t *) column_key, res, false);
         if (result > 0)
           return result;
@@ -176,7 +176,7 @@ size_t Engine::sync_read(int32_t select_column, int32_t where_column, const void
     }
     if (select_column == Userid || select_column == Name) {
       int64_t tmp;
-      for (int i = 0; !result && i < 3; i++) {
+      for (int i = 0; i < 3; i++) {
         result = remote_id_r[neighbor_index[i]].get(*(int64_t *) column_key, &tmp, false);
         if (result > 0)
           return remote_read_once(neighbor_index[i], select_column, where_column, column_key, column_key_len, res);
