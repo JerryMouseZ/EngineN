@@ -113,27 +113,28 @@ public:
     uint64_t caid = pos / CMT_BATCH_CNT;
     uint64_t inner_ca_pos = pos % CMT_BATCH_CNT;
     uint64_t ca_pos = caid & QMASK;
-
     uint64_t waiting_cnt = CMT_BATCH_CNT;
+
     if (unlikely(pos % CMT_BATCH_CNT != 0)) {
       waiting_cnt -= (pos % CMT_BATCH_CNT);
     }
 
-    while (pos >= *last_head) {
+    while (pos + waiting_cnt - 1 >= *last_head) {
       // exit condition
       if (unlikely(producers_exit)) {
         return false;
       }
 
+      // printf("Consumer %d yield at tail = %lu, last_head = %lu, head = %lu\n", consumer_id, *tail, *last_head, head->load());
       consumer_yield_thread();
       update_last_head();
     }
-    
-    waiting_cnt = std::min(waiting_cnt, *last_head - pos);
+
     if (likely(waiting_cnt == CMT_BATCH_CNT)) {
-      do_commit(&data[ca_pos], caid);    
+      do_commit(&data[ca_pos], caid);
     } else {
       pmem_memcpy_persist(&pmem_data[caid].data[inner_ca_pos], &data[ca_pos].data[inner_ca_pos], waiting_cnt * sizeof(T));
+      /* do_unaligned_rest_commit(&data[ca_pos].data[inner_ca_pos], caid, DataArray::N_DATA - waiting_cnt, waiting_cnt); */
     }
 
     std::atomic_thread_fence(std::memory_order_release);
@@ -193,7 +194,7 @@ public:
     if (can_pop_cnt) {
       pop_nonexit();
     }
-    
+
     // 更新一下tail，can_pop_cnt有可能会增加，因为第一次pop的数量不是一个batch，然后pop对齐的部分
     tail_value = *tail;
     can_pop_cnt = (head_value - tail_value) / CMT_BATCH_CNT;
@@ -201,7 +202,7 @@ public:
       pop_nonexit();
       --can_pop_cnt;
     }
-    
+
     // tail还是有可能不对齐，因为一次都没有pop，但是现在可以保证head和tail在同一个chunk了
     tail_value = *tail;
     uint64_t caid = tail_value / CMT_BATCH_CNT;
@@ -234,7 +235,7 @@ public:
     if (hole_index.empty()) {
       return;
     }
-    
+
     // 双指针，左边指当前的数据，右边指向可以填充的数据，因为第一个数据肯定是要被填充了，所以不用去找第一个left
     int hole_cnt = hole_index.size();
     DEBUG_PRINTF(COMHEAD, "impact head : %d\n", hole_cnt);
@@ -374,7 +375,9 @@ private:
   void try_wake_consumer() {
     if (unlikely(consumer_maybe_waiting)) {
       pthread_mutex_lock(&mtx);
-      pthread_cond_signal(&cond_var);
+      if (consumer_maybe_waiting) {
+        pthread_cond_signal(&cond_var);
+      }
       pthread_mutex_unlock(&mtx);
     }
   }
