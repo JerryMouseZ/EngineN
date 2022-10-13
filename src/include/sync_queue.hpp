@@ -48,25 +48,23 @@ public:
     munmap(data, SQSIZE * sizeof(RemoteUser));
   }
 
-  int open(uint32_t id, int send_fd, volatile bool *alive) {
+  /* int open(uint32_t id, int send_fd, volatile bool *alive) { */
 
-    data = reinterpret_cast<RemoteUser *>(map_anonymouse(SQSIZE * sizeof(RemoteUser)));
+  /*   data = reinterpret_cast<RemoteUser *>(map_anonymouse(SQSIZE * sizeof(RemoteUser))); */
 
-    if (data == nullptr) {
-      return 1;
-    }
+  /*   if (data == nullptr) { */
+  /*     return 1; */
+  /*   } */
 
-    this->id = id;
-    this->send_fd = send_fd;
-    this->alive = alive;
-    return 0;
-  }
+  /*   this->id = id; */
+  /*   this->send_fd = send_fd; */
+  /*   this->alive = alive; */
+  /*   return 0; */
+  /* } */
 
   uint64_t push(const User *user) {
     this_thread_head() = head.load(std::memory_order_consume);
-
     size_t pos = head.fetch_add(1, std::memory_order_acquire);
-
     this_thread_head() = pos;
     
     while (tail + SQSIZE <= pos) {
@@ -80,37 +78,47 @@ public:
     this_thread_head() = UINT64_MAX;
 
     DEBUG_PRINTF(VLOG, "push to send queue\n");
-    try_wake_consumer();
+    if (pos % (SQSIZE >> 5) == 0) {
+      try_wake_consumer();
+    }
     return pos;
   }
 
-  // 或许可以用uvsend，不然用的线程好像太多了
+  // send完以后再更新tail
   int pop(RemoteUser **begin) {
     size_t pos = tail;
+    uint64_t waiting_cnt = 4096; // 一次发64k = 4096 * 16
+    while (pos + waiting_cnt - 1 >= last_head) {
+      if (unlikely(exited)) {
+        return 0;
+      }
+      consumer_yield_thread();
+      update_last_head();
+    }
 
-    update_last_head();
-    
-    size_t pop_cnt = last_head - pos;
-    pop_cnt = std::min(pop_cnt, (size_t)2048); // 64k is the best package size
-    pop_cnt = std::min(pop_cnt, SQSIZE - pos % SQSIZE); // 不要超过末尾了
     *begin = &data[pos % SQSIZE];
-    tail += pop_cnt;
-    return pop_cnt;
+    return waiting_cnt;
   }
 
 
   void try_wake_consumer() {
     if (unlikely(consumer_maybe_waiting)) {
       pthread_mutex_lock(&mutex);
-      pwaiting_cnt++;
-      while (consumer_maybe_waiting) {
+      if (consumer_maybe_waiting) {
         pthread_cond_signal(&cond);
-        pthread_cond_wait(&pcond, &mutex);
       }
-      pwaiting_cnt--;
       pthread_mutex_unlock(&mutex);
     }
   }
+
+  void consumer_yield_thread() {
+    pthread_mutex_lock(&mutex);
+    consumer_maybe_waiting = true;
+    pthread_cond_wait(&cond, &mutex);
+    consumer_maybe_waiting = false;
+    pthread_mutex_unlock(&mutex);
+  }
+
 
   void notify_consumer_exit() {
     exited = true;

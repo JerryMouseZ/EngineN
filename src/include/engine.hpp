@@ -69,7 +69,7 @@ public:
 
   void sync_send_handler(int qid);
 
-  void init_set_peer_sync();
+  /* void init_set_peer_sync(); */
 private:
 
   void connect(std::vector<info_type> &infos, int num, bool is_new_create);

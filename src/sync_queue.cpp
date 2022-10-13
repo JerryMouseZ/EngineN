@@ -40,129 +40,56 @@ void Engine::sync_send_handler(int qid) {
   SyncQueue &queue = sync_qs[qid];
   RemoteUser *send_start;
   int waiting_times = 0;
-  while (true) {
-    size_t pop_cnt = queue.pop(&send_start);
-    if (pop_cnt > 0) {
-      // 重新进入同步状态
-      bool v = false;
-      if (local_in_sync[qid].compare_exchange_weak(v, true)) {
-        local_in_sync_cnt.fetch_add(1);
-      }
-
-      for (int i = 0; i < pop_cnt; ++i) {
-        DEBUG_PRINTF(VPROT, "sending %ld, %ld\n", send_start[i].id, send_start[i].salary);
-      }
-      // 要向3个发
-      for (int i = 0; i < 3; ++i) {
-        int neighbor_idx = neighbor_index[i];
-        int ret = send_all(sync_send_fdall[neighbor_idx][qid], send_start, pop_cnt * 16, 0);
-        if (ret < 0) {
-          alive[neighbor_idx] = false;
-          continue;
-        }
-        DEBUG_PRINTF(ret == pop_cnt * 16, "send buffer not enough : %d < %ld\n", ret, pop_cnt * 16);
-        assert(ret == pop_cnt * 16);
-      }
-    } else { // pop_cnt == 0
-      if (waiting_times++ >= 500) {
-        waiting_times = 0;
-        // send sync flag
-        RemoteUser sync_flag = {-1, -1};
-        DEBUG_PRINTF(0, "[%d:%d] send exit sync flag to others\n", host_index, qid);
-        for (int i = 0; i < 3; ++i) {
-          int neighbor_idx = neighbor_index[i];
-          int ret = send(sync_send_fdall[neighbor_idx][qid], &sync_flag, sizeof(sync_flag), 0);
-          if (ret < 0) {
-            alive[neighbor_idx] = false;
-            continue;
-          }
-        }
-        // 阻塞接下来的本地写
-        // set local flag
-        bool v = true;
-        if (local_in_sync[qid].compare_exchange_weak(v, false)) {
-          local_in_sync_cnt.fetch_sub(1);
-        }
-
-        // waiting for wake up
-        pthread_mutex_lock(&queue.mutex);
-        queue.consumer_maybe_waiting = true;
-        pthread_cond_wait(&queue.cond, &queue.mutex);
-        if (exited) {
-          queue.consumer_maybe_waiting = false;
-          pthread_mutex_unlock(&queue.mutex);
-          return;
-        }
-        pthread_mutex_unlock(&queue.mutex);
-
-        // 有没有可能刚被唤醒但是东西还没到writer buffer呢，可以在writer buffer那里阻塞住，然后这样唤醒的时候就一定有东西
-        DEBUG_PRINTF(0, "[%d:%d] send begin sync flag to others\n", host_index, qid);
-        for (int i = 0; i < 3; ++i) {
-          int neighbor_idx = neighbor_index[i];
-          sync_flag = {-1, -2};
-          int ret = send(sync_send_fdall[neighbor_idx][qid], &sync_flag, sizeof(sync_flag), 0);
-          if (ret < 0) {
-            alive[neighbor_idx] = false;
-            continue;
-          }
-        }
-        // 接收response
-        for (int i = 0; i < 3; ++i) {
-          int neighbor_idx = neighbor_index[i];
-          int ret = recv(sync_send_fdall[neighbor_idx][qid], &sync_flag, sizeof(sync_flag), 0);
-          if (ret < 0) {
-            alive[neighbor_idx] = false;
-          }
-        }
-        
-        // waking up all producer
-        while (queue.pwaiting_cnt > 0) {
-          pthread_mutex_lock(&queue.mutex);
-          queue.consumer_maybe_waiting = false;
-          DEBUG_PRINTF(0, "[%d:%d] waking up producer\n", host_index, qid);
-          pthread_cond_broadcast(&queue.pcond);
-          pthread_mutex_unlock(&queue.mutex);
-          usleep(200);
-        }
-      } else {
-        usleep(20);
-      } // waiting time > 20
-    } // pop cnt > 0
-  } // while
-}
-
-
-void Engine::init_set_peer_sync() {
-  for (int i = 0; i < MAX_NR_CONSUMER; i++) {
-    auto local_cnt = qs[i].head->load();
-    sync_send msg;
-    RemoteUser *buf;
-    const User *user;
-    int ret, nbytes;
-
-    msg.cnt = 0;
-    // 向所有节点发送同步完成的请求
-    for (int nb_i = 0; nb_i < 3; nb_i++) {
-      int neighbor_idx = neighbor_index[nb_i];
-      ret = send(sync_send_fdall[neighbor_idx][i], &msg, sizeof(msg), 0);
-      if (ret < 0) {
-        DEBUG_PRINTF(0, "init send header sync error\n");
-      }
-      assert(ret == sizeof(msg));
+  size_t pop_cnt;
+  while ((pop_cnt = queue.pop(&send_start)) > 0) {
+    for (int i = 0; i < pop_cnt; ++i) {
+      DEBUG_PRINTF(VPROT, "sending %ld, %ld\n", send_start[i].id, send_start[i].salary);
     }
-    DEBUG_PRINTF(local_cnt, "%s: send to 3 peers q[%d].local_cnt = %ld\n", this_host_info, i, local_cnt);
+    // 要向3个发
+    for (int i = 0; i < 3; ++i) {
+      int neighbor_idx = neighbor_index[i];
+      int ret = send_all(sync_send_fdall[neighbor_idx][qid], send_start, pop_cnt * 16, 0);
+      if (ret < 0) {
+        alive[neighbor_idx] = false;
+        continue;
+      }
+      DEBUG_PRINTF(ret == pop_cnt * 16, "send buffer not enough : %d < %ld\n", ret, pop_cnt * 16);
+      assert(ret == pop_cnt * 16);
+    }
   }
+  // 重新进入同步状态
 }
+
+
+/* void Engine::init_set_peer_sync() { */
+/*   for (int i = 0; i < MAX_NR_CONSUMER; i++) { */
+/*     auto local_cnt = qs[i].head->load(); */
+/*     sync_send msg; */
+/*     RemoteUser *buf; */
+/*     const User *user; */
+/*     int ret, nbytes; */
+
+/*     msg.cnt = 0; */
+/*     // 向所有节点发送同步完成的请求 */
+/*     for (int nb_i = 0; nb_i < 3; nb_i++) { */
+/*       int neighbor_idx = neighbor_index[nb_i]; */
+/*       ret = send(sync_send_fdall[neighbor_idx][i], &msg, sizeof(msg), 0); */
+/*       if (ret < 0) { */
+/*         DEBUG_PRINTF(0, "init send header sync error\n"); */
+/*       } */
+/*       assert(ret == sizeof(msg)); */
+/*     } */
+/*     DEBUG_PRINTF(local_cnt, "%s: send to 3 peers q[%d].local_cnt = %ld\n", this_host_info, i, local_cnt); */
+/*   } */
+/* } */
 
 
 struct sync_resp_param {
-  /* SyncQueue *sync_q; */
   Engine *eg;
   size_t cur_buf_size;
   char *buf;
   int neighbor_idx;
   int qid;
-  /* int neighbor_index[3]; */
   uv_buf_t write_buf;
   /* size_t rest; // 一个包剩下的大小 */
 };
@@ -194,45 +121,16 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
   int64_t resp_cnt;
 
   // 收到退出的sync的请求的时候需要回应
-  while (nread > 0) {
-    assert((nread & (16 - 1)) == 0);
-    // nread 为什么会是2呢
-    RemoteUser *user = (RemoteUser *) buf;
-    size_t recv_user_cnt = nread / 16;
-    for (int i = 0; i < recv_user_cnt; ++i) {
-      if (user[i].id == -1 && user[i].salary == -1) {
-        if (i == recv_user_cnt - 1) {
-          bool v = true;
-          if (param->eg->remote_in_sync[param->neighbor_idx][qid].compare_exchange_weak(v, false)) {
-            size_t cur = __sync_sub_and_fetch((uint64_t *)&param->eg->remote_in_sync_cnt, 1);
-            DEBUG_PRINTF(VPROT, "remote exit sync flag %d:%d, current res : %ld\n", param->neighbor_idx, qid, cur);
-          } else {
-            DEBUG_PRINTF(0, "remote queue %d:%d already exit: res : %ld, status : %d\n", param->neighbor_idx, qid, param->eg->remote_in_sync_cnt.load(), param->eg->remote_in_sync[param->neighbor_idx][qid].load());
-          }
-        }
-        continue;
-      } else if (user[i].id == -1 && user[i].salary == -2) {
-        bool v = false;
-        if (param->eg->remote_in_sync[param->neighbor_idx][qid].compare_exchange_weak(v, true)) {
-          auto cur = param->eg->remote_in_sync_cnt.fetch_add(1);
-          DEBUG_PRINTF(cur - 1, "recv begin sync flag %d:%d, current res : %ld\n", param->neighbor_idx, qid, cur + 1);
-        }
-        param->write_buf.base = (char *)&user[i];
-        param->write_buf.len = sizeof(RemoteUser);
-        if (uv_try_write(client, &param->write_buf, 1) < 0) {
-          DEBUG_PRINTF(0, "send resp failed\n");
-        }
-        continue;
-      }
-
-      // build index
-      /* DEBUG_PRINTF(0, "recving %ld, %ld from %d\n", user[i].id, user[i].salary, param->neighbor_idx); */
-      param->eg->remote_id_r[param->neighbor_idx].put(user[i].id, user[i].salary);
-      param->eg->remote_sala_r[param->neighbor_idx].put(user[i].salary, user[i].id);
-    }
-
-    /* DEBUG_PRINTF(0, "recv data %ld\n", recv_user_cnt); */
-    nread -= recv_user_cnt * 16;
+  assert((nread & (16 - 1)) == 0);
+  // nread 为什么会是2呢
+  RemoteUser *user = (RemoteUser *) buf;
+  size_t recv_user_cnt = nread / 16;
+#pragma omp parallel for num_threads(4)
+  for (int i = 0; i < recv_user_cnt; ++i) {
+    // build index
+    /* DEBUG_PRINTF(0, "recving %ld, %ld from %d\n", user[i].id, user[i].salary, param->neighbor_idx); */
+    param->eg->remote_id_r[param->neighbor_idx].put(user[i].id, user[i].salary);
+    param->eg->remote_sala_r[param->neighbor_idx].put(user[i].salary, user[i].id);
   }
 }
 
@@ -260,8 +158,8 @@ void Engine::sync_resp_handler(int qid) {
     /* } */
 
     // 64k是最佳的buffer大小
-    param[nb_i].cur_buf_size = 1 << 15;
-    param[nb_i].buf = (char *)map_anonymouse(1 << 15);
+    param[nb_i].cur_buf_size = 1 << 17;
+    param[nb_i].buf = (char *)map_anonymouse(1 << 17);
     handler[nb_i].data = &param[nb_i]; 
     uv_read_start((uv_stream_t *)&handler[nb_i], sync_resp_alloc_buffer, process_sync_resp);
   }
@@ -272,7 +170,7 @@ void Engine::sync_resp_handler(int qid) {
   for (int i = 0; i < 3; ++i) {
     int neighbor_idx = neighbor_index[i];
     for (int j = 0; j < MAX_NR_CONSUMER; ++j) {
-      munmap(param[i].buf, 1 << 16);
+      munmap(param[i].buf, 1 << 17);
     }
   }
 }

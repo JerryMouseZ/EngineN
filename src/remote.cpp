@@ -1,6 +1,8 @@
+#include "include/config.hpp"
 #include "include/engine.hpp"
 #include "include/comm.h"
 #include "include/data.hpp"
+#include "include/sync_queue.hpp"
 #include "include/thread_id.hpp"
 #include "include/util.hpp"
 #include <bits/types/struct_iovec.h>
@@ -433,6 +435,30 @@ void Engine::disconnect() {
       close(send_fdall[neighbor_idx][i]);
       close(recv_fdall[neighbor_idx][i]);
     }
+  }
+
+  for (int i = 0; i < 3; ++i) {
+    int neighbor_idx = neighbor_index[i];
+    for (int j = 0; j < MAX_NR_CONSUMER; ++j) {
+      shutdown(sync_send_fdall[neighbor_idx][i], SHUT_RDWR);
+      shutdown(sync_recv_fdall[neighbor_idx][i], SHUT_RDWR);
+    }
+  }
+
+  for (int i = 0; i < 3; ++i) {
+    int neighbor_idx = neighbor_index[i];
+    for (int j = 0; j < MAX_NR_CONSUMER; ++j) {
+      close(sync_send_fdall[neighbor_idx][i]);
+      close(sync_recv_fdall[neighbor_idx][i]);
+    }
+  }
+
+  for (int i = 0; i < MAX_NR_CONSUMER; ++i) {
+    sync_send_thread[i]->join();
+    sync_resp_thread[i]->join();
+
+    delete sync_send_thread[i];
+    delete sync_resp_thread[i];
   }
 }
 
