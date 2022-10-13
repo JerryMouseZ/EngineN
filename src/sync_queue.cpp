@@ -13,6 +13,7 @@
 #include <pthread.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 constexpr size_t EACH_REMOTE_DATA_FILE_LEN = EACH_NR_USER * sizeof(RemoteUser);
 
@@ -54,16 +55,13 @@ void Engine::sync_send_handler(int qid) {
       // 要向3个发
       for (int i = 0; i < 3; ++i) {
         int neighbor_idx = neighbor_index[i];
-        /* int ret = send(sync_send_fdall[neighbor_idx][qid], &pop_cnt, sizeof(pop_cnt), 0); */
-        /* if (ret < 0) { */
-        /*   alive[neighbor_idx] = false; */
-        /*   continue; */
-        /* } */
         int ret = send_all(sync_send_fdall[neighbor_idx][qid], send_start, pop_cnt * 16, 0);
+        if (ret < 0) {
+          alive[neighbor_idx] = false;
+          continue;
+        }
         DEBUG_PRINTF(ret == pop_cnt * 16, "send buffer not enough : %d < %ld\n", ret, pop_cnt * 16);
         assert(ret == pop_cnt * 16);
-        if (ret < 0)
-          alive[neighbor_idx] = false;
       }
     } else { // pop_cnt == 0
       if (waiting_times++ >= 500) {
@@ -116,12 +114,16 @@ void Engine::sync_send_handler(int qid) {
             alive[neighbor_idx] = false;
           }
         }
-
-        pthread_mutex_lock(&queue.mutex);
-        queue.consumer_maybe_waiting = false;
-        DEBUG_PRINTF(0, "[%d:%d] waking up producer\n", host_index, qid);
-        /* pthread_cond_broadcast(&queue.pcond); */
-        pthread_mutex_unlock(&queue.mutex);
+        
+        // waking up all producer
+        while (queue.pwaiting_cnt > 0) {
+          pthread_mutex_lock(&queue.mutex);
+          queue.consumer_maybe_waiting = false;
+          DEBUG_PRINTF(0, "[%d:%d] waking up producer\n", host_index, qid);
+          pthread_cond_broadcast(&queue.pcond);
+          pthread_mutex_unlock(&queue.mutex);
+          usleep(200);
+        }
       } else {
         usleep(20);
       } // waiting time > 20
