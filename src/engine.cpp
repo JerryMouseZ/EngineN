@@ -176,7 +176,6 @@ size_t Engine::sync_read(int32_t select_column, int32_t where_column, const void
       break;
     }
   }
-  usleep(200);
 
   size_t result = 0;
   switch(where_column) {
