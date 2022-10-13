@@ -15,6 +15,7 @@
 #include <string>
 #include <sys/select.h>
 #include <thread>
+#include <unistd.h>
 
 thread_local int node_result[4];
 
@@ -165,6 +166,22 @@ void Engine::write(const User *user) {
 
 constexpr int key_len[4] = {8, 128, 128, 8};
 size_t Engine::sync_read(int32_t select_column, int32_t where_column, const void *column_key, size_t column_key_len, void *res) {
+  // 我们让读慢一点，没sync好就不去读
+  while (true) {
+    bool flag = true;
+    for (int i = 0; i < MAX_NR_CONSUMER; ++i) {
+      if (sync_qs[i].head > sync_qs[i].tail) {
+        flag = false;
+        sync_qs[i].update_last_head();
+        fprintf(stderr, "queue %d is not sync, head : %ld, last head : %ld > %ld\n", i, sync_qs[i].head.load(), sync_qs[i].last_head, sync_qs[i].tail);
+        break;
+      }
+    }
+    if (flag)
+      break;
+    usleep(200);
+  }
+
   size_t result = 0;
   switch(where_column) {
   case Id:
