@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <pthread.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
@@ -181,7 +182,7 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
   }
   // TODO: 何时会读到0？
   if (nread == 0) {
-    DEBUG_PRINTF(0, "Read error nread = 0\n");
+    DEBUG_PRINTF(0, "Read error nread = 0, %s\n", strerror(errno));
     return;
   }
 
