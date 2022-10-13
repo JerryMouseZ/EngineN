@@ -14,7 +14,7 @@
 /* constexpr uint64_t SQBITS = 16; */
 // 测试正确性
 // constexpr uint64_t QBITS = 10;
-constexpr uint64_t SQSIZE = 4000 * 128;
+constexpr uint64_t SQSIZE = 4096 * 128;
 constexpr uint64_t SQMASK = SQSIZE - 1;
 
 struct sync_send {
@@ -79,18 +79,16 @@ public:
     std::atomic_thread_fence(std::memory_order_release);
     this_thread_head() = UINT64_MAX;
 
+    try_wake_consumer();
     DEBUG_PRINTF(VLOG, "push to send queue\n");
-    if (pos % (SQSIZE >> 5) == 0) {
-      try_wake_consumer();
-    }
     return pos;
   }
 
   // send完以后再更新tail
   int pop(RemoteUser **begin) {
     size_t pos = tail;
-    uint64_t waiting_cnt = 4000; // 一次发64k = 4096 * 16
-    while (pos + waiting_cnt - 1 >= last_head) {
+    uint64_t waiting_cnt = 4096; // 一次发64k = 4096 * 16
+    while (pos >= last_head) {
       /* fprintf(stderr, "waiting for producer\n"); */
       if (unlikely(exited)) {
         return 0;
@@ -98,7 +96,8 @@ public:
       consumer_yield_thread();
       update_last_head();
     }
-
+    int unaligned = pos % waiting_cnt;
+    waiting_cnt = std::min(waiting_cnt - unaligned, last_head - pos);
     *begin = &data[pos % SQSIZE];
     return waiting_cnt;
   }
@@ -117,7 +116,7 @@ public:
   void consumer_yield_thread() {
     pthread_mutex_lock(&mutex);
     consumer_maybe_waiting = true;
-    pthread_cond_wait(&cond, &mutex);
+    pthread_cond_timedwait(&cond, &mutex, &ts);
     consumer_maybe_waiting = false;
     pthread_mutex_unlock(&mutex);
   }
@@ -226,6 +225,7 @@ public:
   /* } */
 
 public:
+  timespec ts = {0, 5000};
   volatile cache_aligned_uint64 thread_heads[MAX_NR_PRODUCER];
   volatile uint64_t last_head;
   std::atomic<uint64_t> head;
