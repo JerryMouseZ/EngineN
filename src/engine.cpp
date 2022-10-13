@@ -47,8 +47,6 @@ Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr)
 Engine::~Engine() {
   exited = true;
   // disconnect all socket and handlers
-  if (host_index != -1)
-    disconnect();
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     qs[i].notify_producers_exit();
     sync_qs[i].notify_consumer_exit();
@@ -68,6 +66,9 @@ Engine::~Engine() {
     qs[i].statistics(i);
     qs[i].~LocklessQueue();
   }
+
+  if (host_index != -1)
+    disconnect();
 
   delete[] datas;
   delete id_r;
