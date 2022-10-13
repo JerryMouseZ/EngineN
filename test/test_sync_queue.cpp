@@ -72,7 +72,12 @@ void test_engine(void *context, int index, size_t num)
       int64_t ids[20];
       ret = engine_read(context, Id, Salary, &salary, sizeof(salary), ids);
       if (ret != 4) {
-        fprintf(stderr, "Line %d %ld %d\n", __LINE__, i, ret);
+        fprintf(stderr, "node %d Line %d salary = %ld ret = %d, from [%d %d %d %d]\n",
+          index, __LINE__, i, ret, node_result[0], node_result[1], node_result[2], node_result[3]);
+        for (int p = 0; p < ret; p++) {
+          fprintf(stderr, "node %d ret[%d].id = %ld\n",
+            index, p, ids[p]);
+        }
       }
       assert(ret == 4);
     }

@@ -27,6 +27,8 @@ struct DataTransMeta {
 
 std::string column_str(int column);
 
+extern thread_local int node_result[4];
+
 class Engine
 {
 public:

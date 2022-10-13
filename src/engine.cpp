@@ -16,6 +16,8 @@
 #include <sys/select.h>
 #include <thread>
 
+thread_local int node_result[4];
+
 Engine::Engine(): datas(nullptr), id_r(nullptr), uid_r(nullptr), sala_r(nullptr), alive{false}, neighbor_index{0} {
   host_index = -1;
   qs = static_cast<UserQueue *>(mmap(0, MAX_NR_CONSUMER * sizeof(UserQueue), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
@@ -195,6 +197,7 @@ size_t Engine::sync_read(int32_t select_column, int32_t where_column, const void
     if (select_column == Id) {
       for (int i = 0; i < 3; i++) {
         size_t tmp = remote_sala_r[neighbor_index[i]].get(*(int64_t *) column_key, res, true);
+        node_result[neighbor_index[i]] = tmp;
         res = ((char *)res) + tmp * key_len[select_column];
         result += tmp;
       }
@@ -225,6 +228,7 @@ size_t Engine::local_read(int32_t select_column,
     break;
   case Salary:
     result = sala_r->get(column_key, where_column, select_column, res, true);
+    node_result[host_index] = result;
     DEBUG_PRINTF(VLOG, "select %s where salary = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
     break;
   default:
