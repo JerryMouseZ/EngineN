@@ -163,7 +163,7 @@ void Engine::write(const User *user) {
 constexpr int key_len[4] = {8, 128, 128, 8};
 size_t Engine::sync_read(int32_t select_column, int32_t where_column, const void *column_key, size_t column_key_len, void *res) {
   size_t result = 0;
-  bool syncing = any_rm_in_sync() || any_local_in_sync();
+  bool syncing = any_rm_in_sync();
   DEBUG_PRINTF(!VPROT || syncing == false, "being sync, broadcast read\n");
   switch(where_column) {
   case Id:

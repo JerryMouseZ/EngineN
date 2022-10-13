@@ -65,11 +65,11 @@ void Engine::sync_send_handler(int qid) {
           alive[neighbor_idx] = false;
       }
     } else { // pop_cnt == 0
-      if (waiting_times++ >= 20) {
+      if (waiting_times++ >= 500) {
         waiting_times = 0;
         // send sync flag
         RemoteUser sync_flag = {-1, -1};
-        DEBUG_PRINTF(VPROT, "[%d:%d] send exit sync flag to others\n", host_index, qid);
+        DEBUG_PRINTF(0, "[%d:%d] send exit sync flag to others\n", host_index, qid);
         for (int i = 0; i < 3; ++i) {
           int neighbor_idx = neighbor_index[i];
           int ret = send(sync_send_fdall[neighbor_idx][qid], &sync_flag, sizeof(sync_flag), 0);
@@ -84,8 +84,11 @@ void Engine::sync_send_handler(int qid) {
         if (local_in_sync[qid].compare_exchange_weak(v, false)) {
           local_in_sync_cnt.fetch_sub(1);
         }
+
         // waiting for wake up
-        queue.consumer_yield();
+        pthread_mutex_lock(&queue.mutex);
+        queue.consumer_maybe_waiting = true;
+        pthread_cond_wait(&queue.cond, &queue.mutex);
         if (exited) {
           queue.consumer_maybe_waiting = false;
           pthread_mutex_unlock(&queue.mutex);
@@ -93,7 +96,7 @@ void Engine::sync_send_handler(int qid) {
         }
 
         // 有没有可能刚被唤醒但是东西还没到writer buffer呢，可以在writer buffer那里阻塞住，然后这样唤醒的时候就一定有东西
-        DEBUG_PRINTF(VPROT, "[%d:%d] send begin sync flag to others\n", host_index, qid);
+        DEBUG_PRINTF(0, "[%d:%d] send begin sync flag to others\n", host_index, qid);
         for (int i = 0; i < 3; ++i) {
           int neighbor_idx = neighbor_index[i];
           sync_flag = {-1, -2};
@@ -112,6 +115,7 @@ void Engine::sync_send_handler(int qid) {
           }
         }
         queue.consumer_maybe_waiting = false;
+        DEBUG_PRINTF(0, "[%d:%d] waking up producer\n", host_index, qid);
         pthread_cond_broadcast(&queue.pcond);
         pthread_mutex_unlock(&queue.mutex);
       } else {
@@ -146,7 +150,7 @@ void Engine::init_set_peer_sync() {
 
 
 struct sync_resp_param {
-  SyncQueue *sync_q;
+  /* SyncQueue *sync_q; */
   Engine *eg;
   size_t cur_buf_size;
   char *buf;
@@ -226,36 +230,34 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
   }
 }
 
-void Engine::sync_resp_handler() {
+void Engine::sync_resp_handler(int qid) {
   uv_loop_t *loop = (uv_loop_s *)malloc(sizeof(uv_loop_t));
   uv_loop_init(loop);
-  uv_tcp_t handler[3][MAX_NR_CONSUMER];
-  sync_resp_param param[3][MAX_NR_CONSUMER];
+  uv_tcp_t handler[3];
+  sync_resp_param param[3];
   int ret;
 
   for (int nb_i = 0; nb_i < 3; nb_i++) {
     int neighbor_idx = neighbor_index[nb_i];
-    for (int i = 0; i < MAX_NR_CONSUMER; i++) {
-      ret = uv_tcp_init(loop, &handler[nb_i][i]);
-      DEBUG_PRINTF(ret == 0, "sync resp handler uv tcp init error\n");
-      ret = uv_tcp_open(&handler[nb_i][i], sync_recv_fdall[neighbor_idx][i]);
-      DEBUG_PRINTF(ret == 0, "sync resp handler uv tcp open error\n");
+    ret = uv_tcp_init(loop, &handler[nb_i]);
+    DEBUG_PRINTF(ret == 0, "sync resp handler uv tcp init error\n");
+    ret = uv_tcp_open(&handler[nb_i], sync_recv_fdall[neighbor_idx][qid]);
+    DEBUG_PRINTF(ret == 0, "sync resp handler uv tcp open error\n");
 
-      param[nb_i][i].sync_q = &sync_qs[i];
-      param[nb_i][i].eg = this;
-      param[nb_i][i].neighbor_idx = neighbor_index[nb_i];
-      param[nb_i][i].qid = i;
-      /* param[nb_i][i].rest = 0; */
-      /* for (int j = 0; j < 3; j++) { */
-      /*   param[nb_i][i].neighbor_index[j] = neighbor_index[j]; */
-      /* } */
+    /* param[nb_i].sync_q = &sync_qs[qid]; */
+    param[nb_i].eg = this;
+    param[nb_i].neighbor_idx = neighbor_index[nb_i];
+    param[nb_i].qid = qid;
+    /* param[nb_i][i].rest = 0; */
+    /* for (int j = 0; j < 3; j++) { */
+    /*   param[nb_i][i].neighbor_index[j] = neighbor_index[j]; */
+    /* } */
 
-      // 64k是最佳的buffer大小
-      param[nb_i][i].cur_buf_size = 1 << 15;
-      param[nb_i][i].buf = (char *)map_anonymouse(1 << 15);
-      handler[nb_i][i].data = &param[nb_i][i]; 
-      uv_read_start((uv_stream_t *)&handler[nb_i][i], sync_resp_alloc_buffer, process_sync_resp);
-    }
+    // 64k是最佳的buffer大小
+    param[nb_i].cur_buf_size = 1 << 15;
+    param[nb_i].buf = (char *)map_anonymouse(1 << 15);
+    handler[nb_i].data = &param[nb_i]; 
+    uv_read_start((uv_stream_t *)&handler[nb_i], sync_resp_alloc_buffer, process_sync_resp);
   }
 
   uv_run(loop, UV_RUN_DEFAULT);
@@ -264,7 +266,7 @@ void Engine::sync_resp_handler() {
   for (int i = 0; i < 3; ++i) {
     int neighbor_idx = neighbor_index[i];
     for (int j = 0; j < MAX_NR_CONSUMER; ++j) {
-      munmap(param[i][j].buf, 1 << 16);
+      munmap(param[i].buf, 1 << 16);
     }
   }
 }
@@ -272,10 +274,12 @@ void Engine::sync_resp_handler() {
 
 void Engine::start_sync_handlers() {
   remote_in_sync_cnt = 3 * MAX_NR_CONSUMER;
-  auto sync_resp_fn = [&] () {
-    sync_resp_handler();
+  auto sync_resp_fn = [&] (int qid) {
+    sync_resp_handler(qid);
   };
-  sync_resp_thread = new std::thread(sync_resp_fn);
+
+  for (int i = 0; i < MAX_NR_CONSUMER; i++)
+    sync_resp_thread[i] = new std::thread(sync_resp_fn, i);
 
   // 或许没有必要，因为send queue空了自动会发
   /* init_set_peer_sync(); */

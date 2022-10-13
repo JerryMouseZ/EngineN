@@ -99,9 +99,6 @@ public:
 
 
   void consumer_yield() {
-    pthread_mutex_lock(&mutex);
-    consumer_maybe_waiting = true;
-    pthread_cond_wait(&cond, &mutex);
   }
 
 

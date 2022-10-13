@@ -96,7 +96,7 @@ private:
   void build_index(int qid, int begin, int end, Index *id_index, Index *uid_index, Index *salary_index, Data *datap);
   void start_sync_handlers();
 
-  void sync_resp_handler();
+  void sync_resp_handler(int qid);
 
   bool any_local_in_sync();
   bool any_rm_in_sync();
@@ -135,7 +135,7 @@ private:
   std::thread *req_weak_handler[10];
   std::thread *req_handlerall[4 * 10];
   std::thread *sync_send_thread[MAX_NR_CONSUMER];
-  std::thread *sync_resp_thread;
+  std::thread *sync_resp_thread[MAX_NR_CONSUMER];
   
   RemoteState remote_state; // 用来存当前有多少remote的user吧
 
