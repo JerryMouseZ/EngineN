@@ -143,7 +143,6 @@ int main(int argc, char **argv)
   int num = atoi(argv[4]);
   if (argv[3][0] == 'w') {
     test_engine_write(context, index, num);
-    engine_deinit(context);
   } else {
     test_engine_read(context, num * 4);
     engine_deinit(context);
