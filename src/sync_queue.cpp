@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <pthread.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
 
@@ -111,6 +112,7 @@ void Engine::sync_send_handler(int qid) {
           }
         }
         queue.consumer_maybe_waiting = false;
+        pthread_cond_broadcast(&queue.pcond);
         pthread_mutex_unlock(&queue.mutex);
       } else {
         usleep(20);

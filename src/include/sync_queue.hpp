@@ -38,6 +38,7 @@ public:
       exited = false;
       pthread_mutex_init(&mutex, NULL);
       pthread_cond_init(&cond, NULL);
+      pthread_cond_init(&pcond, NULL);
       for (int i = 0; i < MAX_NR_PRODUCER; i++) {
         thread_heads[i].value = UINT64_MAX;
       }
@@ -107,8 +108,10 @@ public:
   void try_wake_consumer() {
     if (unlikely(consumer_maybe_waiting)) {
       pthread_mutex_lock(&mutex);
-      if (consumer_maybe_waiting)
+      while (consumer_maybe_waiting) {
         pthread_cond_signal(&cond);
+        pthread_cond_wait(&pcond, &mutex);
+      }
       pthread_mutex_unlock(&mutex);
     }
   }
@@ -222,6 +225,7 @@ public:
   volatile uint64_t tail;
   pthread_mutex_t mutex;
   pthread_cond_t cond;
+  pthread_cond_t pcond;
   // 单线程处理resp所以不用volatile
   uint32_t neighbor_local_cnt[4];
   uint64_t send_head;
