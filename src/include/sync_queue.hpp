@@ -31,6 +31,15 @@ struct RemoteUser {
   int64_t salary;
 };
 
+void get_waitto_time(timespec *to) {
+  clock_gettime(CLOCK_REALTIME, to);
+  to->tv_nsec += 5 * 1000 * 1000;
+  if (to->tv_nsec > 999999999) {
+    to->tv_nsec -= 1000000000;
+    to->tv_sec++;
+  }
+}
+
 class SyncQueue {
 public:
   SyncQueue() 
@@ -115,6 +124,7 @@ public:
 
   void consumer_yield_thread() {
     pthread_mutex_lock(&mutex);
+    get_waitto_time(&ts);
     consumer_maybe_waiting = true;
     pthread_cond_timedwait(&cond, &mutex, &ts);
     consumer_maybe_waiting = false;
