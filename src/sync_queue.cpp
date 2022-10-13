@@ -94,6 +94,7 @@ void Engine::sync_send_handler(int qid) {
           pthread_mutex_unlock(&queue.mutex);
           return;
         }
+        pthread_mutex_unlock(&queue.mutex);
 
         // 有没有可能刚被唤醒但是东西还没到writer buffer呢，可以在writer buffer那里阻塞住，然后这样唤醒的时候就一定有东西
         DEBUG_PRINTF(0, "[%d:%d] send begin sync flag to others\n", host_index, qid);
@@ -114,6 +115,8 @@ void Engine::sync_send_handler(int qid) {
             alive[neighbor_idx] = false;
           }
         }
+
+        pthread_mutex_lock(&queue.mutex);
         queue.consumer_maybe_waiting = false;
         DEBUG_PRINTF(0, "[%d:%d] waking up producer\n", host_index, qid);
         pthread_cond_broadcast(&queue.pcond);
