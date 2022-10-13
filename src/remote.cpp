@@ -412,6 +412,10 @@ void Engine::disconnect() {
   ask_peer_quit();
   DEBUG_PRINTF(0, "socket close, waiting handlers\n");
 
+  for (int i = 0; i < MAX_NR_CONSUMER; i++) {
+    sync_qs[i].notify_consumer_exit();
+  }
+
   for (int nb_i = 0; nb_i < 3 ; ++nb_i) {
     int neighbor_idx = neighbor_index[nb_i];
     for (int i = 0; i < 10; i++) {
@@ -440,16 +444,8 @@ void Engine::disconnect() {
   for (int i = 0; i < 3; ++i) {
     int neighbor_idx = neighbor_index[i];
     for (int j = 0; j < MAX_NR_CONSUMER; ++j) {
-      shutdown(sync_send_fdall[neighbor_idx][i], SHUT_RDWR);
-      shutdown(sync_recv_fdall[neighbor_idx][i], SHUT_RDWR);
-    }
-  }
-
-  for (int i = 0; i < 3; ++i) {
-    int neighbor_idx = neighbor_index[i];
-    for (int j = 0; j < MAX_NR_CONSUMER; ++j) {
-      close(sync_send_fdall[neighbor_idx][i]);
-      close(sync_recv_fdall[neighbor_idx][i]);
+      shutdown(sync_send_fdall[neighbor_idx][j], SHUT_RDWR);
+      shutdown(sync_recv_fdall[neighbor_idx][j], SHUT_RDWR);
     }
   }
 
@@ -459,6 +455,14 @@ void Engine::disconnect() {
 
     delete sync_send_thread[i];
     delete sync_resp_thread[i];
+  }
+
+  for (int i = 0; i < 3; ++i) {
+    int neighbor_idx = neighbor_index[i];
+    for (int j = 0; j < MAX_NR_CONSUMER; ++j) {
+      close(sync_send_fdall[neighbor_idx][j]);
+      close(sync_recv_fdall[neighbor_idx][j]);
+    }
   }
 }
 

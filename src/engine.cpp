@@ -49,7 +49,6 @@ Engine::~Engine() {
   // disconnect all socket and handlers
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     qs[i].notify_producers_exit();
-    sync_qs[i].notify_consumer_exit();
   }
 
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
