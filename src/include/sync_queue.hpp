@@ -31,7 +31,7 @@ struct RemoteUser {
   int64_t salary;
 };
 
-void get_waitto_time(timespec *to) {
+static void get_waitto_time(timespec *to) {
   clock_gettime(CLOCK_REALTIME, to);
   to->tv_nsec += 5 * 1000 * 1000;
   if (to->tv_nsec > 999999999) {

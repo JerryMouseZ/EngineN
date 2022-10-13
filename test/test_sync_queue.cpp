@@ -51,7 +51,7 @@ void test_engine(void *context, int index, size_t num)
     }
 
     pthread_barrier_wait(&barrier);
-    sleep(10);
+    sleep(20);
 
     for (long i = data_begin; i < data_end; ++i) {
       TestUser user;
