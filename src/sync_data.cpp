@@ -138,8 +138,8 @@ int Engine::do_exchange_data(DataTransMeta local[MAX_NR_CONSUMER], DataTransMeta
 
 
   /* std::thread *exchange_workers[16]; */
-#pragma omp parallel for num_threads(16)
-  for (int i = 0; i < 16; ++i) {
+#pragma omp parallel for num_threads(MAX_NR_CONSUMER)
+  for (int i = 0; i < MAX_NR_CONSUMER; ++i) {
     exchange_fn(i);
   }
 
