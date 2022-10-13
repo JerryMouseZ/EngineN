@@ -130,9 +130,14 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
   int64_t resp_cnt;
   
   if (param->restn) {
+    size_t cnt = 16 - param->restn;
+    if (nread < cnt) {
+      memcpy(param->rest + param->restn, buf, nread);
+      param->restn += nread;
+      return;
+    }
     int64_t unaligned[2];
     memcpy(unaligned, param->rest, param->restn);
-    size_t cnt = 16 - param->restn;
     memcpy((char *)unaligned + param->restn, buf, cnt);
     nread -= cnt;
     buf += cnt;
