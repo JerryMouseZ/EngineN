@@ -107,7 +107,7 @@ public:
       pthread_mutex_lock(&mutex);
       while (consumer_maybe_waiting) {
         pthread_cond_signal(&cond);
-        pthread_cond_wait(&pcond, &mutex);
+        /* pthread_cond_wait(&pcond, &mutex); */
       }
       pthread_mutex_unlock(&mutex);
     }

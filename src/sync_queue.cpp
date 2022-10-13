@@ -116,7 +116,7 @@ void Engine::sync_send_handler(int qid) {
         }
         queue.consumer_maybe_waiting = false;
         DEBUG_PRINTF(0, "[%d:%d] waking up producer\n", host_index, qid);
-        pthread_cond_broadcast(&queue.pcond);
+        /* pthread_cond_broadcast(&queue.pcond); */
         pthread_mutex_unlock(&queue.mutex);
       } else {
         usleep(20);
