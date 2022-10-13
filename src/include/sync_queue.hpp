@@ -70,7 +70,6 @@ public:
     while (tail + SQSIZE <= pos) {
       sched_yield();
     }
-
     data[pos % SQSIZE].id = user->id;
     data[pos % SQSIZE].salary = user->salary;
 

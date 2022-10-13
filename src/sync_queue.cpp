@@ -5,6 +5,7 @@
 #include "include/util.hpp"
 #include "uv.h"
 #include "uv/unix.h"
+#include <atomic>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -41,6 +42,7 @@ void Engine::sync_send_handler(int qid) {
   RemoteUser *send_start;
   int waiting_times = 0;
   size_t pop_cnt;
+  int ret;
   while ((pop_cnt = queue.pop(&send_start)) > 0) {
     for (int i = 0; i < pop_cnt; ++i) {
       DEBUG_PRINTF(VPROT, "sending %ld, %ld\n", send_start[i].id, send_start[i].salary);
@@ -48,16 +50,21 @@ void Engine::sync_send_handler(int qid) {
     // 要向3个发
     for (int i = 0; i < 3; ++i) {
       int neighbor_idx = neighbor_index[i];
-      int ret = send_all(sync_send_fdall[neighbor_idx][qid], send_start, pop_cnt * 16, 0);
-      if (ret < 0) {
-        alive[neighbor_idx] = false;
-        continue;
+      if (alive[neighbor_idx]) {
+        ret = send_all(sync_send_fdall[neighbor_idx][qid], send_start, pop_cnt * 16, 0);
+        if (ret < 0) {
+          alive[neighbor_idx] = false;
+          continue;
+        }
+        DEBUG_PRINTF(ret == pop_cnt * 16, "send buffer not enough : %d < %ld\n", ret, pop_cnt * 16);
+        assert(ret == pop_cnt * 16);
       }
-      DEBUG_PRINTF(ret == pop_cnt * 16, "send buffer not enough : %d < %ld\n", ret, pop_cnt * 16);
-      assert(ret == pop_cnt * 16);
     }
+
+    // 更新tail
+    std::atomic_thread_fence(std::memory_order_release);
+    queue.tail += pop_cnt;
   }
-  // 重新进入同步状态
 }
 
 
@@ -91,7 +98,8 @@ struct sync_resp_param {
   int neighbor_idx;
   int qid;
   uv_buf_t write_buf;
-  /* size_t rest; // 一个包剩下的大小 */
+  char rest[16]; // 一个包剩下的大小
+  size_t restn;
 };
 
 void sync_resp_alloc_buffer(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
@@ -119,9 +127,22 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
   int qid = param->qid;
   char *buf = uv_buf->base;
   int64_t resp_cnt;
-
+  
+  if (param->restn) {
+    int64_t unaligned[2];
+    memcpy(unaligned, param->rest, param->restn);
+    memcpy((char *)unaligned + param->restn, buf, 16 - param->restn);
+    nread -= param->restn;
+    buf += param->restn;
+    param->restn = 0;
+  }
   // 收到退出的sync的请求的时候需要回应
-  assert((nread & (16 - 1)) == 0);
+  if(nread & 15) {
+    param->restn = nread & 15;
+    memcpy(param->rest, buf + (nread / 16) * 16, param->restn);
+    nread -= param->restn;
+  }
+  assert((nread % 16) == 0);
   // nread 为什么会是2呢
   RemoteUser *user = (RemoteUser *) buf;
   size_t recv_user_cnt = nread / 16;
@@ -152,7 +173,8 @@ void Engine::sync_resp_handler(int qid) {
     param[nb_i].eg = this;
     param[nb_i].neighbor_idx = neighbor_index[nb_i];
     param[nb_i].qid = qid;
-    /* param[nb_i][i].rest = 0; */
+    memset(param[nb_i].rest, 0, 16);
+    param[nb_i].restn = 0;
     /* for (int j = 0; j < 3; j++) { */
     /*   param[nb_i][i].neighbor_index[j] = neighbor_index[j]; */
     /* } */
@@ -193,7 +215,7 @@ void Engine::start_sync_handlers() {
   for (int i = 0; i < MAX_NR_CONSUMER; i++) {
     sync_send_thread[i] = new std::thread(sync_sender_fn, i);
   }
-  waiting_all_exit_sync();
+  /* waiting_all_exit_sync(); */
 }
 
 
