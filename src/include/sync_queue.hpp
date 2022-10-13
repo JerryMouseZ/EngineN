@@ -11,10 +11,10 @@
 #include <sys/mman.h>
 
 // 测试性能，需要调参
-constexpr uint64_t SQBITS = 14;
+/* constexpr uint64_t SQBITS = 16; */
 // 测试正确性
 // constexpr uint64_t QBITS = 10;
-constexpr uint64_t SQSIZE = 1 << SQBITS;
+constexpr uint64_t SQSIZE = 4000 * 128;
 constexpr uint64_t SQMASK = SQSIZE - 1;
 
 struct sync_send {
@@ -89,7 +89,7 @@ public:
   // send完以后再更新tail
   int pop(RemoteUser **begin) {
     size_t pos = tail;
-    uint64_t waiting_cnt = 4096; // 一次发64k = 4096 * 16
+    uint64_t waiting_cnt = 4000; // 一次发64k = 4096 * 16
     while (pos + waiting_cnt - 1 >= last_head) {
       /* fprintf(stderr, "waiting for producer\n"); */
       if (unlikely(exited)) {
