@@ -117,9 +117,10 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
     uv_read_stop(client);
     return;
   }
+
   // TODO: 何时会读到0？
   if (nread == 0) {
-    DEBUG_PRINTF(VPROT, "Read error nread = 0, %s\n", strerror(errno));
+    DEBUG_PRINTF(0, "Read error nread = 0, %s\n", strerror(errno));
     return;
   }
 

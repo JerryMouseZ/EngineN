@@ -5,6 +5,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <pthread.h>
 #include <sched.h>
 #include <sys/mman.h>
@@ -67,6 +68,7 @@ public:
     this_thread_head() = pos;
     
     while (tail + SQSIZE <= pos) {
+      fprintf(stderr, "waiting for consumer\n");
       sched_yield();
       try_wake_consumer();
     }
@@ -88,6 +90,7 @@ public:
     size_t pos = tail;
     uint64_t waiting_cnt = 4096; // 一次发64k = 4096 * 16
     while (pos + waiting_cnt - 1 >= last_head) {
+      fprintf(stderr, "waiting for producer\n");
       if (unlikely(exited)) {
         return 0;
       }
@@ -120,8 +123,8 @@ public:
 
 
   void notify_consumer_exit() {
-    exited = true;
     pthread_mutex_lock(&mutex);
+    exited = true;
     pthread_cond_signal(&cond);
     pthread_mutex_unlock(&mutex);
   }
