@@ -165,8 +165,6 @@ void Engine::write(const User *user) {
 constexpr int key_len[4] = {8, 128, 128, 8};
 size_t Engine::sync_read(int32_t select_column, int32_t where_column, const void *column_key, size_t column_key_len, void *res) {
   size_t result = 0;
-  bool syncing = any_rm_in_sync();
-  DEBUG_PRINTF(!VPROT || syncing == false, "being sync, broadcast read\n");
   switch(where_column) {
   case Id:
     if (select_column == Salary) {
@@ -185,10 +183,7 @@ size_t Engine::sync_read(int32_t select_column, int32_t where_column, const void
       }
     }
     // 如果当前不是正在sync，就应该返回0了
-    if (syncing)
-      return remote_read_broadcast(select_column, where_column, column_key, key_len[where_column], res);
-    else
-      return 0;
+    return 0;
     DEBUG_PRINTF(VLOG, "select %s where ID = %ld, res = %ld\n", column_str(select_column).c_str(), *(int64_t *) column_key, result);
     break;
   case Userid:
@@ -196,8 +191,8 @@ size_t Engine::sync_read(int32_t select_column, int32_t where_column, const void
     return remote_read_broadcast(select_column, where_column, column_key, key_len[where_column], res);
     break;
   case Salary:
-    if (syncing)
-      return remote_read_broadcast(select_column, where_column, column_key, key_len[where_column], res);
+    /* if (syncing) */
+    /*   return remote_read_broadcast(select_column, where_column, column_key, key_len[where_column], res); */
     if (select_column == Id) {
       for (int i = 0; i < 3; i++) {
         size_t tmp = remote_sala_r[neighbor_index[i]].get(*(int64_t *) column_key, res, true);
