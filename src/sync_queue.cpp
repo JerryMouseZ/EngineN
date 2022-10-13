@@ -119,7 +119,7 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
   }
   // TODO: 何时会读到0？
   if (nread == 0) {
-    DEBUG_PRINTF(0, "Read error nread = 0, %s\n", strerror(errno));
+    DEBUG_PRINTF(VPROT, "Read error nread = 0, %s\n", strerror(errno));
     return;
   }
 
@@ -131,10 +131,13 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
   if (param->restn) {
     int64_t unaligned[2];
     memcpy(unaligned, param->rest, param->restn);
-    memcpy((char *)unaligned + param->restn, buf, 16 - param->restn);
-    nread -= param->restn;
-    buf += param->restn;
+    size_t cnt = 16 - param->restn;
+    memcpy((char *)unaligned + param->restn, buf, cnt);
+    nread -= cnt;
+    buf += cnt;
     param->restn = 0;
+    param->eg->remote_id_r[param->neighbor_idx].put(unaligned[0], unaligned[1]);
+    param->eg->remote_sala_r[param->neighbor_idx].put(unaligned[1], unaligned[0]);
   }
   // 收到退出的sync的请求的时候需要回应
   if(nread & 15) {
@@ -149,7 +152,7 @@ void process_sync_resp(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_bu
 #pragma omp parallel for num_threads(4)
   for (int i = 0; i < recv_user_cnt; ++i) {
     // build index
-    /* DEBUG_PRINTF(0, "recving %ld, %ld from %d\n", user[i].id, user[i].salary, param->neighbor_idx); */
+    DEBUG_PRINTF(VPROT, "recving %ld, %ld from %d\n", user[i].id, user[i].salary, param->neighbor_idx);
     param->eg->remote_id_r[param->neighbor_idx].put(user[i].id, user[i].salary);
     param->eg->remote_sala_r[param->neighbor_idx].put(user[i].salary, user[i].id);
   }
