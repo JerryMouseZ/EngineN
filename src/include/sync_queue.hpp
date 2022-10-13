@@ -63,12 +63,12 @@ public:
   /* } */
 
   uint64_t push(const User *user) {
-    this_thread_head() = head.load(std::memory_order_consume);
     size_t pos = head.fetch_add(1, std::memory_order_acquire);
     this_thread_head() = pos;
     
     while (tail + SQSIZE <= pos) {
       sched_yield();
+      try_wake_consumer();
     }
     data[pos % SQSIZE].id = user->id;
     data[pos % SQSIZE].salary = user->salary;
