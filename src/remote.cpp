@@ -441,29 +441,29 @@ void Engine::disconnect() {
     }
   }
 
-  for (int i = 0; i < 3; ++i) {
-    int neighbor_idx = neighbor_index[i];
-    for (int j = 0; j < MAX_NR_CONSUMER; ++j) {
-      shutdown(sync_send_fdall[neighbor_idx][j], SHUT_RDWR);
-      shutdown(sync_recv_fdall[neighbor_idx][j], SHUT_RDWR);
-    }
-  }
+  /* for (int i = 0; i < 3; ++i) { */
+  /*   int neighbor_idx = neighbor_index[i]; */
+  /*   for (int j = 0; j < MAX_NR_CONSUMER; ++j) { */
+  /*     shutdown(sync_send_fdall[neighbor_idx][j], SHUT_RDWR); */
+  /*     shutdown(sync_recv_fdall[neighbor_idx][j], SHUT_RDWR); */
+  /*   } */
+  /* } */
 
-  for (int i = 0; i < MAX_NR_CONSUMER; ++i) {
-    sync_send_thread[i]->join();
-    sync_resp_thread[i]->join();
+  /* for (int i = 0; i < MAX_NR_CONSUMER; ++i) { */
+  /*   sync_send_thread[i]->join(); */
+  /*   sync_resp_thread[i]->join(); */
 
-    delete sync_send_thread[i];
-    delete sync_resp_thread[i];
-  }
+  /*   delete sync_send_thread[i]; */
+  /*   delete sync_resp_thread[i]; */
+  /* } */
 
-  for (int i = 0; i < 3; ++i) {
-    int neighbor_idx = neighbor_index[i];
-    for (int j = 0; j < MAX_NR_CONSUMER; ++j) {
-      close(sync_send_fdall[neighbor_idx][j]);
-      close(sync_recv_fdall[neighbor_idx][j]);
-    }
-  }
+  /* for (int i = 0; i < 3; ++i) { */
+  /*   int neighbor_idx = neighbor_index[i]; */
+  /*   for (int j = 0; j < MAX_NR_CONSUMER; ++j) { */
+  /*     close(sync_send_fdall[neighbor_idx][j]); */
+  /*     close(sync_recv_fdall[neighbor_idx][j]); */
+  /*   } */
+  /* } */
 }
 
 
