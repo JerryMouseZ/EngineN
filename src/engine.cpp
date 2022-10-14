@@ -171,8 +171,7 @@ size_t Engine::sync_read(int32_t select_column, int32_t where_column, const void
   for (int i = 0; i < MAX_NR_CONSUMER; ++i) {
     if (sync_qs[i].head > sync_qs[i].tail) {
       flag = false;
-      sync_qs[i].update_last_head();
-      fprintf(stderr, "queue %d is not sync, head : %ld, last head : %ld > %ld\n", i, sync_qs[i].head.load(), sync_qs[i].last_head, sync_qs[i].tail);
+      /* fprintf(stderr, "queue %d is not sync, head : %ld, last head : %ld > %ld\n", i, sync_qs[i].head.load(), sync_qs[i].last_head, sync_qs[i].tail); */
       break;
     }
   }
